@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Red scale" subtitle="Pressed → base → hover, with a faint wash" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-card); color:var(--text-primary); }
+  .scale { display:flex; padding:var(--space-6); }
+  .step { flex:1; }
+  .chip { height:72px; }
+  .lbl { font-size:11px; color:var(--text-secondary); margin-top:var(--space-2); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+  .hex { font-size:10px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="scale">
+    <div class="step"><div class="chip" style="background:var(--red-700)"></div><div class="lbl">700</div><div class="hex">#8a0c0c</div></div>
+    <div class="step"><div class="chip" style="background:var(--red-600)"></div><div class="lbl">600 · base</div><div class="hex">#b21010</div></div>
+    <div class="step"><div class="chip" style="background:var(--red-500)"></div><div class="lbl">500</div><div class="hex">#c8201f</div></div>
+    <div class="step"><div class="chip" style="background:var(--red-050);border:1px solid var(--border-subtle)"></div><div class="lbl">050</div><div class="hex">#f7e3e3</div></div>
+  </div>
+</body>
+</html>

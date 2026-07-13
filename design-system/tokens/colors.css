@@ -1,0 +1,70 @@
+/* the^delta — Color tokens
+   Palette from brand guidelines. Yellow (#f4c024) is an ACCENT ONLY:
+   never more than ~10% of any composition. */
+
+:root {
+  /* ---- Brand core (raw) ---- */
+  --delta-red:        #b21010;   /* delta red — passion, action, transformation */
+  --delta-charcoal:   #363d3f;   /* charcoal slate — headings, ink */
+  --delta-slate:      #6e7475;   /* muted slate — body / secondary */
+  --delta-grey:       #f0f0f0;   /* light grey — the blank canvas */
+  --delta-yellow:     #f4c024;   /* vivid yellow — accent, ≤10% */
+  --delta-white:      #ffffff;
+  --delta-black:      #1a1d1e;   /* near-black — apparel, photo grounds */
+
+  /* ---- Red scale (derived from #b21010) ---- */
+  --red-700:          #8a0c0c;   /* pressed */
+  --red-600:          #b21010;   /* base */
+  --red-500:          #c8201f;   /* hover-light on dark */
+  --red-050:          #f7e3e3;   /* faint red wash */
+
+  /* ---- Neutral / slate scale ---- */
+  --grey-900:         #24292b;
+  --grey-800:         #363d3f;   /* = charcoal */
+  --grey-600:         #545a5b;
+  --grey-500:         #6e7475;   /* = slate */
+  --grey-400:         #9aa0a1;
+  --grey-300:         #c7cbcb;
+  --grey-200:         #e2e4e4;
+  --grey-100:         #f0f0f0;   /* = light grey */
+  --grey-050:         #f7f7f7;
+
+  /* ---- Yellow scale ---- */
+  --yellow-600:       #d9a415;
+  --yellow-500:       #f4c024;   /* base */
+  --yellow-100:       #fdf1cf;
+
+  /* ================= SEMANTIC ALIASES ================= */
+
+  /* Surfaces */
+  --color-bg:         var(--delta-white);
+  --surface-canvas:   var(--delta-grey);   /* the openness / blank canvas */
+  --surface-card:     var(--delta-white);
+  --surface-raised:   var(--delta-white);
+  --surface-ink:      var(--delta-charcoal);/* dark sections, apparel */
+  --surface-accent:   var(--delta-red);
+
+  /* Text */
+  --text-primary:     var(--delta-charcoal);
+  --text-secondary:   var(--delta-slate);
+  --text-muted:       var(--grey-400);
+  --text-inverse:     var(--delta-white);
+  --text-accent:      var(--delta-red);     /* names, emphasis, the caret */
+
+  /* Lines & borders (always square) */
+  --border-subtle:    var(--grey-200);
+  --border-strong:    var(--delta-charcoal);
+  --border-accent:    var(--delta-red);
+
+  /* Interactive */
+  --action:           var(--delta-red);
+  --action-hover:     var(--red-700);
+  --action-text:      var(--delta-white);
+
+  /* Accent (use sparingly, ≤10%) */
+  --accent:           var(--delta-yellow);
+  --accent-quiet:     var(--yellow-100);
+
+  /* Focus */
+  --focus-ring:       var(--delta-charcoal);
+}

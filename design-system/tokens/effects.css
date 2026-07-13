@@ -1,0 +1,30 @@
+/* the^delta — Effects: shadow, motion, elevation
+   The brand is flat and clean. Shadows are restrained; motion is
+   purposeful and forward — momentum, never bounce. */
+
+:root {
+  /* Shadows — used sparingly (cards can be borderless-flat too) */
+  --shadow-none:   none;
+  --shadow-sm:     0 1px 2px rgba(24, 29, 30, 0.06);
+  --shadow-md:     0 6px 20px rgba(24, 29, 30, 0.08);
+  --shadow-lg:     0 18px 48px rgba(24, 29, 30, 0.12);
+
+  /* Motion — momentum & progress; ease-out, no elastic bounce */
+  --ease-out:      cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-in-out:   cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
+  --dur-fast:      120ms; /* @kind other */
+  --dur-base:      200ms; /* @kind other */
+  --dur-slow:      360ms; /* @kind other */
+
+  /* Focus ring */
+  --ring-width:    2px; /* @kind other */
+  --ring-offset:   2px; /* @kind other */
+
+  /* Z-index scale */
+  --z-base:        0; /* @kind other */
+  --z-raised:      10; /* @kind other */
+  --z-sticky:      100; /* @kind other */
+  --z-overlay:     1000; /* @kind other */
+  --z-modal:       1100; /* @kind other */
+  --z-toast:       1200; /* @kind other */
+}

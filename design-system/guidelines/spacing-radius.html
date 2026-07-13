@@ -1,0 +1,26 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Sharp edges — zero radius" subtitle="No curved or circular borders on any element" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-card); color:var(--text-primary); padding:var(--space-6); }
+  .wrap { display:flex; align-items:center; gap:var(--space-8); }
+  .demo { display:flex; gap:var(--space-4); align-items:center; }
+  .box { width:72px; height:72px; background:var(--delta-charcoal); }
+  .btn { background:var(--delta-red); color:#fff; padding:12px 22px; font-weight:var(--fw-bold); font-size:var(--fs-small); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+  .no { position:relative; }
+  .no .box { border-radius:50%; opacity:.35; }
+  .no::after { content:"✕"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--delta-red); font-size:32px; font-weight:700; }
+  .cap { font-size:11px; color:var(--text-secondary); letter-spacing:var(--ls-wide); text-transform:uppercase; margin-top:var(--space-2); }
+  .col { text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="col"><div class="demo"><div class="box"></div><div class="btn">apply now</div></div><div class="cap">do · square</div></div>
+    <div class="col"><div class="demo no"><div class="box"></div></div><div class="cap">don't · rounded</div></div>
+  </div>
+</body>
+</html>

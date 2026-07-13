@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Program landing page" description="the^delta program landing — angular hero, program grid, testimonial & footer" -->
+<helmet>
+<script src="./ds-base.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,300;0,600;0,700;0,800;1,400&family=Cormorant:ital,wght@0,600;1,500&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-sans); color: var(--text-primary); background: var(--surface-card);">
+
+  <!-- nav -->
+  <header style="position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid var(--border-subtle);">
+    <div style="max-width: 1160px; margin: 0 auto; padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-weight: 700; font-size: 26px; text-transform: lowercase; letter-spacing: -0.01em;">the<span style="color: var(--delta-red);">^</span>delta</span>
+      <nav style="display: flex; gap: 28px; align-items: center;">
+        <a href="#" style="text-decoration: none; text-transform: lowercase; font-weight: 600; font-size: 15px; color: var(--text-secondary);">programs</a>
+        <a href="#" style="text-decoration: none; text-transform: lowercase; font-weight: 600; font-size: 15px; color: var(--text-secondary);">stories</a>
+        <x-import component-from-global-scope="TheDeltaDesignSystem_88b8ab.Button" size="sm" hint-size="120px,40px">apply now</x-import>
+      </nav>
+    </div>
+  </header>
+
+  <!-- angular hero -->
+  <section style="position: relative; overflow: hidden; background: #fff; padding: 100px 32px;">
+    <div style="position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 96px solid var(--delta-red); border-right: 96px solid transparent;"></div>
+    <div style="position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 170px solid var(--delta-red); border-left: 230px solid transparent;"></div>
+    <div style="position: relative; max-width: 1160px; margin: 0 auto;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--delta-red); margin-bottom: 14px;">registration now open · 2025 cohort</div>
+      <h1 style="margin: 0; font-weight: 700; font-size: 56px; line-height: 1.05; letter-spacing: -0.01em; text-transform: lowercase; max-width: 640px;">transform your ideas into <span style="font-family: var(--font-serif); font-style: italic; font-weight: 600; color: var(--delta-red);">impact</span></h1>
+      <p style="margin: 20px 0 0; font-weight: 300; font-size: 19px; line-height: 1.6; color: var(--text-secondary); max-width: 560px;">the^delta is the platform and social ecosystem where changemakers learn, collaborate and build the networks that turn passion into purpose.</p>
+      <div style="margin-top: 36px; display: flex; gap: 12px;">
+        <x-import component-from-global-scope="TheDeltaDesignSystem_88b8ab.Button" variant="cta" hint-size="150px,48px">apply now</x-import>
+        <x-import component-from-global-scope="TheDeltaDesignSystem_88b8ab.Button" variant="secondary" hint-size="170px,48px">explore programs</x-import>
+      </div>
+    </div>
+  </section>
+
+  <!-- programs -->
+  <section style="background: var(--surface-canvas); padding: 72px 0;">
+    <div style="max-width: 1160px; margin: 0 auto; padding: 0 32px;">
+      <h2 style="margin: 0; font-weight: 700; font-size: 32px; text-transform: lowercase; letter-spacing: -0.01em;">three ways we accelerate change</h2>
+      <p style="margin: 8px 0 0; font-weight: 300; font-size: 18px; color: var(--text-secondary);">pick the stage that meets your venture where it is.</p>
+      <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+        <div style="background: #fff; border: 1px solid var(--border-subtle); border-top: 4px solid var(--delta-red); padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <span style="align-self: flex-start; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-strong); padding: 3px 8px;">idea → early stage</span>
+          <div style="font-weight: 700; font-size: 22px; text-transform: lowercase;">the<span style="color: var(--delta-red);">^</span>delta incubator</div>
+          <p style="margin: 0; font-weight: 300; font-size: 15px; line-height: 1.6; color: var(--text-secondary);">structured guidance, mentorship and ecosystem support to shape an idea into a fundable, scalable venture.</p>
+          <a href="#" style="margin-top: auto; text-decoration: none; color: var(--delta-red); font-weight: 700; font-size: 14px; text-transform: lowercase;">learn more →</a>
+        </div>
+        <div style="background: #fff; border: 1px solid var(--border-subtle); border-top: 4px solid var(--delta-red); padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <span style="align-self: flex-start; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-strong); padding: 3px 8px;">early → scaling</span>
+          <div style="font-weight: 700; font-size: 22px; text-transform: lowercase;">the<span style="color: var(--delta-red);">^</span>delta accelerator</div>
+          <p style="margin: 0; font-weight: 300; font-size: 15px; line-height: 1.6; color: var(--text-secondary);">intensive, cohort-based support to sharpen your model and unlock the capital and partnerships to grow.</p>
+          <a href="#" style="margin-top: auto; text-decoration: none; color: var(--delta-red); font-weight: 700; font-size: 14px; text-transform: lowercase;">learn more →</a>
+        </div>
+        <div style="background: #fff; border: 1px solid var(--border-subtle); border-top: 4px solid var(--delta-red); padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <span style="align-self: flex-start; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-strong); padding: 3px 8px;">recognition</span>
+          <div style="font-weight: 700; font-size: 22px; text-transform: lowercase;">the<span style="color: var(--delta-red);">^</span>delta prize</div>
+          <p style="margin: 0; font-weight: 300; font-size: 15px; line-height: 1.6; color: var(--text-secondary);">catalytic, unrestricted funding that celebrates and amplifies the boldest solutions to social problems.</p>
+          <a href="#" style="margin-top: auto; text-decoration: none; color: var(--delta-red); font-weight: 700; font-size: 14px; text-transform: lowercase;">learn more →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- cta strip -->
+  <section style="background: var(--surface-ink); color: #fff;">
+    <div style="max-width: 1100px; margin: 0 auto; padding: 64px 32px; display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap;">
+      <div>
+        <h2 style="margin: 0; font-weight: 700; font-size: 30px; text-transform: lowercase;">ready to build the delta?</h2>
+        <p style="margin: 8px 0 0; font-weight: 300; font-size: 17px; color: rgba(255,255,255,0.75);">applications for the 2025 cohort close 31 march.</p>
+      </div>
+      <x-import component-from-global-scope="TheDeltaDesignSystem_88b8ab.Button" variant="cta" hint-size="150px,48px">apply now</x-import>
+    </div>
+  </section>
+
+</div>
+
+</x-dc>
+</body>
+</html>

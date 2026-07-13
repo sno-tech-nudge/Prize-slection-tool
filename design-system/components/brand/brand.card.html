@@ -1,0 +1,53 @@
+<!-- @dsCard group="Components" viewport="700x430" name="Brand — Logo & AngularBanner" subtitle="Wordmark, caret mark, diagonal-cut hero" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-canvas); padding:var(--space-6); }
+  .grid { display:flex; flex-direction:column; gap:var(--space-5); }
+  .panel { background:var(--surface-card); padding:var(--space-5); display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
+  .panel.dark { background:var(--delta-charcoal); }
+  .lbl { font-size:11px; letter-spacing:var(--ls-wide); text-transform:uppercase; color:var(--text-muted); width:100%; }
+</style>
+</head>
+<body>
+  <div id="root" class="grid"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel">
+    const { Logo, AngularBanner, Button } = window.TheDeltaDesignSystem_88b8ab;
+    function Demo() {
+      return (
+        <>
+          <div className="panel">
+            <span className="lbl">wordmark & caret mark</span>
+            <Logo size={30} />
+            <Logo size={30} tone="red" />
+            <Logo variant="mark" tone="red" size={40} />
+            <Logo variant="mark" tone="dark" size={40} />
+            <Logo size={30} program="incubator" />
+          </div>
+          <div className="panel dark">
+            <span className="lbl" style={{color:'#9aa0a1'}}>on dark</span>
+            <Logo size={30} tone="light" />
+            <Logo variant="mark" tone="light" size={40} />
+            <Logo size={30} tone="light" program="accelerator" />
+          </div>
+          <AngularBanner
+            eyebrow="registration now open"
+            title="the^delta incubator"
+            subtitle="transform your ideas into impact."
+            action={<Button variant="cta">apply now</Button>}
+            style={{padding:'40px 44px'}}
+          />
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+  </script>
+</body>
+</html>

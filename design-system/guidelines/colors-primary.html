@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x200" name="Primary palette" subtitle="Charcoal, delta red, slate & the blank-canvas grey" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-card); color:var(--text-primary); }
+  .row { display:flex; gap:var(--space-4); padding:var(--space-6); }
+  .sw { flex:1; }
+  .chip { height:96px; border:1px solid var(--border-subtle); }
+  .name { font-weight:var(--fw-bold); font-size:var(--fs-small); margin-top:var(--space-3); }
+  .hex { font-size:var(--fs-caption); color:var(--text-secondary); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--delta-charcoal)"></div><div class="name">charcoal</div><div class="hex">#363d3f</div></div>
+    <div class="sw"><div class="chip" style="background:var(--delta-red)"></div><div class="name">delta red</div><div class="hex">#b21010</div></div>
+    <div class="sw"><div class="chip" style="background:var(--delta-slate)"></div><div class="name">muted slate</div><div class="hex">#6e7475</div></div>
+    <div class="sw"><div class="chip" style="background:var(--delta-grey)"></div><div class="name">light grey</div><div class="hex">#f0f0f0</div></div>
+  </div>
+</body>
+</html>

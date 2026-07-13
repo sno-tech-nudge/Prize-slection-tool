@@ -1,0 +1,28 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Angular cut motif" subtitle="Sharp red diagonals frame the blank canvas" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-canvas); }
+  .stage { position:relative; margin:var(--space-6); height:150px; background:var(--surface-card); overflow:hidden; }
+  .cut-tl { position:absolute; top:0; left:0; width:0; height:0; border-top:64px solid var(--delta-red); border-right:64px solid transparent; }
+  .cut-br { position:absolute; bottom:0; right:0; width:0; height:0; border-bottom:110px solid var(--delta-red); border-left:150px solid transparent; }
+  .txt { position:absolute; left:28px; top:44px; }
+  .k { font-weight:var(--fw-bold); font-size:28px; text-transform:lowercase; color:var(--text-primary); }
+  .k b { color:var(--delta-red); }
+  .sub { font-weight:var(--fw-light); font-size:14px; color:var(--text-secondary); margin-top:4px; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="cut-tl"></div>
+    <div class="cut-br"></div>
+    <div class="txt">
+      <div class="k">the<b>^</b>delta <span style="color:var(--text-secondary)">incubator</span></div>
+      <div class="sub">registration now open for 2025 cohort</div>
+    </div>
+  </div>
+</body>
+</html>

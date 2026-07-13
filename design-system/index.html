@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the^delta — Design System</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-sans); color: var(--text-primary); background: var(--surface-card); }
+  a { color: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+  section { padding: 72px 0; border-bottom: 1px solid var(--border-subtle); }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--delta-red); margin-bottom: 14px; }
+  h2 { margin: 0 0 6px; font-weight: 700; font-size: 32px; text-transform: lowercase; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 36px; font-weight: 300; font-size: 18px; color: var(--text-secondary); max-width: 640px; }
+  .grid { display: grid; gap: 20px; }
+</style>
+</head>
+<body>
+
+  <!-- header -->
+  <header style="position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid var(--border-subtle);">
+    <div class="wrap" style="padding-top: 18px; padding-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-weight: 700; font-size: 24px; text-transform: lowercase; letter-spacing: -0.01em;">the<span style="color: var(--delta-red);">^</span>delta <span style="font-weight: 300; color: var(--text-secondary);">design system</span></span>
+      <nav style="display: flex; gap: 26px; font-size: 14px; font-weight: 600; text-transform: lowercase;">
+        <a href="#foundations" style="text-decoration: none; color: var(--text-secondary);">foundations</a>
+        <a href="#components" style="text-decoration: none; color: var(--text-secondary);">components</a>
+        <a href="#kits" style="text-decoration: none; color: var(--text-secondary);">ui kits</a>
+        <a href="readme.md" style="text-decoration: none; color: var(--delta-red);">guide →</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- hero -->
+  <section style="position: relative; overflow: hidden; border-bottom: none; padding: 104px 0;">
+    <div style="position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 96px solid var(--delta-red); border-right: 96px solid transparent;"></div>
+    <div style="position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 150px solid var(--delta-red); border-left: 210px solid transparent;"></div>
+    <div class="wrap" style="position: relative;">
+      <div class="kicker">the design system</div>
+      <h1 style="margin: 0; font-weight: 700; font-size: 60px; line-height: 1.03; letter-spacing: -0.01em; text-transform: lowercase; max-width: 780px;">everything you need to design as <span style="font-family: var(--font-serif); font-style: italic; font-weight: 600; color: var(--delta-red);">the^delta</span></h1>
+      <p style="margin: 22px 0 0; font-weight: 300; font-size: 20px; line-height: 1.6; color: var(--text-secondary); max-width: 620px;">brand foundations, reusable components and full product surfaces — one place to build on-brand interfaces and collateral for the^delta.</p>
+      <div style="margin-top: 34px; display: flex; gap: 30px; flex-wrap: wrap;">
+        <div><span style="font-weight: 800; font-size: 34px; color: var(--delta-red);">18</span> <span style="color: var(--text-secondary); font-weight: 300;">components</span></div>
+        <div><span style="font-weight: 800; font-size: 34px; color: var(--delta-red);">5</span> <span style="color: var(--text-secondary); font-weight: 300;">colours</span></div>
+        <div><span style="font-weight: 800; font-size: 34px; color: var(--delta-red);">2</span> <span style="color: var(--text-secondary); font-weight: 300;">ui kits</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- foundations -->
+  <section id="foundations">
+    <div class="wrap">
+      <div class="kicker">foundations</div>
+      <h2>the visual language</h2>
+      <p class="sub">strength, urgency, balance and clarity — anchored by charcoal and delta red, opened up by the blank-canvas grey.</p>
+
+      <!-- colours -->
+      <div class="grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 40px;">
+        <div><div style="height: 110px; background: var(--delta-charcoal);"></div><div style="margin-top: 10px; font-weight: 700; font-size: 14px;">charcoal</div><div style="font-size: 12px; color: var(--text-secondary); letter-spacing: 0.06em;">#363D3F</div></div>
+        <div><div style="height: 110px; background: var(--delta-red);"></div><div style="margin-top: 10px; font-weight: 700; font-size: 14px;">delta red</div><div style="font-size: 12px; color: var(--text-secondary); letter-spacing: 0.06em;">#B21010</div></div>
+        <div><div style="height: 110px; background: var(--delta-slate);"></div><div style="margin-top: 10px; font-weight: 700; font-size: 14px;">muted slate</div><div style="font-size: 12px; color: var(--text-secondary); letter-spacing: 0.06em;">#6E7475</div></div>
+        <div><div style="height: 110px; background: var(--delta-grey); border: 1px solid var(--border-subtle);"></div><div style="margin-top: 10px; font-weight: 700; font-size: 14px;">light grey</div><div style="font-size: 12px; color: var(--text-secondary); letter-spacing: 0.06em;">#F0F0F0</div></div>
+        <div><div style="height: 110px; background: var(--delta-yellow);"></div><div style="margin-top: 10px; font-weight: 700; font-size: 14px;">vivid yellow <span style="color: var(--text-secondary); font-weight: 300;">≤10%</span></div><div style="font-size: 12px; color: var(--text-secondary); letter-spacing: 0.06em;">#F4C024</div></div>
+      </div>
+
+      <!-- type + rules -->
+      <div class="grid" style="grid-template-columns: 1.4fr 1fr;">
+        <div style="background: var(--surface-canvas); padding: 32px;">
+          <div style="font-weight: 700; font-size: 40px; text-transform: lowercase; line-height: 1.05;">avenir bold, lowercase</div>
+          <div style="font-weight: 300; font-size: 17px; line-height: 1.6; color: var(--text-secondary); margin-top: 14px;">Avenir Light in sentence case carries body copy with readability and sophistication.</div>
+          <div style="font-family: var(--font-serif); font-style: italic; font-size: 26px; color: var(--delta-red); margin-top: 14px;">Argent italic for emphasis</div>
+          <div style="font-size: 12px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 18px;">substituted: mulish + cormorant</div>
+        </div>
+        <div style="background: var(--surface-canvas); padding: 32px; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <svg viewBox="0 0 114 82" style="height: 40px;"><path d="M47.5 0 L66.5 0 L114 82 L90 82 L57 26 L24 82 L0 82 Z" fill="#b21010"/></svg>
+            <span style="font-weight: 300; font-size: 15px; color: var(--text-secondary);">the caret is the mark</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 40px; height: 40px; background: var(--delta-charcoal);"></div>
+            <span style="font-weight: 300; font-size: 15px; color: var(--text-secondary);">sharp edges · zero radius</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 40px; height: 40px; filter: grayscale(1); background-image: url(assets/imagery/portrait-sonali-bw.png); background-size: cover; background-position: center;"></div>
+            <span style="font-weight: 300; font-size: 15px; color: var(--text-secondary);">photography in black & white</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- components (live) -->
+  <section id="components">
+    <div class="wrap">
+      <div class="kicker">components</div>
+      <h2>reusable, on-brand primitives</h2>
+      <p class="sub">18 live React components — buttons, forms, feedback, navigation and brand blocks. A live sample below; browse them all on the Design System tab.</p>
+      <div id="comp-demo" style="background: var(--surface-canvas); padding: 40px;"></div>
+    </div>
+  </section>
+
+  <!-- ui kits -->
+  <section id="kits" style="border-bottom: none;">
+    <div class="wrap">
+      <div class="kicker">ui kits</div>
+      <h2>full product surfaces</h2>
+      <p class="sub">high-fidelity recreations you can open, click through and copy from.</p>
+      <div class="grid" style="grid-template-columns: 1fr 1fr;">
+        <a href="ui_kits/website/index.html" style="text-decoration: none; display: block; border: 1px solid var(--border-subtle); border-top: 4px solid var(--delta-red);">
+          <div style="position: relative; height: 200px; background: #fff; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 56px solid var(--delta-red); border-right: 56px solid transparent;"></div>
+            <div style="position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 100px solid var(--delta-red); border-left: 140px solid transparent;"></div>
+            <div style="position: absolute; left: 26px; top: 64px;"><div style="font-weight: 700; font-size: 28px; text-transform: lowercase;">the<span style="color: var(--delta-red);">^</span>delta</div><div style="font-weight: 300; color: var(--text-secondary); font-size: 15px;">transform your ideas into impact</div></div>
+          </div>
+          <div style="padding: 20px 24px;"><div style="font-weight: 700; font-size: 20px; text-transform: lowercase;">marketing website →</div><div style="font-weight: 300; color: var(--text-secondary); font-size: 15px; margin-top: 4px;">home · programs · apply</div></div>
+        </a>
+        <a href="ui_kits/collateral/index.html" style="text-decoration: none; display: block; border: 1px solid var(--border-subtle); border-top: 4px solid var(--delta-red);">
+          <div style="height: 200px; background: var(--delta-charcoal); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 114 82" style="height: 56px; opacity: 0.9;"><path d="M47.5 0 L66.5 0 L114 82 L90 82 L57 26 L24 82 L0 82 Z" fill="#fff"/></svg>
+            <span style="position: absolute; left: 24px; bottom: 22px; color: #fff; font-family: var(--font-serif); font-style: italic; font-size: 28px;">impact</span>
+          </div>
+          <div style="padding: 20px 24px;"><div style="font-weight: 700; font-size: 20px; text-transform: lowercase;">collateral templates →</div><div style="font-weight: 300; color: var(--text-secondary); font-size: 15px; margin-top: 4px;">social post · testimonial · banner</div></div>
+        </a>
+      </div>
+      <div style="margin-top: 24px; display: flex; gap: 16px; flex-wrap: wrap;">
+        <a href="templates/program-landing/ProgramLanding.dc.html" style="text-decoration: none; color: var(--delta-red); font-weight: 700; font-size: 15px; text-transform: lowercase;">program landing template →</a>
+        <a href="readme.md" style="text-decoration: none; color: var(--delta-red); font-weight: 700; font-size: 15px; text-transform: lowercase;">full design guide →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <footer style="background: var(--surface-ink); color: #fff;">
+    <div class="wrap" style="padding-top: 40px; padding-bottom: 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <span style="font-weight: 700; font-size: 22px; text-transform: lowercase;">the<span style="color: var(--delta-red);">^</span>delta</span>
+      <span style="font-family: var(--font-serif); font-style: italic; font-size: 17px; color: rgba(255,255,255,0.75);">a the/nudge initiative · transform your ideas into impact</span>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="_ds_bundle.js"></script>
+  <script type="text/babel">
+    const { Button, Badge, Tag, Input, Checkbox, Switch, Tabs, Card } = window.TheDeltaDesignSystem_88b8ab;
+    function Demo() {
+      const [tab, setTab] = React.useState('buttons');
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Button>apply now</Button>
+            <Button variant="secondary">learn more</Button>
+            <Button variant="ghost">skip</Button>
+            <Button variant="cta">apply now</Button>
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Badge tone="red">closing soon</Badge>
+            <Badge tone="ink">2025</Badge>
+            <Badge tone="yellow">new</Badge>
+            <Tag>livelihoods</Tag>
+            <Tag selected>education</Tag>
+            <Switch label="email updates" defaultChecked />
+            <Checkbox label="I agree" defaultChecked />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <Input label="email" placeholder="you@org.in" helper="we'll never share it" />
+            <div>
+              <Tabs value={tab} onChange={setTab} items={[
+                { id: 'buttons', label: 'about' }, { id: 'x', label: 'programs' }, { id: 'y', label: 'apply' }]} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('comp-demo')).render(<Demo />);
+  </script>
+</body>
+</html>

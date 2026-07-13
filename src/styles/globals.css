@@ -1,0 +1,84 @@
+@import url('../../design-system/styles.css');
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: var(--fw-light);
+}
+
+body {
+  min-height: 100vh;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-transform: lowercase;
+  font-family: var(--font-sans);
+  font-weight: var(--fw-bold);
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: var(--ring-width) solid var(--focus-ring);
+  outline-offset: var(--ring-offset);
+}
+
+.em {
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+.spin {
+  animation: delta-spin 1s linear infinite;
+}
+
+@keyframes delta-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--grey-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--grey-400);
+}

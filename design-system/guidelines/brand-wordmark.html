@@ -1,0 +1,26 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Wordmark — the^delta" subtitle="Always written with the caret; red ^ between the words" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-card); display:flex; flex-direction:column; gap:var(--space-6); padding:var(--space-8) var(--space-6); }
+  .mark { display:inline-flex; align-items:baseline; font-weight:var(--fw-bold); text-transform:lowercase; letter-spacing:var(--ls-tight); }
+  .mark .caret { color:var(--delta-red); }
+  .lg { font-size:48px; color:var(--text-primary); }
+  .prog { font-size:48px; font-weight:var(--fw-light); color:var(--text-secondary); margin-left:.35em; text-transform:lowercase; }
+  .meta { font-size:11px; color:var(--text-secondary); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <div>
+    <span class="mark lg">the<span class="caret">^</span>delta</span>
+    <div class="meta" style="margin-top:12px">primary wordmark</div>
+  </div>
+  <div>
+    <span class="mark lg">the<span class="caret">^</span>delta</span><span class="prog">incubator</span>
+    <div class="meta" style="margin-top:12px">program lock-up · incubator · accelerator · prize</div>
+  </div>
+</body>
+</html>

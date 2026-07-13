@@ -1,0 +1,50 @@
+/* the^delta — Typography tokens
+   Avenir (→Mulish): headings BOLD lowercase, body LIGHT sentence case.
+   Argent (→Cormorant): ITALIC only, for emphasised / highlighted words. */
+
+:root {
+  /* Families */
+  --font-sans:  'Mulish', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --font-serif: 'Cormorant', 'Argent CF', Georgia, 'Times New Roman', serif;
+
+  /* Weights (Avenir mapping) */
+  --fw-light:     300; /* @kind font */
+  --fw-regular:   400; /* @kind font */
+  --fw-semibold:  600; /* @kind font */
+  --fw-bold:      700; /* @kind font */
+  --fw-black:     800; /* @kind font */
+
+  /* Type scale (px) */
+  --fs-display:   64px;
+  --fs-h1:        44px;
+  --fs-h2:        32px;
+  --fs-h3:        24px;
+  --fs-h4:        20px;
+  --fs-body-lg:   18px;
+  --fs-body:      16px;
+  --fs-small:     14px;
+  --fs-caption:   12px;
+  --fs-overline:  12px;
+
+  /* Line heights */
+  --lh-tight:     1.05; /* @kind other */
+  --lh-snug:      1.2; /* @kind other */
+  --lh-normal:    1.5; /* @kind other */
+  --lh-relaxed:   1.65; /* @kind other */
+
+  /* Letter spacing */
+  --ls-tight:     -0.01em; /* @kind other */
+  --ls-normal:    0; /* @kind other */
+  --ls-wide:      0.08em; /* @kind other */
+
+  /* Semantic roles */
+  --text-heading-font:   var(--font-sans);
+  --text-heading-weight: var(--fw-bold);
+  --text-heading-case:   lowercase;   /* headings are lowercase */
+
+  --text-body-font:      var(--font-sans);
+  --text-body-weight:    var(--fw-light);
+
+  --text-emphasis-font:  var(--font-serif);   /* Argent italic */
+  --text-emphasis-style: italic;
+}

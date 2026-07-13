@@ -1,0 +1,33 @@
+<!-- @dsCard group="Colors" viewport="700x200" name="Accent — vivid yellow" subtitle="≤10% of any composition; never dominant" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-card); color:var(--text-primary); }
+  .wrap { display:flex; align-items:stretch; gap:var(--space-6); padding:var(--space-6); }
+  .big { width:120px; background:var(--delta-yellow); }
+  .meta { display:flex; flex-direction:column; justify-content:center; gap:var(--space-2); }
+  .name { font-weight:var(--fw-bold); font-size:var(--fs-h4); }
+  .hex { font-size:var(--fs-caption); color:var(--text-secondary); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+  .note { font-family:var(--font-serif); font-style:italic; font-size:var(--fs-body-lg); color:var(--text-secondary); max-width:360px; }
+  .ratio { display:flex; height:20px; margin-top:var(--space-2); border:1px solid var(--border-subtle); }
+  .ratio i { display:block; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="big"></div>
+    <div class="meta">
+      <div class="name">vivid yellow</div>
+      <div class="hex">#f4c024</div>
+      <div class="note">reserved for a single highlight — a quote mark, an underline. Subdue it with the primaries.</div>
+      <div class="ratio" style="width:320px">
+        <i style="flex:0 0 10%;background:var(--delta-yellow)"></i>
+        <i style="flex:1;background:var(--delta-grey)"></i>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,390 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Our own tables (this admin tool's internal data), NOT the externally-owned Supabase
+// `applications` source table (fed by Zoho, read via @supabase/supabase-js — see
+// src/lib/sources/supabase-source.ts). We deliberately live in a separate `delta_admin`
+// schema on the same Postgres instance so Prisma migrations never touch the source table —
+// set that via `?schema=delta_admin` on both DATABASE_URL and DIRECT_URL below.
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled connection (port 6543, pgbouncer) — used at runtime
+  directUrl = env("DIRECT_URL")   // direct connection (port 5432) — used for `prisma db push`/migrate
+}
+
+// ---------------------------------------------------------------------------
+// SQLite has no native enum support in Prisma, so every "enum" below is a
+// String column. The canonical value lists live as TS union types + const
+// arrays in `src/lib/constants.ts` — validate against those at the app layer.
+//
+// UserRole:              ADMIN | REVIEWER | JURY | OBSERVER
+// OrgType:                FOR_PROFIT | NON_PROFIT
+// NormalizedStage:        IDEA | PROTOTYPE | MARKET_READY | GROWTH | SCALE | OTHER
+// FocusLevel:             YES | PARTIALLY | NO
+// TeamSize:               S_0_10 | S_10_50 | S_50_150 | S_150_PLUS
+// SolutionCategory:       PRECISION_FARMING | ADVISORY | IRRIGATION |
+//                         PACKAGE_OF_PRACTICES | SCIENCE_BASED |
+//                         TRADITIONAL_PRACTICES | OTHERS
+// ApplicationSourceType:  SEED | ZOHO_CRM | GOOGLE_FORM | MANUAL | SUPABASE
+// StageStatus:            SUBMITTED | SCREENING | UNDER_REVIEW | SHORTLISTED |
+//                         JURY_REVIEW | FINALIST | WINNER | REJECTED | WITHDRAWN
+// Disposition:            STRONG_ADVANCE | ADVANCE | BORDERLINE | REJECT
+// ReviewRecommendation:   ADVANCE | HOLD | REJECT
+// JuryVerdict:            YES | MAYBE | NO
+// TargetStatus:           NOT_APPLIED | APPLIED | MATCHED | CONTACTED
+// OutboxStatus:           QUEUED | APPROVED | SENT | FAILED | SKIPPED
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String
+  createdAt DateTime @default(now())
+
+  humanReviews     HumanReview[]
+  juryScores       JuryScore[]
+  stageTransitions StageTransition[]
+  assignments      ReviewAssignment[]
+  aiOverrides      AiEvaluation[] @relation("AiOverrides")
+  comments         Comment[]
+  notes            Note[]
+}
+
+model Founder {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fullName      String
+  role          String?
+  linkedin      String?
+  email         String?
+}
+
+// "who are your top 3 funders currently?" — repeatable entry, at least 1 required
+model Funder {
+  id                  String      @id @default(cuid())
+  applicationId       String
+  application         Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name                String
+  fundingNature       String? // Supabase funders[].funding_nature — free text description of the funding relationship
+  worksWithGovernment Boolean? // Supabase funders[].works_with_government
+}
+
+// "what are the top 3 tech use cases in your organisation?" — repeatable entry
+model TechUseCase {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  description   String
+}
+
+// "share links to any published reports, case studies, or research papers" — repeatable entry
+model ReportLink {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  url           String
+}
+
+model ReviewAssignment {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  reviewer      User        @relation(fields: [reviewerId], references: [id])
+  assignedAt    DateTime    @default(now())
+
+  @@unique([applicationId, reviewerId])
+}
+
+model Application {
+  id String @id @default(cuid())
+
+  // identity
+  orgName      String
+  pocFirstName String
+  pocLastName  String
+  email        String
+  phone        String?
+  designation  String?
+
+  // org
+  website           String?
+  incorporationDate DateTime?
+  location          String?
+  orgType           String  @default("FOR_PROFIT")
+  stageRaw          String?
+  stageNormalized   String  @default("OTHER")
+
+  // solution
+  problemAddressing      String?
+  valueChainFocus        String? // semicolon separated raw multi-select
+  beneficiaries          String? // semicolon separated raw multi-select
+  smallMarginalFarmerPct Int?
+  areaHectaresRaw        String?
+  areaHectaresParsed     Float?
+  aboutSolution          String?
+  solutionCategory       String  @default("OTHERS")
+  trl                    Int?
+
+  // water / crop — legacy AgWater-cycle fields, kept for the 134 historically-imported
+  // applications. New (rapid re.gen) applications use the fields below instead.
+  waterEfficiencyFocus    String?
+  waterEfficiencyEstimate String?
+  cropProductionFocus     String?
+  focusCrops              String?
+
+  // team
+  teamSize String?
+  founders Founder[]
+
+  // pitch
+  pitchDeckUrl String?
+
+  // rapid re.gen — organisation profile / registrations
+  linkedinUrl            String?
+  legalRegistrationType   String?
+  fcraStatus              String? // YES | NO | IN_PROGRESS
+  cert12A                 String? // YES | NO | IN_PROGRESS
+  cert80G                 String? // YES | NO | IN_PROGRESS
+  csr1Registration        String? // YES | NO | IN_PROGRESS
+  darpanRegistered        String? // YES | NO
+  annualOperatingBudget   String?
+  funders                 Funder[]
+
+  // rapid re.gen — model
+  operatingModelArchetype    String?
+  operatingModelSecondary    String?
+  operatingModelDescription  String?
+  primaryCrops               String? // semicolon separated raw multi-select
+  regenerativePractices      String? // semicolon separated raw multi-select
+  adoptionHurdle             String?
+
+  // rapid re.gen — tech and tools
+  techTools         String? // semicolon separated raw multi-select
+  techToolsInternal Boolean?
+  techUseCases      TechUseCase[]
+
+  // rapid re.gen — experience and impact
+  yearsExperience           Int?
+  verifiedImpacts           String?
+  statesOperating           String? // semicolon separated raw multi-select
+  farmersCount              Int?
+  smallholderFarmersCount   Int?
+  avgLandHolding            Float?
+  areaUnderRegenPractice    Float?
+  villagesCount             Int?
+  districtsCount            Int?
+  worksBeyondAg             Boolean?
+  materialsInLocalLanguages Boolean?
+  teamFormalTraining        Boolean?
+  melHandling               String? // INTERNAL | EXTERNAL | BOTH
+  fundUsagePlan             String?
+  reportLinks               ReportLink[]
+  villagesDistrictsRaw      String? // free text, e.g. "12 villages across 4 districts" — not force-parsed into counts
+  otherDevelopmentAreas     String?
+  teamTrainingDescription   String?
+  heardAboutChallenge       String? // semicolon separated raw multi-select
+  otherHeardAbout           String?
+  otherTools                String?
+  infoAccurateConfirmed     Boolean?
+  darpanIdNumber            String? // Supabase darpan_id_number — the actual registration number (darpanRegistered above is just yes/no)
+
+  // public-data enrichment — a real website fetch (no API key needed) plus a documented
+  // swap point for search-based enrichment (Google Search / Gemini grounding / SerpAPI).
+  enrichmentSummary String?
+  enrichmentSource  String? // 'website' | 'website+search'
+  enrichedAt        DateTime?
+
+  // Supabase source-record metadata — captured for completeness/audit, not used to drive any
+  // logic in this app (our own AI scoring pipeline in src/lib/scoring/ is authoritative here;
+  // the external* fields below are the source system's own score, kept only for comparison).
+  creatorRecordId          String? // Zoho CRM record id (creator_record_id)
+  sourceIngestedAt         DateTime? // when Zoho -> Supabase ingestion happened (ingested_at)
+  sourceUpdatedAt          DateTime? // last-modified timestamp on the Supabase row (updated_at)
+  externalEnrichment       String? // Supabase-side enrichment payload (enrichment), raw JSON
+  externalAiScore          Float? // Supabase-side AI score (ai_score) — informational only
+  externalAiScoreBreakdown String? // ai_score_breakdown, raw JSON
+  externalAiScoreRationale String? // ai_score_rationale
+  rawSourcePayload         String? // full raw_payload JSON dump from Supabase, for audit/debug
+
+  // pipeline
+  stageStatus   String  @default("SUBMITTED")
+  // admin-only gate, independent of stageStatus — only applications marked "YES" here
+  // are visible to jury (see visibleApplicationWhere / listJuryQueue). null = undecided.
+  internalDecision String?
+  source        String  @default("SEED")
+  externalId    String? @unique
+  isDuplicateOf String?
+  duplicateOf   Application?  @relation("Duplicates", fields: [isDuplicateOf], references: [id])
+  duplicates    Application[] @relation("Duplicates")
+
+  historicallyShortlisted Boolean @default(false)
+
+  targetMatchId String?
+  targetMatch   Target? @relation(fields: [targetMatchId], references: [id], onDelete: SetNull)
+
+  submittedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  aiEvaluations     AiEvaluation[]
+  humanReviews      HumanReview[]
+  juryScores        JuryScore[]
+  stageTransitions  StageTransition[]
+  reviewAssignments ReviewAssignment[]
+  outboxEmails      OutboxEmail[]
+  comments          Comment[]
+  notes             Note[]
+}
+
+// internal team discussion thread on an application — separate from the formal HumanReview /
+// JuryScore verdicts, this is free-form back-and-forth (any signed-in role can post)
+model Comment {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id])
+  body          String
+  createdAt     DateTime    @default(now())
+}
+
+// a reviewer's own private scratchpad on an application — one per (application, author), never
+// shown to anyone else. Separate from Comment (shared discussion) and HumanReview (formal verdict).
+model Note {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id])
+  body          String
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([applicationId, authorId])
+}
+
+model AiEvaluation {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  model         String
+  criteria      String // JSON
+  composite     Float
+  disposition   String
+  redFlags      String // JSON array
+  eligibility   String // JSON
+  summary       String?
+
+  // rubric versioning — a snapshot of the weights in effect when this evaluation ran, so
+  // changing weights in Settings later never silently reinterprets old scores.
+  rubricVersion         Int     @default(1)
+  rubricWeightsSnapshot String? // JSON
+
+  // explicit human override — distinct from a HumanReview, this corrects the AI's own record.
+  overrideComposite    Float?
+  overrideDisposition  String?
+  overrideReason       String?
+  overriddenById       String?
+  overriddenBy         User?     @relation("AiOverrides", fields: [overriddenById], references: [id])
+  overriddenAt         DateTime?
+
+  createdAt     DateTime @default(now())
+}
+
+model HumanReview {
+  id             String      @id @default(cuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewerId     String
+  reviewer       User        @relation(fields: [reviewerId], references: [id])
+  criteria       String // JSON
+  composite      Float
+  recommendation String
+  comment        String?
+  submittedAt    DateTime @default(now())
+
+  @@unique([applicationId, reviewerId])
+}
+
+model JuryScore {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  jurorId       String
+  juror         User        @relation(fields: [jurorId], references: [id])
+  criteria      String // JSON
+  composite     Float
+  verdict       String
+  comment       String?
+  submittedAt   DateTime @default(now())
+
+  @@unique([applicationId, jurorId])
+}
+
+model StageTransition {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    String
+  toStatus      String
+  actorId       String?
+  actor         User?    @relation(fields: [actorId], references: [id])
+  reason        String?
+  createdAt     DateTime @default(now())
+}
+
+model Target {
+  id              String    @id @default(cuid())
+  name            String
+  website         String?
+  domain          String?
+  founders        String? // JSON
+  notes           String?
+  status          String    @default("NOT_APPLIED")
+  matchConfidence Float?
+  contactedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  applications Application[]
+}
+
+model OutboxEmail {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  to            String
+  subject       String
+  body          String
+  template      String
+  status        String      @default("QUEUED")
+  provider      String      @default("stub")
+  createdAt     DateTime    @default(now())
+  approvedAt    DateTime?
+  sentAt        DateTime?
+}
+
+model Setting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
+
+// Async job queue — SCORE_APPLICATION | MATCH_APPLICATION jobs enqueued by ingestion and the
+// automation panel's bulk actions, processed by a client-side ticker calling /api/jobs/tick.
+// status: PENDING | RUNNING | DONE | FAILED
+model Job {
+  id         String    @id @default(cuid())
+  type       String
+  payload    String // JSON
+  status     String    @default("PENDING")
+  error      String?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([status, createdAt])
+}

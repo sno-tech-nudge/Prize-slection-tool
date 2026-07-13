@@ -1,0 +1,68 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Core — Buttons, Card, Badge, Tag" subtitle="Actions and surfaces, all square-edged" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-canvas); padding:var(--space-6); }
+  .panel { background:var(--surface-card); padding:var(--space-5); margin-bottom:var(--space-4); }
+  .row { display:flex; align-items:center; gap:var(--space-4); flex-wrap:wrap; }
+  .lbl { font-size:11px; letter-spacing:var(--ls-wide); text-transform:uppercase; color:var(--text-muted); margin-bottom:var(--space-3); }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel">
+    const { Button, Card, Badge, Tag } = window.TheDeltaDesignSystem_88b8ab;
+    function Demo() {
+      return (
+        <>
+          <div className="panel">
+            <div className="lbl">buttons</div>
+            <div className="row">
+              <Button>apply now</Button>
+              <Button variant="secondary">learn more</Button>
+              <Button variant="ghost">skip</Button>
+              <Button variant="cta">apply now</Button>
+              <Button disabled>disabled</Button>
+            </div>
+          </div>
+          <div className="row" style={{alignItems:'stretch'}}>
+            <Card style={{flex:1}}>
+              <div className="lbl">card</div>
+              <div style={{fontWeight:700,fontSize:18,textTransform:'lowercase'}}>flat surface</div>
+            </Card>
+            <Card accent style={{flex:1}}>
+              <div className="lbl">card · accent</div>
+              <div style={{fontWeight:700,fontSize:18,textTransform:'lowercase'}}>red top bar</div>
+            </Card>
+            <Card elevated style={{flex:1}}>
+              <div className="lbl">card · elevated</div>
+              <div style={{fontWeight:700,fontSize:18,textTransform:'lowercase'}}>soft shadow</div>
+            </Card>
+          </div>
+          <div className="panel" style={{marginTop:16}}>
+            <div className="lbl">badges & tags</div>
+            <div className="row">
+              <Badge>open</Badge>
+              <Badge tone="red">closing soon</Badge>
+              <Badge tone="ink">2025</Badge>
+              <Badge tone="yellow">new</Badge>
+              <Badge tone="outline">draft</Badge>
+              <Tag>livelihoods</Tag>
+              <Tag selected>education</Tag>
+              <Tag onRemove={()=>{}}>health</Tag>
+            </div>
+          </div>
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+  </script>
+</body>
+</html>

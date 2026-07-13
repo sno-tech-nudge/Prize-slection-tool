@@ -1,0 +1,28 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Spacing scale" subtitle="4px base unit" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--surface-card); color:var(--text-primary); padding:var(--space-6); }
+  .row { display:flex; align-items:flex-end; gap:var(--space-4); }
+  .u { text-align:center; }
+  .bar { background:var(--delta-red); width:100%; }
+  .cell { width:44px; }
+  .lbl { font-size:11px; color:var(--text-secondary); margin-top:var(--space-2); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="u cell"><div class="bar" style="height:4px"></div><div class="lbl">1·4</div></div>
+    <div class="u cell"><div class="bar" style="height:8px"></div><div class="lbl">2·8</div></div>
+    <div class="u cell"><div class="bar" style="height:16px"></div><div class="lbl">4·16</div></div>
+    <div class="u cell"><div class="bar" style="height:24px"></div><div class="lbl">6·24</div></div>
+    <div class="u cell"><div class="bar" style="height:32px"></div><div class="lbl">8·32</div></div>
+    <div class="u cell"><div class="bar" style="height:48px"></div><div class="lbl">12·48</div></div>
+    <div class="u cell"><div class="bar" style="height:64px"></div><div class="lbl">16·64</div></div>
+    <div class="u cell"><div class="bar" style="height:80px"></div><div class="lbl">20·80</div></div>
+  </div>
+</body>
+</html>
