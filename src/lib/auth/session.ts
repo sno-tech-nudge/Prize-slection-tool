@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import type { User } from '@prisma/client';
@@ -9,8 +10,12 @@ export const ROLE_COOKIE = 'delta_user_id';
  * SWAP: replace this whole module with real session lookup (Supabase Auth /
  * Clerk) — every call site already goes through getCurrentUser() + guards,
  * so the swap is mechanical.
+ *
+ * Wrapped in React's cache() — nearly every layout AND page calls this once,
+ * which used to mean 2+ round trips to the (remote) database per navigation.
+ * cache() dedupes repeat calls within a single render pass down to one.
  */
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   const cookieStore = cookies();
   const userId = cookieStore.get(ROLE_COOKIE)?.value;
 
@@ -21,7 +26,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
   // fall back to the first seeded admin so the demo is never blank
   return prisma.user.findFirst({ where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' } });
-}
+});
 
 export async function listUsers(): Promise<User[]> {
   return prisma.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] });
