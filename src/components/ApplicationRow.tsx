@@ -3,6 +3,7 @@ import { CircleAlert } from 'lucide-react';
 import { CompositeBadge, SolutionCategoryTag } from '@/components/StatusBadges';
 import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
+import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
 import { effectiveScore } from '@/lib/scoring/effective';
 import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue } from '@/lib/constants';
 
@@ -13,6 +14,7 @@ export interface ApplicationRowData {
   orgName: string;
   pocFirstName: string;
   pocLastName: string;
+  stageStatus: string;
   solutionCategory: string;
   operatingModelArchetype: string | null;
   farmersCount: number | null;
@@ -37,13 +39,12 @@ export interface ApplicationRowData {
 /** Row navigates to the full application record page (/applications/[id]) on click — a real
  *  anchor, so left-click, middle-click, ctrl/cmd-click and right-click "open in new tab" all
  *  behave the way the browser expects, with no JS interception. */
-export function ApplicationRow({ app }: { app: ApplicationRowData }) {
+export function ApplicationRow({ app, canManage }: { app: ApplicationRowData; canManage: boolean }) {
   const latestEval = app.aiEvaluations[0];
 
   const internalTone = app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' ? 'neutral' : 'outline';
   const internalLabel = app.internalDecision === 'YES' ? 'decision: yes' : app.internalDecision === 'NO' ? 'decision: no' : 'undecided';
 
-  const isReviewed = app.humanReviews.length > 0;
   const reviewedBy = app.reviewAssignments.length > 0 ? app.reviewAssignments.map((r) => r.reviewer.name).join(', ') : 'unassigned';
 
   const eligibilityAnswered = ELIGIBILITY_FIELDS.filter((f) => app[f] != null).length;
@@ -67,7 +68,7 @@ export function ApplicationRow({ app }: { app: ApplicationRowData }) {
         )}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        <DsBadge tone={isReviewed ? 'red' : 'outline'}>{isReviewed ? 'reviewed' : 'not reviewed'}</DsBadge>
+        <ReviewStatusDropdown applicationId={app.id} stageStatus={app.stageStatus} canManage={canManage} />
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <DsBadge tone={internalTone}>{internalLabel}</DsBadge>

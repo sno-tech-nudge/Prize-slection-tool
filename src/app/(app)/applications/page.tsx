@@ -15,6 +15,7 @@ export default async function ApplicationsPage({
 }) {
   const user = await getCurrentUser();
   const applications = await listApplications(searchParams, user);
+  const canManage = user?.role === 'ADMIN';
 
   return (
     <div>
@@ -51,7 +52,7 @@ export default async function ApplicationsPage({
             </thead>
             <tbody>
               {applications.map((app) => (
-                <ApplicationRow key={app.id} app={app} />
+                <ApplicationRow key={app.id} app={app} canManage={canManage} />
               ))}
               {applications.length === 0 && (
                 <tr>
