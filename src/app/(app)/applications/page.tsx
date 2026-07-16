@@ -3,18 +3,43 @@ import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
+import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { getCurrentUser } from '@/lib/auth/session';
-import { listApplications } from '@/lib/applications/queries';
+import { listApplications, getApplicationFilterOptions } from '@/lib/applications/queries';
+import { getSettings } from '@/lib/settings';
 
-const HEADERS = ['organisation', 'review status', 'decision status', 'operating model', 'farmers reached', 'states', 'eligibility', 'AI composite', 'reviewer'];
+const HEADERS = [
+  'organisation',
+  'registration type',
+  'review status',
+  'decision status',
+  'operating model',
+  'states',
+  'eligibility',
+  'AI composite',
+  'reviewer',
+];
 
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: { stage?: string; category?: string; q?: string; internal?: string };
+  searchParams: {
+    stage?: string;
+    category?: string;
+    q?: string;
+    internal?: string;
+    reviewed?: string;
+    registrationType?: string;
+    operatingModel?: string;
+    state?: string;
+  };
 }) {
   const user = await getCurrentUser();
-  const applications = await listApplications(searchParams, user);
+  const [applications, filterOptions, settings] = await Promise.all([
+    listApplications(searchParams, user),
+    getApplicationFilterOptions(),
+    getSettings(),
+  ]);
   const canManage = user?.role === 'ADMIN';
 
   return (
@@ -23,11 +48,16 @@ export default async function ApplicationsPage({
         eyebrow="the^delta prize · rapid re.gen challenge"
         title="applications"
         subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'}`}
-        action={<ExportCsvButton searchParams={searchParams} />}
+        action={
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <RubricSidePanel weights={settings.rubricWeights} />
+            <ExportCsvButton searchParams={searchParams} />
+          </div>
+        }
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
         <Suspense>
-          <ApplicationFilters />
+          <ApplicationFilters options={filterOptions} />
         </Suspense>
 
         <Card padding="0" style={{ overflowX: 'auto' }}>
@@ -43,6 +73,7 @@ export default async function ApplicationsPage({
                       textTransform: 'uppercase',
                       letterSpacing: 'var(--ls-wide)',
                       color: 'var(--text-secondary)',
+                      minWidth: h === 'operating model' ? 260 : undefined,
                     }}
                   >
                     {h}

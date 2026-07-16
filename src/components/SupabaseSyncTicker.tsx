@@ -11,7 +11,13 @@ export function SupabaseSyncTicker() {
 
   React.useEffect(() => {
     let cancelled = false;
+    // a full Supabase sync can take much longer than the 30s poll interval (each row is a
+    // separate round trip to the DB), so without this guard overlapping ticks pile up and
+    // exhaust the Prisma connection pool for the whole app, not just this ticker.
+    let inFlight = false;
     const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await fetch('/api/sync/tick', { method: 'POST' });
         if (!res.ok || cancelled) return;
@@ -19,6 +25,8 @@ export function SupabaseSyncTicker() {
         if (!data.notRun && (data.created > 0 || data.updated > 0)) router.refresh();
       } catch {
         // best-effort — a missed tick just means the next one picks it up
+      } finally {
+        inFlight = false;
       }
     };
     const interval = setInterval(tick, 30000);

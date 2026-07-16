@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/db';
 import { DEFAULT_RUBRIC_WEIGHTS } from '@/lib/scoring/rubric';
 
+export interface EmailTemplate {
+  subject: string;
+  body: string;
+}
+
 export interface DeltaSettings {
   rubricWeights: Record<string, number>;
   /** bumped automatically whenever rubricWeights actually change — snapshotted onto every
@@ -9,6 +14,8 @@ export interface DeltaSettings {
   shortlistSize: number;
   autoSendRejections: boolean;
   activeSource: 'seed' | 'zoho_crm' | 'google_form' | 'supabase';
+  emailTemplateAcceptance: EmailTemplate;
+  emailTemplateRejection: EmailTemplate;
 }
 
 const DEFAULTS: DeltaSettings = {
@@ -17,6 +24,14 @@ const DEFAULTS: DeltaSettings = {
   shortlistSize: Number(process.env.SHORTLIST_SIZE ?? 20),
   autoSendRejections: false,
   activeSource: (process.env.APPLICATION_SOURCE as DeltaSettings['activeSource']) ?? 'seed',
+  emailTemplateAcceptance: {
+    subject: 'you have been accepted — {{challengeName}}',
+    body: 'dear {{pocFirstName}},\n\ncongratulations — {{orgName}} has been accepted for {{challengeName}}. we were impressed by your application and look forward to the next steps.\n\nour team will be in touch shortly with more details.\n\nwith thanks,\nthe^delta prize team',
+  },
+  emailTemplateRejection: {
+    subject: 'an update on your application — {{challengeName}}',
+    body: 'dear {{pocFirstName}},\n\nthank you for taking the time to apply to {{challengeName}} on behalf of {{orgName}}, and for the work that went into your submission.\n\nafter careful review, we will not be advancing your application this cycle. we received a strong pool of applications, and this decision reflects fit against this specific challenge, not the merit of your work.\n\nwith thanks,\nthe^delta prize team',
+  },
 };
 
 const SETTINGS_KEY = 'delta_settings';

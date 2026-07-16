@@ -6,6 +6,7 @@ import { assertRole, CAN_REVIEW, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
 import { enqueueJobs, getJobStats } from '@/lib/jobs/queue';
 import { syncApplicationsFromSupabase, type SupabaseSyncResult } from '@/lib/sources/supabase-source';
+import { reassignAllInRotationOrder } from '@/lib/applications/assignment';
 
 const BATCH_LIMIT = 200; // enqueue is cheap (no LLM call happens here) — the ticker drains it over time
 
@@ -77,6 +78,18 @@ export async function rerunMatcherAction() {
   revalidatePath('/dashboard');
   revalidatePath('/targets');
   return { queued };
+}
+
+export async function reassignAllInRotationOrderAction() {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const result = await reassignAllInRotationOrder();
+
+  revalidatePath('/applications');
+  revalidatePath('/dashboard');
+  revalidatePath('/review');
+  return result;
 }
 
 export async function getAutomationStats() {

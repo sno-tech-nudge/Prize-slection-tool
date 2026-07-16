@@ -153,3 +153,21 @@ export function renderStageEmail(template: StageEmailTemplate, params: StageEmai
 
 /** @deprecated use renderStageEmail. Kept so existing imports keep working. */
 export const renderRejectionEmail = renderStageEmail;
+
+/** Renders an admin-customised template (see Settings.emailTemplateAcceptance/Rejection),
+ *  substituting {{orgName}}, {{pocFirstName}} and {{challengeName}} tokens and wrapping the
+ *  plain-text body in the same branded HTML shell as the built-in stage emails. */
+export function renderCustomTemplate(template: { subject: string; body: string }, params: StageEmailParams): { subject: string; body: string } {
+  const replace = (s: string) =>
+    s
+      .replaceAll('{{orgName}}', params.orgName)
+      .replaceAll('{{pocFirstName}}', params.pocFirstName)
+      .replaceAll('{{challengeName}}', params.challengeName);
+
+  const bodyHtml = replace(template.body)
+    .split(/\n{2,}/)
+    .map((line) => paragraph(line.replace(/\n/g, '<br/>')))
+    .join('');
+
+  return { subject: replace(template.subject), body: shell(bodyHtml) };
+}

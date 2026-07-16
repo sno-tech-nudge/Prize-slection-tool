@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { getSupabaseClient } from './supabase-client';
 import { seedTransitionPath } from '@/lib/stages/machine';
 import { enqueueJob } from '@/lib/jobs/queue';
+import { autoAssignReviewer } from '@/lib/applications/assignment';
 
 /**
  * Live rapid re.gen backend — a Supabase Postgres table (`applications`) fed automatically
@@ -251,6 +252,14 @@ export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult
 
     const existing = await prisma.application.findUnique({ where: { externalId: row.id } });
 
+    // most ticks see no actual change on the source side — skip the update round-trip entirely
+    // when the source's own updated_at hasn't moved since our last sync. This is what keeps
+    // repeat syncs fast; without it every tick re-writes every row every time.
+    const sourceUpdatedAt = toDate(row.updated_at);
+    if (existing && sourceUpdatedAt && existing.sourceUpdatedAt && sourceUpdatedAt.getTime() <= existing.sourceUpdatedAt.getTime()) {
+      continue;
+    }
+
     const scalars = {
       orgName,
       pocFirstName: row.founder_first_name?.trim() || 'Unknown',
@@ -347,6 +356,7 @@ export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult
       await enqueueJob('ENRICH_APPLICATION', created.id);
       await enqueueJob('MATCH_APPLICATION', created.id);
       await enqueueJob('SCORE_APPLICATION', created.id);
+      await autoAssignReviewer(created.id);
       result.created++;
     }
   }

@@ -1,13 +1,28 @@
-import { distance } from 'fastest-levenshtein';
 import type { Target } from '@prisma/client';
 import { orgKey, domainFromWebsite } from '@/lib/sources/normalize';
 import { ORG_SUFFIX_STOPWORDS } from '@/lib/constants';
 import { prisma } from '@/lib/db';
 
-// A single bar for "this wishlist startup applied" — the confidence % is still shown on the
-// card for the team's own judgement, but the status itself no longer has a separate
-// "confirmed vs suggested" tier (that distinction proved confusing in practice).
-export const MATCH_THRESHOLD_SUGGEST = 0.55;
+// Only exact matches count — a target is a real, specific organisation from a curated list,
+// and a fuzzy/partial name match (e.g. shared words like "Foundation" or "Farms") produced
+// false positives in practice. A candidate is only ever confidence 1 (exact match) or excluded.
+export const MATCH_THRESHOLD_SUGGEST = 1;
+
+// Personal email providers never count as an organisational domain match — most of our
+// applicants and targets list a personal gmail/yahoo/etc address rather than an org website, so
+// treating those as equal would match every gmail.com applicant to every gmail.com target.
+const FREE_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'yahoo.com',
+  'yahoo.co.in',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'icloud.com',
+  'rediffmail.com',
+  'protonmail.com',
+  'aol.com',
+]);
 
 export function stripOrgSuffixes(name: string): string {
   let s = orgKey(name);
@@ -15,13 +30,6 @@ export function stripOrgSuffixes(name: string): string {
     s = s.replace(new RegExp(`\\b${suffix.replace(/\./g, '\\.')}\\b`, 'g'), ' ');
   }
   return s.replace(/\s+/g, ' ').trim();
-}
-
-function nameSimilarity(a: string, b: string): number {
-  if (!a || !b) return 0;
-  const d = distance(a, b);
-  const maxLen = Math.max(a.length, b.length) || 1;
-  return 1 - d / maxLen;
 }
 
 export interface MatchCandidate {
@@ -39,30 +47,34 @@ export function scoreApplicationAgainstTargets(
 
   return targets
     .map((t) => {
-      const nameSim = nameSimilarity(appNameStripped, stripOrgSuffixes(t.name));
+      const nameMatch = appNameStripped.length > 0 && appNameStripped === stripOrgSuffixes(t.name);
       const tDomain = t.domain?.toLowerCase() ?? domainFromWebsite(t.website ?? undefined)?.toLowerCase();
-      const domainMatch = appDomain && tDomain && appDomain === tDomain;
+      const domainMatch = Boolean(appDomain && tDomain && appDomain === tDomain && !FREE_EMAIL_DOMAINS.has(appDomain));
 
       let founderMatch = false;
       if (app.founders?.length && t.founders) {
         try {
           const targetFounders: string[] = JSON.parse(t.founders);
-          founderMatch = app.founders.some((f) =>
-            targetFounders.some((tf) => nameSimilarity(orgKey(f.fullName), orgKey(tf)) > 0.85),
-          );
+          founderMatch = app.founders.some((f) => {
+            const key = orgKey(f.fullName);
+            return key.length > 0 && targetFounders.some((tf) => orgKey(tf) === key);
+          });
         } catch {
           // ignore malformed JSON
         }
       }
 
-      let confidence = nameSim;
-      let reason = `org name similarity ${(nameSim * 100).toFixed(0)}%`;
-      if (domainMatch) {
-        confidence = Math.max(confidence, 0.97);
+      let confidence = 0;
+      let reason = 'no exact match';
+      if (nameMatch) {
+        confidence = 1;
+        reason = 'exact organisation name match';
+      } else if (domainMatch) {
+        confidence = 1;
         reason = 'exact website/email domain match';
       } else if (founderMatch) {
-        confidence = Math.max(confidence, 0.9);
-        reason = 'founder name match';
+        confidence = 1;
+        reason = 'exact founder name match';
       }
 
       return { target: t, confidence, reason };

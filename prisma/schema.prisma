@@ -348,6 +348,21 @@ model Target {
   contactedAt     DateTime?
   createdAt       DateTime  @default(now())
 
+  // fields sourced from the team's "potential challengers" landscape sheet
+  connectStatus  String?
+  model          String? // model categorisation, e.g. "Farmer training, capacity building & community resilience"
+  focusType      String? // e.g. "Regenerative, Sustainable"
+  orgFundingType String? // FP / NFP
+  description    String?
+  keyLocations   String?
+  currentImpact  String?
+  prizeRelevance String? // High / Medium / Low
+  clarifications String?
+  pocName        String?
+  pocDesignation String?
+  pocEmail       String?
+  contactNumber  String?
+
   applications Application[]
 }
 

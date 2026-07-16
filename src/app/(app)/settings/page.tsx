@@ -4,17 +4,20 @@ import { getSettings } from '@/lib/settings';
 import { updateSettingsAction } from '@/lib/settings-actions';
 import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
 import { getAutomationStats } from '@/lib/automation/actions';
+import { listUsers } from '@/lib/auth/session';
 import { AutomationPanel } from '@/components/AutomationPanel';
 import { SupabaseSyncPanel } from '@/components/SupabaseSyncPanel';
+import { UserRoleManager } from '@/components/UserRoleManager';
 
 export default async function SettingsPage() {
-  const [settings, automationStats] = await Promise.all([getSettings(), getAutomationStats()]);
+  const [settings, automationStats, users] = await Promise.all([getSettings(), getAutomationStats(), listUsers()]);
   const supabaseConfigured = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_ANON_KEY;
 
   return (
     <div>
       <AngularBanner eyebrow="internal platform" title="settings" subtitle="rubric weights, pipeline configuration and the active data source." />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-lg)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+        <UserRoleManager users={users} />
         <SupabaseSyncPanel configured={supabaseConfigured} />
         <AutomationPanel stats={{ ...automationStats, autoSendRejections: settings.autoSendRejections }} />
 

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { getMailer } from './mailer';
-import { renderStageEmail, type StageEmailTemplate } from './templates';
+import { renderStageEmail, renderCustomTemplate, type StageEmailTemplate } from './templates';
+import { getSettings } from '@/lib/settings';
 
 const CHALLENGE_NAME = process.env.CHALLENGE_NAME || 'the^delta prize · rapid re.gen challenge';
 
@@ -29,6 +30,32 @@ export async function enqueueStageEmail(applicationId: string, template: StageEm
 
 /** @deprecated use enqueueStageEmail — kept so existing call sites keep working */
 export const enqueueRejectionEmail = enqueueStageEmail;
+
+/** Queues an outreach email from the admin-customised acceptance/rejection templates (see
+ *  Settings). Always lands as QUEUED — bulk outreach never auto-approves or sends, it only adds
+ *  to the same review queue every other outbox email goes through. */
+export async function enqueueCustomOutreachEmail(applicationId: string, kind: 'acceptance' | 'rejection') {
+  const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
+  const settings = await getSettings();
+  const template = kind === 'acceptance' ? settings.emailTemplateAcceptance : settings.emailTemplateRejection;
+  const { subject, body } = renderCustomTemplate(template, {
+    pocFirstName: app.pocFirstName,
+    orgName: app.orgName,
+    challengeName: CHALLENGE_NAME,
+  });
+
+  return prisma.outboxEmail.create({
+    data: {
+      applicationId,
+      to: app.email,
+      subject,
+      body,
+      template: kind === 'acceptance' ? 'bulk_acceptance' : 'bulk_rejection',
+      status: 'QUEUED',
+      provider: getMailer().provider,
+    },
+  });
+}
 
 export async function approveAndSendOutboxEmail(outboxId: string) {
   const mailer = getMailer();

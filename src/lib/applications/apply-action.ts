@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { normalizeStage } from '@/lib/sources/normalize';
 import { enqueueJob } from '@/lib/jobs/queue';
 import { seedTransitionPath } from '@/lib/stages/machine';
+import { autoAssignReviewer } from '@/lib/applications/assignment';
 import type {
   OrgTypeValue,
   TeamSizeValue,
@@ -144,6 +145,7 @@ export async function submitApplicationAction(formData: FormData) {
   await enqueueJob('ENRICH_APPLICATION', application.id);
   await enqueueJob('MATCH_APPLICATION', application.id);
   await enqueueJob('SCORE_APPLICATION', application.id);
+  await autoAssignReviewer(application.id);
 
   redirect(`/apply/thank-you?ref=${application.id}`);
 }

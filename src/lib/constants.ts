@@ -4,6 +4,12 @@
 
 export const USER_ROLES = ['ADMIN', 'REVIEWER', 'JURY', 'OBSERVER'] as const;
 export type UserRoleValue = (typeof USER_ROLES)[number];
+export const ROLE_LABEL: Record<UserRoleValue, string> = {
+  ADMIN: 'admin',
+  REVIEWER: 'reviewer',
+  JURY: 'jury',
+  OBSERVER: 'observer',
+};
 
 export const ORG_TYPES = ['FOR_PROFIT', 'NON_PROFIT'] as const;
 export type OrgTypeValue = (typeof ORG_TYPES)[number];

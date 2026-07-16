@@ -1,11 +1,22 @@
 import Link from 'next/link';
-import { FileText, Layers, Trophy, Inbox, CheckCircle2, CircleAlert, type LucideIcon } from 'lucide-react';
+import { FileText, Layers, Trophy, Inbox, CheckCircle2, CircleAlert, Gauge, Globe2, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { STAGE_STATUS_LABEL, type StageStatusValue } from '@/lib/constants';
 import { getDashboardKpis, getRecentActivity, getDivergentApplications, getFlaggedApplications } from '@/lib/dashboard/queries';
 import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
-import { getFunnel, getOperatingModelMix, getCalibrationNote, getReviewerThroughput } from '@/lib/analytics/queries';
+import {
+  getFunnel,
+  getOperatingModelMix,
+  getOperatingBudgetMix,
+  getReviewStatusMix,
+  getInternalDecisionMix,
+  getStateApplicationMix,
+  getCalibrationNote,
+  getReviewerThroughput,
+} from '@/lib/analytics/queries';
 import { BarRow } from '@/components/BarRow';
+import { PieChart } from '@/components/PieChart';
+import { IndiaStatesMap } from '@/components/IndiaStatesMap';
 import { OrgTitle } from '@/components/OrgTitle';
 
 function Kpi({ label, value, icon: Icon }: { label: string; value: number | string; icon: LucideIcon }) {
@@ -57,7 +68,22 @@ function SectionHeader({ title, action }: { title: string; action?: { href: stri
 }
 
 export default async function DashboardPage() {
-  const [kpis, funnel, recentMatches, targetStats, activity, divergent, categoryMix, calibration, reviewerThroughput, flagged] = await Promise.all([
+  const [
+    kpis,
+    funnel,
+    recentMatches,
+    targetStats,
+    activity,
+    divergent,
+    categoryMix,
+    budgetMix,
+    reviewStatusMix,
+    internalDecisionMix,
+    stateMix,
+    calibration,
+    reviewerThroughput,
+    flagged,
+  ] = await Promise.all([
     getDashboardKpis(),
     getFunnel(),
     listRecentMatches(4),
@@ -65,12 +91,15 @@ export default async function DashboardPage() {
     getRecentActivity(),
     getDivergentApplications(),
     getOperatingModelMix(),
+    getOperatingBudgetMix(),
+    getReviewStatusMix(),
+    getInternalDecisionMix(),
+    getStateApplicationMix(),
     getCalibrationNote(),
     getReviewerThroughput(),
     getFlaggedApplications(),
   ]);
   const funnelMax = Math.max(...funnel.map((f) => f.count), 1);
-  const categoryMax = Math.max(...categoryMix.map((c) => c.count), 1);
 
   return (
     <div>
@@ -80,33 +109,52 @@ export default async function DashboardPage() {
         subtitle="application pipeline status: screening, scoring, review, and jury."
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 'var(--space-5)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
           <Kpi label="total applications" value={kpis.total} icon={FileText} />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
           <Kpi label="shortlisted+" value={kpis.shortlisted} icon={Layers} />
           <Kpi label="winners" value={kpis.winners} icon={Trophy} />
           <Kpi label="outreach queued" value={kpis.queuedOutbox} icon={Inbox} />
           <Kpi label="flagged / ineligible" value={flagged.length} icon={CircleAlert} />
+          <Kpi label="avg AI composite" value={kpis.avgComposite ?? '—'} icon={Gauge} />
+          <Kpi label="states represented" value={kpis.statesRepresented} icon={Globe2} />
         </div>
+
+        <Card accent>
+          <SectionHeader title="pipeline funnel" action={{ href: '/analytics', label: 'full analytics' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {funnel.map((f) => (
+              <BarRow key={f.stage} label={STAGE_STATUS_LABEL[f.stage as StageStatusValue]} count={f.count} max={funnelMax} />
+            ))}
+          </div>
+        </Card>
+
+        <Card accent>
+          <SectionHeader title="applicants by state" />
+          <IndiaStatesMap data={stateMix} />
+        </Card>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
           <Card accent>
-            <SectionHeader title="pipeline funnel" action={{ href: '/analytics', label: 'full analytics' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {funnel.map((f) => (
-                <BarRow key={f.stage} label={STAGE_STATUS_LABEL[f.stage as StageStatusValue]} count={f.count} max={funnelMax} />
-              ))}
-            </div>
+            <SectionHeader title="operating model mix" />
+            <PieChart data={categoryMix.map((c) => ({ label: c.category, count: c.count }))} />
           </Card>
 
           <Card accent>
-            <SectionHeader title="operating model mix" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {categoryMix.map((c) => (
-                <BarRow key={c.category} label={c.category} count={c.count} max={categoryMax} tone="ink" />
-              ))}
-              {categoryMix.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no applications yet.</p>}
-            </div>
+            <SectionHeader title="operating budget mix" />
+            <PieChart data={budgetMix} />
+          </Card>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+          <Card>
+            <SectionHeader title="review status" />
+            <PieChart data={reviewStatusMix} size={160} />
+          </Card>
+
+          <Card>
+            <SectionHeader title="internal decision" />
+            <PieChart data={internalDecisionMix} size={160} />
           </Card>
         </div>
 
@@ -219,8 +267,8 @@ export default async function DashboardPage() {
                 style={{ fontSize: 'var(--fs-small)', color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
               >
                 <span><OrgTitle>{a.orgName}</OrgTitle></span>
-                <span style={{ color: 'var(--text-muted)' }}>
-                  {a.ineligible && `eligibility ${a.eligibilityAnswered}/4`}
+                <span style={{ color: 'var(--text-muted)' }} title={a.eligibilityReasons.join('; ')}>
+                  {a.ineligible && `ineligible: ${a.eligibilityReasons.length} issue${a.eligibilityReasons.length === 1 ? '' : 's'}`}
                   {a.ineligible && a.redFlags.length > 0 && ' · '}
                   {a.redFlags.length > 0 && `${a.redFlags.length} AI red flag${a.redFlags.length === 1 ? '' : 's'}`}
                 </span>

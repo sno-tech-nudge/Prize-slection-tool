@@ -11,7 +11,13 @@ export function JobQueueTicker() {
 
   React.useEffect(() => {
     let cancelled = false;
+    // scoring/enrichment jobs can each take well over 3.5s (external API calls), so without this
+    // guard a slow tick would still be in flight when the next interval fires — ticks then pile
+    // up indefinitely, each holding a DB connection, exhausting the Prisma connection pool.
+    let inFlight = false;
     const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await fetch('/api/jobs/tick', { method: 'POST' });
         if (!res.ok || cancelled) return;
@@ -19,6 +25,8 @@ export function JobQueueTicker() {
         if (data.ran > 0) router.refresh();
       } catch {
         // best-effort — a missed tick just means jobs wait for the next one
+      } finally {
+        inFlight = false;
       }
     };
     const interval = setInterval(tick, 3500);

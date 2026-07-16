@@ -3,7 +3,8 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, RefreshCw, Globe, type LucideIcon } from 'lucide-react';
 import { Card, Button, Badge } from '@/design-system';
-import { scoreAllUnscoredAction, rerunMatcherAction, enrichAllAction } from '@/lib/automation/actions';
+import { scoreAllUnscoredAction, rerunMatcherAction, enrichAllAction, reassignAllInRotationOrderAction } from '@/lib/automation/actions';
+import { Users } from 'lucide-react';
 
 export interface AutomationStats {
   totalApps: number;
@@ -68,6 +69,7 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
   const [scoring, setScoring] = React.useState(false);
   const [matching, setMatching] = React.useState(false);
   const [enriching, setEnriching] = React.useState(false);
+  const [reassigning, setReassigning] = React.useState(false);
   const jobsInFlight = stats.jobStats.PENDING + stats.jobStats.RUNNING;
 
   async function runScore() {
@@ -97,6 +99,16 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
       router.refresh();
     } finally {
       setMatching(false);
+    }
+  }
+
+  async function runReassign() {
+    setReassigning(true);
+    try {
+      await reassignAllInRotationOrderAction();
+      router.refresh();
+    } finally {
+      setReassigning(false);
     }
   }
 
@@ -145,6 +157,16 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
           disabled={false}
           onRun={runMatch}
         />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4) 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
+          <Users size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
+          reviewer rotation (1-5 round robin)
+        </span>
+        <Button variant="secondary" size="sm" disabled={reassigning} onClick={runReassign}>
+          {reassigning ? 'reassigning…' : 're-run rotation'}
+        </Button>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 'var(--space-4)' }}>

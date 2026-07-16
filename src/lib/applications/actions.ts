@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/session';
-import { assertRole, CAN_TRANSITION_STAGE, CAN_REVIEW } from '@/lib/auth/guard';
+import { assertRole, CAN_TRANSITION_STAGE, CAN_REVIEW, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { transitionApplication, setReviewStage } from '@/lib/stages/machine';
 import { enqueueStageEmail, approveAndSendOutboxEmail } from '@/lib/mail/outbox';
 import type { StageEmailTemplate } from '@/lib/mail/templates';
@@ -145,6 +145,28 @@ export async function postCommentAction(formData: FormData) {
 
   revalidatePath('/applications');
   revalidatePath(`/applications/${applicationId}`);
+}
+
+/** Admin-only: set the full reviewer list for an application (replaces whatever was assigned
+ *  before). Manual assignment — the automatic round-robin assigner was removed at the team's
+ *  request, so this is now the only way applications get reviewers. */
+export async function setApplicationReviewersAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const applicationId = String(formData.get('applicationId'));
+  const reviewerIds = formData.getAll('reviewerIds').map(String);
+
+  await prisma.$transaction([
+    prisma.reviewAssignment.deleteMany({ where: { applicationId } }),
+    prisma.reviewAssignment.createMany({
+      data: reviewerIds.map((reviewerId) => ({ applicationId, reviewerId })),
+    }),
+  ]);
+
+  revalidatePath('/applications');
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/review');
 }
 
 /** A reviewer's own private scratchpad on an application — one per (application, author), never

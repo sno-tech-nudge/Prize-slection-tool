@@ -8,12 +8,15 @@ import { DownloadPdfButton } from '@/components/DownloadPdfButton';
 import { RescoreButton } from '@/components/RescoreButton';
 import { AiOverridePanel } from '@/components/AiOverridePanel';
 import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
+import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
 import { ApplicationPagerKeys } from '@/components/ApplicationPagerKeys';
+import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { ApplicationDetailTabs } from '@/components/ApplicationDetailTabs';
 import { PersonalNotes } from '@/components/PersonalNotes';
 import { CommentThread } from '@/components/CommentThread';
 import { getApplicationDetail, getAdjacentApplications } from '@/lib/applications/queries';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUser, listUsers } from '@/lib/auth/session';
+import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
 import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
 import { effectiveScore } from '@/lib/scoring/effective';
@@ -62,13 +65,15 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  const [app, adjacent] = await Promise.all([getApplicationDetail(params.id, user?.id), getAdjacentApplications(params.id, user)]);
+  const [app, adjacent, allUsers] = await Promise.all([getApplicationDetail(params.id, user?.id), getAdjacentApplications(params.id, user), listUsers()]);
+  const reviewers = allUsers;
   if (!app) notFound();
 
   const latestEval = app.aiEvaluations[0];
   const criteria = latestEval ? parseCriteria(latestEval.criteria) : [];
   const redFlags = latestEval ? parseRedFlags(latestEval.redFlags) : [];
   const eligibility = latestEval ? parseEligibility(latestEval.eligibility) : null;
+  const eligibilityScreen = evaluateEligibility(app);
   const embed = driveEmbedUrl(app.pitchDeckUrl);
   const isAdmin = user?.role === 'ADMIN';
 
@@ -89,6 +94,19 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           </div>
         }
       />
+
+      {!eligibilityScreen.eligible && (
+        <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <div style={{ background: 'var(--delta-red)', color: 'var(--text-inverse)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            <strong style={{ fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>fails Level 1 eligibility screening</strong>
+            <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: 'var(--fs-small)' }}>
+              {eligibilityScreen.failedReasons.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div style={{ padding: 'var(--space-6) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {adjacent.prevId ? (
@@ -124,6 +142,8 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
         <ApplicationDetailTabs
           applicationContent={
         <div>
+          <SectionJumpNav />
+          <div id="section-organisation-profile">
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -135,25 +155,72 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               <Field label="email" value={app.email} />
               <Field label="phone" value={app.phone} />
               <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
-              <Field
-                label="founders"
-                value={
-                  app.founders.length > 0
-                    ? app.founders.map((f) => `${f.fullName}${f.role ? ` (${f.role})` : ''}`).join('; ')
-                    : undefined
-                }
-              />
             </div>
           </Card>
 
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>problem and solution</h2>
-            <Field label="problem addressing" value={app.problemAddressing} />
-            <Field label="about the solution" value={app.aboutSolution} />
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
-              {app.valueChainFocus?.split(';').filter(Boolean).map((v) => <Tag key={v}>{v.trim()}</Tag>)}
-            </div>
-          </Card>
+          {(app.founders.length > 0 || app.funders.length > 0) && (
+            <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>founders &amp; funders</h2>
+              {app.founders.length > 0 && (
+                <div style={{ marginBottom: app.funders.length > 0 ? 'var(--space-6)' : 0 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+                    founders
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                    {app.founders.map((f) => (
+                      <div key={f.id} style={{ fontSize: 'var(--fs-small)' }}>
+                        <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
+                          {f.fullName}
+                          {f.role && <span style={{ fontWeight: 'var(--fw-light)' as unknown as number, color: 'var(--text-secondary)' }}> · {f.role}</span>}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 'var(--space-1)' }}>
+                          {f.email ? (
+                            <a href={`mailto:${f.email}`} style={{ color: 'var(--delta-red)' }}>{f.email}</a>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>email not provided</span>
+                          )}
+                          {f.linkedin ? (
+                            <a href={f.linkedin} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)' }}>{f.linkedin}</a>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>LinkedIn not provided</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {app.funders.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+                    funders
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    {app.funders.map((f) => (
+                      <div key={f.id} style={{ fontSize: 'var(--fs-small)' }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>{f.name}</strong>
+                        {f.worksWithGovernment !== null && (
+                          <span style={{ color: 'var(--text-muted)' }}> · works with government: {f.worksWithGovernment ? 'yes' : 'no'}</span>
+                        )}
+                        {f.fundingNature && <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0' }}>{f.fundingNature}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {(app.problemAddressing || app.aboutSolution || app.valueChainFocus) && (
+            <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>problem and solution</h2>
+              <Field label="problem addressing" value={app.problemAddressing} />
+              <Field label="about the solution" value={app.aboutSolution} />
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
+                {app.valueChainFocus?.split(';').filter(Boolean).map((v) => <Tag key={v}>{v.trim()}</Tag>)}
+              </div>
+            </Card>
+          )}
 
           {(app.waterEfficiencyFocus || app.smallMarginalFarmerPct !== null || app.areaHectaresRaw) && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
@@ -178,8 +245,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             app.cert80G ||
             app.csr1Registration ||
             app.darpanRegistered ||
-            app.darpanIdNumber ||
-            app.funders.length > 0) && (
+            app.darpanIdNumber) && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>registrations and governance</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -198,25 +264,11 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
                 <Field label="NITI Aayog DARPAN ID" value={app.darpanRegistered} />
                 <Field label="DARPAN registration number" value={app.darpanIdNumber} />
               </div>
-              {app.funders.length > 0 && (
-                <div style={{ marginTop: 'var(--space-2)' }}>
-                  <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
-                    funders
-                  </div>
-                  {app.funders.map((f) => (
-                    <div key={f.id} style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--fs-small)' }}>
-                      <strong>{f.name}</strong>
-                      {f.worksWithGovernment !== null && (
-                        <span style={{ color: 'var(--text-muted)' }}> · works with government: {f.worksWithGovernment ? 'yes' : 'no'}</span>
-                      )}
-                      {f.fundingNature && <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0' }}>{f.fundingNature}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
             </Card>
           )}
+          </div>
 
+          <div id="section-model">
           {(app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
@@ -233,7 +285,9 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               <Field label="biggest adoption hurdle" value={app.adoptionHurdle} />
             </Card>
           )}
+          </div>
 
+          <div id="section-tech-and-tools">
           {(app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
@@ -248,7 +302,9 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               />
             </Card>
           )}
+          </div>
 
+          <div id="section-experience-impact">
           {(app.farmersCount !== null ||
             app.yearsExperience !== null ||
             app.verifiedImpacts ||
@@ -296,6 +352,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               )}
             </Card>
           )}
+          </div>
 
           {app.enrichmentSummary && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>
@@ -465,6 +522,20 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
 
           {isAdmin && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>
+              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>reviewers</h2>
+              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
+                assign whoever should review this application. manual only — there&apos;s no auto-assignment.
+              </p>
+              <ReviewerAssignmentPanel
+                applicationId={app.id}
+                reviewers={reviewers}
+                assignedReviewerIds={app.reviewAssignments.map((a) => a.reviewerId)}
+              />
+            </Card>
+          )}
+
+          {isAdmin && (
+            <Card style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>decision status</h2>
               <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
                 only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
@@ -519,54 +590,6 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             </Card>
           )}
 
-          {app.source === 'SUPABASE' && (
-            <Card>
-              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>source record</h2>
-              <Field label="Supabase / Zoho record id" value={app.externalId} />
-              <Field label="Zoho CRM record id" value={app.creatorRecordId} />
-              <Field label="ingested into Supabase" value={app.sourceIngestedAt ? new Date(app.sourceIngestedAt).toLocaleString('en-GB') : undefined} />
-              <Field label="last updated on source" value={app.sourceUpdatedAt ? new Date(app.sourceUpdatedAt).toLocaleString('en-GB') : undefined} />
-              {app.externalAiScore !== null && (
-                <Field label="source-system AI score (informational — not used by our scoring)" value={app.externalAiScore} />
-              )}
-              {app.externalAiScoreRationale && <Field label="source-system AI score rationale" value={app.externalAiScoreRationale} />}
-              {app.externalAiScoreBreakdown && (
-                <Field
-                  label="source-system AI score breakdown"
-                  value={<pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-small)', margin: 0 }}>{app.externalAiScoreBreakdown}</pre>}
-                />
-              )}
-              {app.externalEnrichment && (
-                <Field
-                  label="source-system enrichment payload"
-                  value={<pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-small)', margin: 0 }}>{app.externalEnrichment}</pre>}
-                />
-              )}
-              {app.rawSourcePayload && (
-                <details style={{ marginTop: 'var(--space-4)' }}>
-                  <summary style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    raw Supabase payload (every field the source sent, unfiltered)
-                  </summary>
-                  <pre
-                    style={{
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      fontFamily: 'var(--font-sans)',
-                      fontSize: 'var(--fs-caption)',
-                      color: 'var(--text-secondary)',
-                      background: 'var(--surface-canvas)',
-                      padding: 'var(--space-3)',
-                      marginTop: 'var(--space-2)',
-                      maxHeight: 400,
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {JSON.stringify(JSON.parse(app.rawSourcePayload), null, 2)}
-                  </pre>
-                </details>
-              )}
-            </Card>
-          )}
         </div>
       </div>
     </div>

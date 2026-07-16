@@ -5,26 +5,37 @@ import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
 import { effectiveScore } from '@/lib/scoring/effective';
-import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue } from '@/lib/constants';
-
-const ELIGIBILITY_FIELDS = ['fcraStatus', 'cert12A', 'cert80G', 'csr1Registration'] as const;
+import { evaluateEligibility } from '@/lib/scoring/eligibility';
+import {
+  OPERATING_MODEL_ARCHETYPE_LABEL,
+  LEGAL_REGISTRATION_TYPE_LABEL,
+  type OperatingModelArchetypeValue,
+  type LegalRegistrationTypeValue,
+} from '@/lib/constants';
 
 export interface ApplicationRowData {
   id: string;
   orgName: string;
   pocFirstName: string;
   pocLastName: string;
+  designation: string | null;
+  phone: string | null;
+  email: string;
+  website: string | null;
+  linkedinUrl: string | null;
   stageStatus: string;
   solutionCategory: string;
   operatingModelArchetype: string | null;
-  farmersCount: number | null;
   statesOperating: string | null;
   internalDecision: string | null;
+  legalRegistrationType: string | null;
   fcraStatus: string | null;
   cert12A: string | null;
   cert80G: string | null;
   csr1Registration: string | null;
+  darpanRegistered: string | null;
   targetMatch: { name: string } | null;
+  founders: { fullName: string; email: string | null; linkedin: string | null }[];
   humanReviews: { id: string }[];
   reviewAssignments: { id: string; reviewer: { name: string } }[];
   aiEvaluations: {
@@ -47,8 +58,7 @@ export function ApplicationRow({ app, canManage }: { app: ApplicationRowData; ca
 
   const reviewedBy = app.reviewAssignments.length > 0 ? app.reviewAssignments.map((r) => r.reviewer.name).join(', ') : 'unassigned';
 
-  const eligibilityAnswered = ELIGIBILITY_FIELDS.filter((f) => app[f] != null).length;
-  const eligibilityComplete = eligibilityAnswered === ELIGIBILITY_FIELDS.length;
+  const eligibility = evaluateEligibility(app);
 
   return (
     <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -67,13 +77,18 @@ export function ApplicationRow({ app, canManage }: { app: ApplicationRowData; ca
           </DsBadge>
         )}
       </td>
+      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+        {app.legalRegistrationType
+          ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType)
+          : '—'}
+      </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <ReviewStatusDropdown applicationId={app.id} stageStatus={app.stageStatus} canManage={canManage} />
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <DsBadge tone={internalTone}>{internalLabel}</DsBadge>
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', minWidth: 260 }}>
         {app.operatingModelArchetype
           ? (() => {
               const values = app.operatingModelArchetype.split(';').filter(Boolean);
@@ -84,15 +99,14 @@ export function ApplicationRow({ app, canManage }: { app: ApplicationRowData; ca
             ? <SolutionCategoryTag category={app.solutionCategory} />
             : '—'}
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)' }}>{app.farmersCount ?? '—'}</td>
       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
         {app.statesOperating ? app.statesOperating.split(';').filter(Boolean).slice(0, 2).join(', ') : '—'}
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+      <td style={{ padding: 'var(--space-3) var(--space-4)' }} title={eligibility.failedReasons.join('; ')}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)' }}>
-          {!eligibilityComplete && <CircleAlert size={14} color="var(--delta-red)" strokeLinejoin="miter" strokeLinecap="square" />}
-          <span style={{ color: eligibilityComplete ? 'var(--text-secondary)' : 'var(--delta-red)' }}>
-            {eligibilityAnswered}/{ELIGIBILITY_FIELDS.length}
+          {!eligibility.eligible && <CircleAlert size={14} color="var(--delta-red)" strokeLinejoin="miter" strokeLinecap="square" />}
+          <span style={{ color: eligibility.eligible ? 'var(--text-secondary)' : 'var(--delta-red)' }}>
+            {eligibility.eligible ? 'yes' : 'no'}
           </span>
         </div>
       </td>

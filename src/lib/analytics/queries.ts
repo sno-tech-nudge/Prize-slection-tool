@@ -67,6 +67,58 @@ export async function getOperatingModelMix() {
   return [...tally.entries()].map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count);
 }
 
+/** Annual operating budget is free text off the real Zoho form (not the fixed enum band list),
+ *  so this tallies whatever distinct values actually exist rather than the enum. */
+export async function getOperatingBudgetMix() {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { annualOperatingBudget: true } });
+  const tally = new Map<string, number>();
+  for (const a of apps) {
+    const key = a.annualOperatingBudget?.trim() || 'not provided';
+    tally.set(key, (tally.get(key) ?? 0) + 1);
+  }
+  return [...tally.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+}
+
+export async function getReviewStatusMix() {
+  const apps = await prisma.application.findMany({
+    where: { isDuplicateOf: null },
+    select: { humanReviews: { select: { id: true }, take: 1 } },
+  });
+  const reviewed = apps.filter((a) => a.humanReviews.length > 0).length;
+  return [
+    { label: 'reviewed', count: reviewed },
+    { label: 'not reviewed', count: apps.length - reviewed },
+  ];
+}
+
+export async function getInternalDecisionMix() {
+  const [yes, no, undecided] = await Promise.all([
+    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
+    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'NO' } }),
+    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: null } }),
+  ]);
+  return [
+    { label: 'decision: yes', count: yes },
+    { label: 'decision: no', count: no },
+    { label: 'undecided', count: undecided },
+  ];
+}
+
+/** Tally of applications by state operated in — statesOperating is a multi-select field, so an
+ *  application counts toward every state it lists. Used to shade the India map. */
+export async function getStateApplicationMix() {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } });
+  const tally = new Map<string, number>();
+  for (const a of apps) {
+    (a.statesOperating ?? '').split(';').forEach((s) => {
+      const state = s.trim();
+      if (!state) return;
+      tally.set(state, (tally.get(state) ?? 0) + 1);
+    });
+  }
+  return [...tally.entries()].map(([state, count]) => ({ state, count })).sort((a, b) => b.count - a.count);
+}
+
 export async function getValueChainMix() {
   const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { valueChainFocus: true } });
   const tally = new Map<string, number>();

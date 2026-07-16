@@ -5,21 +5,6 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertRole, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
 
-export async function markContactedAction(formData: FormData) {
-  const user = await getCurrentUser();
-  assertRole(user, CAN_MANAGE_SETTINGS);
-
-  const targetId = String(formData.get('targetId'));
-  const notes = String(formData.get('notes') ?? '');
-
-  await prisma.target.update({
-    where: { id: targetId },
-    data: { status: 'CONTACTED', contactedAt: new Date(), notes: notes || undefined },
-  });
-
-  revalidatePath('/targets');
-}
-
 /** Replaces the target wishlist from an uploaded CSV: name,website,domain,founders,notes */
 export async function uploadTargetsCsvAction(formData: FormData) {
   const user = await getCurrentUser();

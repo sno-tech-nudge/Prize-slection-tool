@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, FileText, Target, Inbox, Settings, type LucideIcon } from 'lucide-react';
 import type { User } from '@prisma/client';
-import type { UserRoleValue as UserRole } from '@/lib/constants';
+import { ROLE_LABEL, type UserRoleValue as UserRole } from '@/lib/constants';
 import { Logo, Select, Badge } from '@/design-system';
 import { switchUser } from '@/lib/auth/actions';
 import { JobQueueTicker } from '@/components/JobQueueTicker';
@@ -30,13 +30,6 @@ const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Set
 
 // review, jury and analytics are deliberately off the nav for now — jury is getting its own
 // dedicated view later; until then these routes still exist, just aren't linked here.
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  ADMIN: 'admin',
-  REVIEWER: 'reviewer',
-  JURY: 'jury',
-  OBSERVER: 'observer',
-};
 
 export function AppShell({
   user,

@@ -4,6 +4,12 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Input, Select } from '@/design-system';
 import { SOLUTION_CATEGORIES, SOLUTION_CATEGORY_LABEL } from '@/lib/constants';
 
+export interface ApplicationFilterOptions {
+  registrationTypes: string[];
+  operatingModels: string[];
+  states: string[];
+}
+
 const REVIEW_TOGGLE_OPTIONS = [
   { value: '', label: 'all' },
   { value: 'YES', label: 'reviewed' },
@@ -23,7 +29,7 @@ function pillStyle(active: boolean): React.CSSProperties {
   };
 }
 
-export function ApplicationFilters() {
+export function ApplicationFilters({ options }: { options: ApplicationFilterOptions }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -75,6 +81,45 @@ export function ApplicationFilters() {
         <option value="YES">decision: yes</option>
         <option value="NO">decision: no</option>
         <option value="UNDECIDED">decision: undecided</option>
+      </Select>
+      <Select
+        aria-label="filter by registration type"
+        defaultValue={searchParams.get('registrationType') ?? ''}
+        onChange={(e) => setParam('registrationType', e.target.value)}
+        containerStyle={{ minWidth: 200 }}
+      >
+        <option value="">all registration types</option>
+        {options.registrationTypes.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </Select>
+      <Select
+        aria-label="filter by operating model"
+        defaultValue={searchParams.get('operatingModel') ?? ''}
+        onChange={(e) => setParam('operatingModel', e.target.value)}
+        containerStyle={{ minWidth: 220 }}
+      >
+        <option value="">all operating models</option>
+        {options.operatingModels.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </Select>
+      <Select
+        aria-label="filter by state"
+        defaultValue={searchParams.get('state') ?? ''}
+        onChange={(e) => setParam('state', e.target.value)}
+        containerStyle={{ minWidth: 180 }}
+      >
+        <option value="">all states</option>
+        {options.states.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
       </Select>
     </div>
   );

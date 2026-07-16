@@ -7,6 +7,9 @@ export interface ApplicationListFilters {
   category?: string;
   q?: string;
   internal?: string;
+  registrationType?: string;
+  operatingModel?: string;
+  state?: string;
 }
 
 export function applicationListInclude() {
@@ -15,6 +18,8 @@ export function applicationListInclude() {
     humanReviews: true,
     targetMatch: true,
     reviewAssignments: { include: { reviewer: true } },
+    founders: true,
+    comments: { include: { author: true }, orderBy: { createdAt: 'asc' as const } },
   } satisfies Prisma.ApplicationInclude;
 }
 
@@ -26,11 +31,54 @@ export async function listApplications(filters: ApplicationListFilters, user: Us
   if (filters.q) where.orgName = { contains: filters.q };
   if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.internalDecision = null;
+  if (filters.registrationType) where.legalRegistrationType = filters.registrationType;
+  if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
+  if (filters.state) where.statesOperating = { contains: filters.state };
 
   return prisma.application.findMany({
     where,
     orderBy: { submittedAt: 'desc' },
     include: applicationListInclude(),
+  });
+}
+
+/** Registration type, operating model and state values are free text keyed off the real Zoho
+ *  form, not the fixed enums in constants.ts — so filter dropdowns are built from whatever
+ *  distinct values actually exist in the data, not from the enum list. */
+export async function getApplicationFilterOptions() {
+  const apps = await prisma.application.findMany({
+    where: { isDuplicateOf: null },
+    select: { legalRegistrationType: true, operatingModelArchetype: true, statesOperating: true },
+  });
+
+  const registrationTypes = new Set<string>();
+  const operatingModels = new Set<string>();
+  const states = new Set<string>();
+
+  for (const app of apps) {
+    if (app.legalRegistrationType) registrationTypes.add(app.legalRegistrationType);
+    (app.operatingModelArchetype ?? '').split(';').filter(Boolean).forEach((v) => operatingModels.add(v));
+    (app.statesOperating ?? '').split(';').filter(Boolean).forEach((v) => states.add(v));
+  }
+
+  return {
+    registrationTypes: [...registrationTypes].sort(),
+    operatingModels: [...operatingModels].sort(),
+    states: [...states].sort(),
+  };
+}
+
+/** All applications for the outreach tab — filterable by internal decision, with each
+ *  application's outbox email history so the table can show what's already queued/sent. */
+export async function listApplicationsForOutreach(internalDecision?: string) {
+  const where: Prisma.ApplicationWhereInput = { isDuplicateOf: null };
+  if (internalDecision === 'YES' || internalDecision === 'NO') where.internalDecision = internalDecision;
+  if (internalDecision === 'UNDECIDED') where.internalDecision = null;
+
+  return prisma.application.findMany({
+    where,
+    orderBy: { submittedAt: 'desc' },
+    include: { outboxEmails: { orderBy: { createdAt: 'desc' as const } } },
   });
 }
 
