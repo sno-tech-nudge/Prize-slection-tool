@@ -16,7 +16,7 @@ export async function submitJuryScoreAction(formData: FormData) {
 
   const scoreMap: Record<string, number> = {};
   const criteria = RUBRIC_CRITERIA.map((c) => {
-    const score = Number(formData.get(`criterion_${c.key}`) ?? 2.5);
+    const score = Number(formData.get(`criterion_${c.key}`) ?? 0);
     scoreMap[c.key] = score;
     return { key: c.key, score, rationale: '', evidence: '', confidence: 1 };
   });

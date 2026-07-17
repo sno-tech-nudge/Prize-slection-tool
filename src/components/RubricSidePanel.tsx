@@ -2,11 +2,10 @@
 import React from 'react';
 import { X, ListChecks } from 'lucide-react';
 import { Button } from '@/design-system';
-import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
+import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 
 export function RubricSidePanel({ weights }: { weights: Record<string, number> }) {
   const [open, setOpen] = React.useState(false);
-  const maxWeight = Math.max(...RUBRIC_CRITERIA.map((c) => weights[c.key] ?? 1), 1);
 
   return (
     <>
@@ -26,7 +25,7 @@ export function RubricSidePanel({ weights }: { weights: Record<string, number> }
           <div
             style={{
               position: 'relative',
-              width: 420,
+              width: 460,
               maxWidth: '100%',
               height: '100%',
               background: 'var(--surface-card)',
@@ -39,7 +38,7 @@ export function RubricSidePanel({ weights }: { weights: Record<string, number> }
               <div>
                 <h2 style={{ fontSize: 'var(--fs-h4)' }}>scoring rubric</h2>
                 <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                  the 8 criteria the AI and human reviewers score every application against, 0-5 each.
+                  the team&apos;s real selection rubric — 20 criteria across 4 sections, each scored 0/1/3/5.
                 </p>
               </div>
               <button
@@ -52,25 +51,44 @@ export function RubricSidePanel({ weights }: { weights: Record<string, number> }
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-              {RUBRIC_CRITERIA.map((c, i) => {
-                const weight = weights[c.key] ?? 1;
-                const pct = Math.round((weight / maxWeight) * 100);
-                return (
-                  <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-2)' }}>
-                      <span style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
-                        {i + 1}. {c.label}
-                      </span>
-                      <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>weight {weight}</span>
-                    </div>
-                    <div style={{ background: 'var(--grey-100)', height: 6, marginBottom: 'var(--space-2)' }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: 'var(--delta-red)' }} />
-                    </div>
-                    <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)' }}>{c.prompt}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-7)' }}>
+              {RUBRIC_SECTIONS.map((section) => (
+                <div key={section.key}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-4)' }}>
+                    <h3 style={{ fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-primary)' }}>
+                      {section.label}
+                    </h3>
+                    <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+                      weight {section.weight}
+                    </span>
                   </div>
-                );
-              })}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c, i) => (
+                      <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-2)' }}>
+                          <span style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
+                            {i + 1}. {c.label}
+                          </span>
+                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>criterion weight {weights[c.key] ?? 1}</span>
+                        </div>
+                        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', marginBottom: 'var(--space-2)' }}>
+                          {c.prompt}
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {c.bands.map((b) => (
+                            <div key={b.score} style={{ display: 'flex', gap: 'var(--space-2)', fontSize: 'var(--fs-caption)' }}>
+                              <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number, width: 12, flexShrink: 0 }}>
+                                {b.score}
+                              </span>
+                              <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

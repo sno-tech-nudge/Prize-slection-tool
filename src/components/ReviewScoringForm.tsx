@@ -2,12 +2,20 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { HumanReview } from '@prisma/client';
-import { Input, Textarea, Radio, Button } from '@/design-system';
-import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
+import { Textarea, Radio, Button } from '@/design-system';
+import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { submitHumanReviewAction } from '@/lib/applications/actions';
 
-export function ReviewScoringForm({ applicationId, existing }: { applicationId: string; existing?: HumanReview }) {
+export function ReviewScoringForm({
+  applicationId,
+  existing,
+  onSubmitted,
+}: {
+  applicationId: string;
+  existing?: HumanReview;
+  onSubmitted?: () => void;
+}) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
   const existingScores = React.useMemo(() => {
@@ -21,26 +29,54 @@ export function ReviewScoringForm({ applicationId, existing }: { applicationId: 
         setPending(true);
         try {
           await submitHumanReviewAction(formData);
-          router.push('/review');
+          router.refresh();
+          onSubmitted?.();
         } finally {
           setPending(false);
         }
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
     >
       <input type="hidden" name="applicationId" value={applicationId} />
-      {RUBRIC_CRITERIA.map((c, i) => (
-        <Input
-          key={c.key}
-          name={`criterion_${c.key}`}
-          type="number"
-          min={0}
-          max={5}
-          step={0.5}
-          label={`${i + 1}. ${c.label}`}
-          defaultValue={existingScores[c.key] ?? 2.5}
-          helper={c.prompt}
-        />
+
+      {RUBRIC_SECTIONS.map((section) => (
+        <div key={section.key}>
+          <div
+            style={{
+              fontSize: 'var(--fs-caption)',
+              textTransform: 'uppercase',
+              letterSpacing: 'var(--ls-wide)',
+              color: 'var(--text-muted)',
+              marginBottom: 'var(--space-3)',
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: 'var(--space-2)',
+            }}
+          >
+            {section.label} · weight {section.weight}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+            {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c, i) => (
+              <div key={c.key}>
+                <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
+                  {i + 1}. {c.label}
+                </div>
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>{c.prompt}</p>
+                <Radio
+                  name={`criterion_${c.key}`}
+                  defaultValue={String(existingScores[c.key] ?? '')}
+                  options={c.bands.map((b) => ({
+                    value: String(b.score),
+                    label: (
+                      <span>
+                        <strong style={{ color: 'var(--delta-red)' }}>{b.score}</strong> — {b.label}
+                      </span>
+                    ),
+                  }))}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       ))}
 
       <div>

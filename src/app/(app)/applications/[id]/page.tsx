@@ -11,7 +11,7 @@ import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
 import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
 import { ApplicationPagerKeys } from '@/components/ApplicationPagerKeys';
 import { SectionJumpNav } from '@/components/SectionJumpNav';
-import { ApplicationDetailTabs } from '@/components/ApplicationDetailTabs';
+import { ReviewSidePanel } from '@/components/ReviewSidePanel';
 import { PersonalNotes } from '@/components/PersonalNotes';
 import { CommentThread } from '@/components/CommentThread';
 import { getApplicationDetail, getAdjacentApplications } from '@/lib/applications/queries';
@@ -76,6 +76,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const eligibilityScreen = evaluateEligibility(app);
   const embed = driveEmbedUrl(app.pitchDeckUrl);
   const isAdmin = user?.role === 'ADMIN';
+  const myReview = app.humanReviews.find((r) => r.reviewerId === user?.id);
 
   return (
     <div>
@@ -90,10 +91,36 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             <SolutionCategoryTag category={app.solutionCategory} />
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
             {latestEval && <CompositeBadge score={effectiveScore(latestEval).composite} />}
+            {user && (
+              <ReviewSidePanel
+                applicationId={app.id}
+                orgName={app.orgName}
+                existing={myReview}
+                aiScore={latestEval ? { composite: effectiveScore(latestEval).composite, disposition: effectiveScore(latestEval).disposition } : undefined}
+              />
+            )}
             <DownloadPdfButton />
           </div>
         }
       />
+
+      {isAdmin && (
+        <div style={{ padding: 'var(--space-6) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <Card accent accentSide="left">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-3)' }}>
+              <h2 style={{ fontSize: 'var(--fs-h4)' }}>reviewers</h2>
+              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>
+                assign whoever should review this application. manual only — there&apos;s no auto-assignment.
+              </p>
+            </div>
+            <ReviewerAssignmentPanel
+              applicationId={app.id}
+              reviewers={reviewers}
+              assignedReviewerIds={app.reviewAssignments.map((a) => a.reviewerId)}
+            />
+          </Card>
+        </div>
+      )}
 
       {!eligibilityScreen.eligible && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
@@ -139,8 +166,6 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       </div>
 
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-8)' }}>
-        <ApplicationDetailTabs
-          applicationContent={
         <div>
           <SectionJumpNav />
           <div id="section-organisation-profile">
@@ -380,10 +405,12 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               </a>
             </Card>
           )}
-        </div>
-          }
-          reviewContent={
-        <div>
+          <div id="section-scoring" style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>scoring &amp; evaluation</h2>
+            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+              AI read below is decision support only — use the &ldquo;review&rdquo; button above to score this application yourself.
+            </p>
+          </div>
           {latestEval && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
@@ -509,28 +536,12 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             </Card>
           )}
         </div>
-          }
-        />
 
         <div>
           {isAdmin && (
             <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
               <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} />
-            </Card>
-          )}
-
-          {isAdmin && (
-            <Card style={{ marginBottom: 'var(--space-6)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>reviewers</h2>
-              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
-                assign whoever should review this application. manual only — there&apos;s no auto-assignment.
-              </p>
-              <ReviewerAssignmentPanel
-                applicationId={app.id}
-                reviewers={reviewers}
-                assignedReviewerIds={app.reviewAssignments.map((a) => a.reviewerId)}
-              />
             </Card>
           )}
 

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { AngularBanner, Card, Input, Select, Switch, Button } from '@/design-system';
 import { getSettings } from '@/lib/settings';
 import { updateSettingsAction } from '@/lib/settings-actions';
-import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
+import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { getAutomationStats } from '@/lib/automation/actions';
 import { listUsers } from '@/lib/auth/session';
 import { AutomationPanel } from '@/components/AutomationPanel';
@@ -25,23 +25,30 @@ export default async function SettingsPage() {
         <Card accent>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>rubric weights</h2>
           <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' }}>
-            weight each of the eight AI-scoring criteria. equal weights (1) by default. raise a criterion&apos;s weight to make it count more
-            toward the composite.
+            the team&apos;s real selection rubric — 20 criteria across 4 sections, weighted 20/30/25/25 by default. raise a
+            criterion&apos;s weight to make it count more toward the composite.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            {RUBRIC_CRITERIA.map((c) => (
-              <Input
-                key={c.key}
-                name={`weight_${c.key}`}
-                type="number"
-                min={0}
-                max={5}
-                step={0.5}
-                label={c.label}
-                defaultValue={settings.rubricWeights[c.key] ?? 1}
-              />
-            ))}
-          </div>
+          {RUBRIC_SECTIONS.map((section) => (
+            <div key={section.key} style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+                {section.label} · {section.weight}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c) => (
+                  <Input
+                    key={c.key}
+                    name={`weight_${c.key}`}
+                    type="number"
+                    min={0}
+                    max={30}
+                    step={0.1}
+                    label={c.label}
+                    defaultValue={settings.rubricWeights[c.key] ?? 1}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </Card>
 
         <Card accent>
