@@ -6,7 +6,8 @@ import { computeComposite, dispositionFromComposite, RUBRIC_CRITERIA } from './r
 import { heuristicScore } from './heuristic';
 import type { ScoringResult } from './types';
 
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 function extractJson(text: string): unknown {
   const trimmed = text.trim();
@@ -26,7 +27,7 @@ async function callClaude(userPrompt: string): Promise<ScoringResult> {
 
   async function attempt(extra?: string): Promise<ScoringResult> {
     const message = await client.messages.create({
-      model: MODEL,
+      model: ANTHROPIC_MODEL,
       max_tokens: 3000,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: extra ? `${userPrompt}\n\n${extra}` : userPrompt }],
@@ -45,6 +46,71 @@ async function callClaude(userPrompt: string): Promise<ScoringResult> {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Groq's free tier enforces a low tokens-per-minute budget, so a burst of scoring calls hits
+ *  429s quickly. The error body tells us exactly how long to wait ("Please try again in Xs") —
+ *  read that back rather than guessing, and retry until the budget frees up. */
+async function groqRequest(body: unknown, maxRetries = 6): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 429 || attempt === maxRetries) return res;
+
+    const text = await res.text();
+    const match = text.match(/try again in ([\d.]+)s/i);
+    const waitSeconds = match ? Number(match[1]) : 20;
+    await sleep(Math.ceil(waitSeconds * 1000) + 1000);
+  }
+  throw new Error('unreachable');
+}
+
+/** Groq's chat completions API is OpenAI-compatible — plain fetch, no extra SDK dependency.
+ *  response_format: json_object gets a much more reliable JSON-only reply than prompting alone. */
+async function callGroq(userPrompt: string): Promise<ScoringResult> {
+  async function attempt(extra?: string): Promise<ScoringResult> {
+    const res = await groqRequest({
+      model: GROQ_MODEL,
+      max_tokens: 3000,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: extra ? `${userPrompt}\n\n${extra}` : userPrompt },
+      ],
+    });
+    if (!res.ok) throw new Error(`Groq API responded ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content ?? '';
+    const parsed = extractJson(text);
+    if (!isValidResult(parsed)) throw new Error('Model response failed JSON contract validation.');
+    return parsed;
+  }
+
+  try {
+    return await attempt();
+  } catch {
+    return attempt('Your previous response was not valid JSON matching the required shape. Respond with ONLY the JSON object, no other text.');
+  }
+}
+
+/** Explicit SCORING_PROVIDER wins; otherwise auto-detect from whichever key is actually present.
+ *  Falls back to the heuristic estimator if neither is configured — never silently no-ops. */
+function resolveProvider(): 'anthropic' | 'groq' | 'heuristic' {
+  const configured = process.env.SCORING_PROVIDER?.toLowerCase();
+  if (configured === 'anthropic' || configured === 'groq' || configured === 'heuristic') return configured;
+  if (process.env.GROQ_API_KEY) return 'groq';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  return 'heuristic';
+}
+
 export async function scoreApplication(applicationId: string): Promise<{ usedModel: string }> {
   const app = await prisma.application.findUniqueOrThrow({
     where: { id: applicationId },
@@ -52,23 +118,30 @@ export async function scoreApplication(applicationId: string): Promise<{ usedMod
   });
 
   const settings = await getSettings();
-  const hasKey = !!process.env.ANTHROPIC_API_KEY;
+  const provider = resolveProvider();
 
   let result: ScoringResult;
   let modelLabel: string;
 
-  if (hasKey) {
+  if (provider === 'groq') {
+    const userPrompt = buildUserPrompt(app);
+    result = await callGroq(userPrompt);
+    modelLabel = `groq/${GROQ_MODEL}`;
+  } else if (provider === 'anthropic') {
     const userPrompt = buildUserPrompt(app);
     result = await callClaude(userPrompt);
-    // recompute composite server-side from the weighted rubric so admin-tunable weights always apply,
-    // even though the model already returns its own composite estimate.
-    const scoreMap = Object.fromEntries(result.criteria.map((c) => [c.key, c.score]));
-    result.composite = computeComposite(scoreMap, settings.rubricWeights);
-    result.disposition = dispositionFromComposite(result.composite);
-    modelLabel = MODEL;
+    modelLabel = ANTHROPIC_MODEL;
   } else {
     result = heuristicScore(app);
     modelLabel = 'heuristic-fallback-v1';
+  }
+
+  if (provider !== 'heuristic') {
+    // recompute composite server-side from the weighted rubric so admin-tunable weights always
+    // apply, even though the model already returns its own composite estimate.
+    const scoreMap = Object.fromEntries(result.criteria.map((c) => [c.key, c.score]));
+    result.composite = computeComposite(scoreMap, settings.rubricWeights);
+    result.disposition = dispositionFromComposite(result.composite);
   }
 
   await prisma.aiEvaluation.create({

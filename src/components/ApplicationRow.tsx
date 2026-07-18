@@ -4,7 +4,6 @@ import { CompositeBadge, SolutionCategoryTag } from '@/components/StatusBadges';
 import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
-import { effectiveScore } from '@/lib/scoring/effective';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import {
   OPERATING_MODEL_ARCHETYPE_LABEL,
@@ -36,22 +35,18 @@ export interface ApplicationRowData {
   darpanRegistered: string | null;
   targetMatch: { name: string } | null;
   founders: { fullName: string; email: string | null; linkedin: string | null }[];
-  humanReviews: { id: string }[];
+  humanReviews: { id: string; composite: number }[];
   reviewAssignments: { id: string; reviewer: { name: string } }[];
-  aiEvaluations: {
-    id: string;
-    composite: number;
-    disposition: string;
-    overrideComposite: number | null;
-    overrideDisposition: string | null;
-  }[];
 }
 
 /** Row navigates to the full application record page (/applications/[id]) on click — a real
  *  anchor, so left-click, middle-click, ctrl/cmd-click and right-click "open in new tab" all
  *  behave the way the browser expects, with no JS interception. */
 export function ApplicationRow({ app, canManage }: { app: ApplicationRowData; canManage: boolean }) {
-  const latestEval = app.aiEvaluations[0];
+  const humanComposite =
+    app.humanReviews.length > 0
+      ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
+      : null;
 
   const internalTone = app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' ? 'neutral' : 'outline';
   const internalLabel = app.internalDecision === 'YES' ? 'decision: yes' : app.internalDecision === 'NO' ? 'decision: no' : 'undecided';
@@ -102,22 +97,33 @@ export function ApplicationRow({ app, canManage }: { app: ApplicationRowData; ca
       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
         {app.statesOperating ? app.statesOperating.split(';').filter(Boolean).slice(0, 2).join(', ') : '—'}
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }} title={eligibility.failedReasons.join('; ')}>
+      <td
+        style={{ padding: 'var(--space-3) var(--space-4)' }}
+        title={eligibility.eligible ? eligibility.identityGaps.join('; ') : eligibility.failedReasons.join('; ')}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)' }}>
           {!eligibility.eligible && <CircleAlert size={14} color="var(--delta-red)" strokeLinejoin="miter" strokeLinecap="square" />}
-          <span style={{ color: eligibility.eligible ? 'var(--text-secondary)' : 'var(--delta-red)' }}>
+          {eligibility.eligible && eligibility.identityGaps.length > 0 && (
+            <CircleAlert size={14} color="var(--delta-yellow)" strokeLinejoin="miter" strokeLinecap="square" />
+          )}
+          <span
+            style={{
+              color: !eligibility.eligible
+                ? 'var(--delta-red)'
+                : eligibility.identityGaps.length > 0
+                  ? 'var(--yellow-600)'
+                  : 'var(--text-secondary)',
+            }}
+          >
             {eligibility.eligible ? 'yes' : 'no'}
           </span>
         </div>
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        {latestEval ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <CompositeBadge score={effectiveScore(latestEval).composite} />
-            {effectiveScore(latestEval).isOverridden && <DsBadge tone="yellow">overridden</DsBadge>}
-          </div>
+        {humanComposite !== null ? (
+          <CompositeBadge score={humanComposite} />
         ) : (
-          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>not scored</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>not reviewed yet</span>
         )}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{reviewedBy}</td>

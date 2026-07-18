@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AngularBanner, Card, Badge, Tag } from '@/design-system';
-import { StageBadge, CompositeBadge, DispositionTag, SolutionCategoryTag } from '@/components/StatusBadges';
+import { CompositeBadge, DispositionTag } from '@/components/StatusBadges';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
 import { RescoreButton } from '@/components/RescoreButton';
@@ -87,8 +87,6 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
         subtitle={`${app.pocFirstName} ${app.pocLastName}${app.designation ? `, ${app.designation}` : ''} · ${app.location ?? 'location not provided'}`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <StageBadge stage={app.stageStatus} />
-            <SolutionCategoryTag category={app.solutionCategory} />
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
             {latestEval && <CompositeBadge score={effectiveScore(latestEval).composite} />}
             {user && (
@@ -129,6 +127,21 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: 'var(--fs-small)' }}>
               {eligibilityScreen.failedReasons.map((r) => (
                 <li key={r}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {eligibilityScreen.eligible && eligibilityScreen.identityGaps.length > 0 && (
+        <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <div style={{ background: 'var(--delta-yellow)', color: 'var(--delta-charcoal)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            <strong style={{ fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
+              identity details missing — passes eligibility, needs a human look
+            </strong>
+            <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: 'var(--fs-small)' }}>
+              {eligibilityScreen.identityGaps.map((g) => (
+                <li key={g}>{g}</li>
               ))}
             </ul>
           </div>

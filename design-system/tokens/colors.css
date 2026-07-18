@@ -67,4 +67,22 @@
 
   /* Focus */
   --focus-ring:       var(--delta-charcoal);
+
+  /* ---- Chart-only palette ----
+     The brand palette (red/charcoal/grey/yellow) doesn't have enough distinct hues to tell
+     apart 10-12 pie slices at a glance. These are used exclusively by chart components
+     (never buttons, text, or surfaces) so the brand-wide red/grey/yellow restriction and the
+     yellow ≤10% rule stay intact everywhere else. */
+  --chart-1:          #b21010;   /* red — brand primary */
+  --chart-2:          #2f6fb2;   /* blue */
+  --chart-3:          #3f9142;   /* green */
+  --chart-4:          #f4c024;   /* yellow — brand accent */
+  --chart-5:          #7b4fa6;   /* purple */
+  --chart-6:          #d9722e;   /* orange */
+  --chart-7:          #2a9d97;   /* teal */
+  --chart-8:          #363d3f;   /* charcoal */
+  --chart-9:          #c94f8f;   /* pink */
+  --chart-10:         #8a5a2e;   /* brown */
+  --chart-11:         #6e7475;   /* slate */
+  --chart-12:         #9aa0a1;   /* light grey */
 }

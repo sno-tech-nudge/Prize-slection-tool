@@ -58,6 +58,9 @@ export function evaluateEligibility(app: EligibilityInput): EligibilityResult {
   if (isNo(app.csr1Registration)) failedReasons.push('no CSR-1 registration');
   if (isNo(app.darpanRegistered)) failedReasons.push('no NITI Aayog / DARPAN ID');
 
+  // Identity/founder-detail gaps (missing website, LinkedIn, founder email, etc.) are a flag for
+  // a human to double-check during review, not an automatic disqualification — an application
+  // shouldn't fail Level 1 eligibility just because a founder's LinkedIn wasn't filled in.
   const identityGaps: string[] = [];
   if (!app.orgName.trim()) identityGaps.push('organisation name');
   if (!app.pocFirstName.trim() || !app.pocLastName.trim()) identityGaps.push('applicant name');
@@ -71,10 +74,6 @@ export function evaluateEligibility(app: EligibilityInput): EligibilityResult {
     const founder = app.founders[0];
     if (!founder.email) identityGaps.push('founder email');
     if (!founder.linkedin) identityGaps.push('founder LinkedIn');
-  }
-
-  if (identityGaps.length > 0) {
-    failedReasons.push(`missing identity fields: ${identityGaps.join(', ')}`);
   }
 
   return { eligible: failedReasons.length === 0, failedReasons, identityGaps };

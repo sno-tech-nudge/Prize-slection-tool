@@ -28,6 +28,10 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   yearsExperience: (app) => app.yearsExperience ?? '',
   eligibility: (app) => (evaluateEligibility(app).eligible ? 'eligible' : 'ineligible'),
   eligibilityIssues: (app) => evaluateEligibility(app).failedReasons.join('; '),
+  humanComposite: (app) =>
+    app.humanReviews.length > 0
+      ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
+      : '',
   aiComposite: (app) => (app.aiEvaluations[0] ? effectiveScore(app.aiEvaluations[0]).composite : ''),
   reviewer: (app) => app.reviewAssignments.map((r) => r.reviewer.name).join('; '),
   submittedAt: (app) => app.submittedAt.toISOString(),

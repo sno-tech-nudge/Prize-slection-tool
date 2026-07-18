@@ -1,18 +1,14 @@
 import Link from 'next/link';
-import { FileText, Layers, Trophy, Inbox, CheckCircle2, CircleAlert, Gauge, Globe2, type LucideIcon } from 'lucide-react';
+import { FileText, Layers, CheckCircle2, Globe2, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
-import { STAGE_STATUS_LABEL, type StageStatusValue } from '@/lib/constants';
-import { getDashboardKpis, getRecentActivity, getDivergentApplications, getFlaggedApplications } from '@/lib/dashboard/queries';
+import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
 import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
 import {
-  getFunnel,
   getOperatingModelMix,
   getOperatingBudgetMix,
-  getReviewStatusMix,
-  getInternalDecisionMix,
   getStateApplicationMix,
-  getCalibrationNote,
-  getReviewerThroughput,
+  getOrgSizeMix,
+  getOrgAgeMix,
 } from '@/lib/analytics/queries';
 import { BarRow } from '@/components/BarRow';
 import { PieChart } from '@/components/PieChart';
@@ -74,30 +70,24 @@ export default async function DashboardPage() {
     recentMatches,
     targetStats,
     activity,
-    divergent,
     categoryMix,
     budgetMix,
-    reviewStatusMix,
-    internalDecisionMix,
     stateMix,
-    calibration,
-    reviewerThroughput,
-    flagged,
+    orgSizeMix,
+    orgAgeMix,
+    reviewerStats,
   ] = await Promise.all([
     getDashboardKpis(),
-    getFunnel(),
+    getReviewDecisionFunnel(),
     listRecentMatches(4),
     getTargetStats(),
     getRecentActivity(),
-    getDivergentApplications(),
     getOperatingModelMix(),
     getOperatingBudgetMix(),
-    getReviewStatusMix(),
-    getInternalDecisionMix(),
     getStateApplicationMix(),
-    getCalibrationNote(),
-    getReviewerThroughput(),
-    getFlaggedApplications(),
+    getOrgSizeMix(),
+    getOrgAgeMix(),
+    getReviewerStats(),
   ]);
   const funnelMax = Math.max(...funnel.map((f) => f.count), 1);
 
@@ -113,21 +103,8 @@ export default async function DashboardPage() {
           <Kpi label="total applications" value={kpis.total} icon={FileText} />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
           <Kpi label="shortlisted+" value={kpis.shortlisted} icon={Layers} />
-          <Kpi label="winners" value={kpis.winners} icon={Trophy} />
-          <Kpi label="outreach queued" value={kpis.queuedOutbox} icon={Inbox} />
-          <Kpi label="flagged / ineligible" value={flagged.length} icon={CircleAlert} />
-          <Kpi label="avg AI composite" value={kpis.avgComposite ?? '—'} icon={Gauge} />
           <Kpi label="states represented" value={kpis.statesRepresented} icon={Globe2} />
         </div>
-
-        <Card accent>
-          <SectionHeader title="pipeline funnel" action={{ href: '/analytics', label: 'full analytics' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {funnel.map((f) => (
-              <BarRow key={f.stage} label={STAGE_STATUS_LABEL[f.stage as StageStatusValue]} count={f.count} max={funnelMax} />
-            ))}
-          </div>
-        </Card>
 
         <Card accent>
           <SectionHeader title="applicants by state" />
@@ -148,66 +125,67 @@ export default async function DashboardPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
           <Card>
-            <SectionHeader title="review status" />
-            <PieChart data={reviewStatusMix} size={160} />
+            <SectionHeader title="organisation size (full-time employees)" />
+            <PieChart data={orgSizeMix} size={160} />
           </Card>
 
           <Card>
-            <SectionHeader title="internal decision" />
-            <PieChart data={internalDecisionMix} size={160} />
+            <SectionHeader title="organisation age" />
+            <PieChart data={orgAgeMix} size={160} />
           </Card>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
-          <Card accent accentSide="left">
-            <SectionHeader title="AI scoring accuracy" />
-            {calibration ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
-                  <span style={{ fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--delta-red)' }}>
-                    {calibration.accuracy}%
-                  </span>
-                  <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-                    match against {calibration.total} historically decided applications
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', fontSize: 'var(--fs-small)' }}>
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-2)' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>correctly advanced</div>
-                    <strong>{calibration.truePositive}</strong>
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-2)' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>correctly rejected</div>
-                    <strong>{calibration.trueNegative}</strong>
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-2)' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>missed (should advance)</div>
-                    <strong>{calibration.falseNegative}</strong>
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-2)' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>over-advanced</div>
-                    <strong>{calibration.falsePositive}</strong>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no AI evaluations yet to backtest.</p>
-            )}
+          <Card accent>
+            <SectionHeader title="pipeline funnel" action={{ href: '/analytics', label: 'full analytics' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {funnel.map((f) => (
+                <BarRow key={f.label} label={f.label} count={f.count} max={funnelMax} />
+              ))}
+            </div>
           </Card>
 
           <Card>
-            <SectionHeader title="reviewer throughput" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {reviewerThroughput.slice(0, 5).map((r) => (
-                <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-small)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
-                  <span>{r.name}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {r.reviewsCompleted} review{r.reviewsCompleted === 1 ? '' : 's'} · {r.avgTurnaroundDays}d avg
-                  </span>
+            <SectionHeader title="reviewer stats" />
+            {reviewerStats.length > 0 ? (
+              <div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    fontSize: 'var(--fs-caption)',
+                    textTransform: 'uppercase',
+                    letterSpacing: 'var(--ls-wide)',
+                    color: 'var(--text-muted)',
+                    paddingBottom: 'var(--space-2)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <span>reviewer</span>
+                  <span style={{ textAlign: 'right' }}>reviewed / yet to review</span>
                 </div>
-              ))}
-              {reviewerThroughput.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviews submitted yet.</p>}
-            </div>
+                {reviewerStats.map((r) => (
+                  <div
+                    key={r.name}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      alignItems: 'center',
+                      fontSize: 'var(--fs-small)',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      padding: 'var(--space-3) 0',
+                    }}
+                  >
+                    <span>{r.name}</span>
+                    <span style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                      {r.reviewed} / {r.yetToReview}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewers assigned yet.</p>
+            )}
           </Card>
         </div>
 
@@ -234,93 +212,30 @@ export default async function DashboardPage() {
           </Card>
 
           <Card>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h4)' }}>reviewer divergence</h2>
-              {divergent.length > 0 && <Badge tone="yellow">{divergent.length} flagged</Badge>}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {divergent.slice(0, 5).map(({ app }) => (
-                <Link
-                  key={app.id}
-                  href={`/applications/${app.id}`}
-                  style={{ fontSize: 'var(--fs-small)', color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
+            <SectionHeader title="recent activity" />
+            <div>
+              {activity.map((t) => (
+                <div
+                  key={t.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 'var(--fs-small)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    padding: 'var(--space-3) 0',
+                  }}
                 >
-                  <span><OrgTitle>{app.orgName}</OrgTitle></span>
-                  <span style={{ color: 'var(--text-muted)' }}>AI / human scores diverge</span>
-                </Link>
+                  <Link href={`/applications/${t.application.id}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
+                    <OrgTitle>{t.application.orgName}</OrgTitle>
+                  </Link>
+                  <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{t.actor?.name ?? 'system'}</span>
+                </div>
               ))}
-              {divergent.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no divergent reviews right now.</p>}
+              {activity.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)', paddingTop: 'var(--space-3)' }}>no activity yet.</p>}
             </div>
           </Card>
         </div>
-
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h4)' }}>red flags &amp; ineligible applicants</h2>
-            {flagged.length > 0 && <Badge tone="red">{flagged.length} flagged</Badge>}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {flagged.slice(0, 8).map((a) => (
-              <Link
-                key={a.id}
-                href={`/applications/${a.id}`}
-                style={{ fontSize: 'var(--fs-small)', color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
-              >
-                <span><OrgTitle>{a.orgName}</OrgTitle></span>
-                <span style={{ color: 'var(--text-muted)' }} title={a.eligibilityReasons.join('; ')}>
-                  {a.ineligible && `ineligible: ${a.eligibilityReasons.length} issue${a.eligibilityReasons.length === 1 ? '' : 's'}`}
-                  {a.ineligible && a.redFlags.length > 0 && ' · '}
-                  {a.redFlags.length > 0 && `${a.redFlags.length} AI red flag${a.redFlags.length === 1 ? '' : 's'}`}
-                </span>
-              </Link>
-            ))}
-            {flagged.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no flagged or ineligible applicants right now.</p>}
-          </div>
-        </Card>
-
-        <Card>
-          <SectionHeader title="recent activity" />
-          <div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 2fr 1fr',
-                fontSize: 'var(--fs-caption)',
-                textTransform: 'uppercase',
-                letterSpacing: 'var(--ls-wide)',
-                color: 'var(--text-muted)',
-                paddingBottom: 'var(--space-2)',
-                borderBottom: '1px solid var(--border-subtle)',
-              }}
-            >
-              <span>organisation</span>
-              <span>transition</span>
-              <span style={{ textAlign: 'right' }}>actor</span>
-            </div>
-            {activity.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '2fr 2fr 1fr',
-                  alignItems: 'center',
-                  fontSize: 'var(--fs-small)',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  padding: 'var(--space-3) 0',
-                }}
-              >
-                <Link href={`/applications/${t.application.id}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
-                  <OrgTitle>{t.application.orgName}</OrgTitle>
-                </Link>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  {STAGE_STATUS_LABEL[t.fromStatus as StageStatusValue] ?? t.fromStatus} → {STAGE_STATUS_LABEL[t.toStatus as StageStatusValue] ?? t.toStatus}
-                </span>
-                <span style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{t.actor?.name ?? 'system'}</span>
-              </div>
-            ))}
-            {activity.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)', paddingTop: 'var(--space-3)' }}>no activity yet.</p>}
-          </div>
-        </Card>
       </div>
     </div>
   );

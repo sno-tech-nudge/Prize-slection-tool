@@ -40,26 +40,13 @@ export async function getFlaggedApplications() {
 }
 
 export async function getDashboardKpis() {
-  const [total, shortlisted, winners, queuedOutbox, internalYes, composites, statesRaw, yearsRaw] = await Promise.all([
+  const [total, shortlisted, internalYes, statesRaw, yearsRaw] = await Promise.all([
     prisma.application.count({ where: { isDuplicateOf: null } }),
     prisma.application.count({ where: { isDuplicateOf: null, stageStatus: { in: ['SHORTLISTED', 'JURY_REVIEW', 'FINALIST', 'WINNER'] } } }),
-    prisma.application.count({ where: { isDuplicateOf: null, stageStatus: 'WINNER' } }),
-    prisma.outboxEmail.count({ where: { status: 'QUEUED' } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
-    prisma.aiEvaluation.findMany({
-      where: { application: { isDuplicateOf: null } },
-      orderBy: { createdAt: 'desc' },
-      distinct: ['applicationId'],
-      select: { composite: true, overrideComposite: true },
-    }),
     prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } }),
     prisma.application.findMany({ where: { isDuplicateOf: null, yearsExperience: { not: null } }, select: { yearsExperience: true } }),
   ]);
-
-  const avgComposite =
-    composites.length > 0
-      ? Math.round(composites.reduce((sum, e) => sum + (e.overrideComposite ?? e.composite), 0) / composites.length)
-      : null;
 
   const statesSet = new Set<string>();
   for (const a of statesRaw) {
@@ -75,13 +62,52 @@ export async function getDashboardKpis() {
   return {
     total,
     shortlisted,
-    winners,
-    queuedOutbox,
     internalYes,
-    avgComposite,
     statesRepresented: statesSet.size,
     avgYearsExperience,
   };
+}
+
+/** Pipeline funnel that folds review status and internal decision into one view:
+ *  received → reviewed → decision split (yes / no / undecided). */
+export async function getReviewDecisionFunnel() {
+  const apps = await prisma.application.findMany({
+    where: { isDuplicateOf: null },
+    select: { internalDecision: true, humanReviews: { select: { id: true }, take: 1 } },
+  });
+  const total = apps.length;
+  const reviewed = apps.filter((a) => a.humanReviews.length > 0).length;
+  const yes = apps.filter((a) => a.internalDecision === 'YES').length;
+  const no = apps.filter((a) => a.internalDecision === 'NO').length;
+  const undecided = total - yes - no;
+  return [
+    { label: 'applications received', count: total },
+    { label: 'reviewed', count: reviewed },
+    { label: 'decision: yes', count: yes },
+    { label: 'decision: no', count: no },
+    { label: 'undecided', count: undecided },
+  ];
+}
+
+/** One row per user (admins review too, so this isn't reviewer-role-only) showing how many of
+ *  their assigned applications they've submitted a HumanReview for vs. still owe. */
+export async function getReviewerStats() {
+  const [users, assignments, reviews] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, name: true } }),
+    prisma.reviewAssignment.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
+    prisma.humanReview.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
+  ]);
+  const reviewedSet = new Set(reviews.map((r) => `${r.reviewerId}:${r.applicationId}`));
+  const byUser = new Map(users.map((u) => [u.id, { name: u.name, assigned: 0, reviewed: 0 }]));
+  for (const a of assignments) {
+    const entry = byUser.get(a.reviewerId);
+    if (!entry) continue;
+    entry.assigned++;
+    if (reviewedSet.has(`${a.reviewerId}:${a.applicationId}`)) entry.reviewed++;
+  }
+  return [...byUser.values()]
+    .map((e) => ({ name: e.name, reviewed: e.reviewed, yetToReview: e.assigned - e.reviewed }))
+    .sort((a, b) => b.reviewed - a.reviewed);
 }
 
 export async function getRecentActivity(limit = 8) {

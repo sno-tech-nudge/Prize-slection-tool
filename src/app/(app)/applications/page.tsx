@@ -16,7 +16,7 @@ const HEADERS = [
   'operating model',
   'states',
   'eligibility',
-  'AI composite',
+  'human score',
   'reviewer',
 ];
 
@@ -32,6 +32,7 @@ export default async function ApplicationsPage({
     registrationType?: string;
     operatingModel?: string;
     state?: string;
+    eligible?: string;
   };
 }) {
   const user = await getCurrentUser();

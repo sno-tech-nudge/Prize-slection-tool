@@ -119,6 +119,42 @@ export async function getStateApplicationMix() {
   return [...tally.entries()].map(([state, count]) => ({ state, count })).sort((a, b) => b.count - a.count);
 }
 
+/** teamSize on the live form is a fixed band string ("0-10", "10-50", ...), not free text. */
+export async function getOrgSizeMix() {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { teamSize: true } });
+  const tally = new Map<string, number>();
+  for (const a of apps) {
+    const key = a.teamSize?.trim() || 'not provided';
+    tally.set(key, (tally.get(key) ?? 0) + 1);
+  }
+  const order = ['0-10', '10-50', '50-100', '100-500', 'not provided'];
+  return [...tally.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
+}
+
+/** Buckets organisation age from incorporationDate — "when was the organisation registered". */
+export async function getOrgAgeMix() {
+  const apps = await prisma.application.findMany({
+    where: { isDuplicateOf: null, incorporationDate: { not: null } },
+    select: { incorporationDate: true },
+  });
+  const buckets = [
+    { label: '< 1 year', min: 0, max: 1, count: 0 },
+    { label: '1-3 years', min: 1, max: 3, count: 0 },
+    { label: '3-5 years', min: 3, max: 5, count: 0 },
+    { label: '5-10 years', min: 5, max: 10, count: 0 },
+    { label: '10+ years', min: 10, max: Infinity, count: 0 },
+  ];
+  const now = Date.now();
+  for (const a of apps) {
+    const years = Math.max(0, (now - a.incorporationDate!.getTime()) / (365.25 * 86400000));
+    const bucket = buckets.find((b) => years >= b.min && years < b.max) ?? buckets[buckets.length - 1];
+    bucket.count++;
+  }
+  return buckets.map(({ label, count }) => ({ label, count }));
+}
+
 export async function getValueChainMix() {
   const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { valueChainFocus: true } });
   const tally = new Map<string, number>();

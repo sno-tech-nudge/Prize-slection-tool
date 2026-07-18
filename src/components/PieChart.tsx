@@ -5,19 +5,22 @@ export interface PieSlice {
   count: number;
 }
 
-// Brand palette only has red/charcoal/grey/yellow scales — cycled here to give each numbered
-// slice a visually distinct tone without introducing raw hex colors outside the token file.
+// Dedicated chart palette (design-system/tokens/colors.css) spans the full hue range so
+// neighboring slices never look alike, even with 10+ categories — the brand's red/charcoal/
+// grey/yellow set alone doesn't have enough distinct hues for that.
 const SLICE_COLORS = [
-  'var(--delta-red)',
-  'var(--delta-charcoal)',
-  'var(--grey-400)',
-  'var(--yellow-600)',
-  'var(--red-500)',
-  'var(--grey-600)',
-  'var(--red-700)',
-  'var(--yellow-500)',
-  'var(--grey-300)',
-  'var(--grey-900)',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-6)',
+  'var(--chart-7)',
+  'var(--chart-8)',
+  'var(--chart-9)',
+  'var(--chart-10)',
+  'var(--chart-11)',
+  'var(--chart-12)',
 ];
 
 function polarPoint(cx: number, cy: number, r: number, angleDeg: number) {

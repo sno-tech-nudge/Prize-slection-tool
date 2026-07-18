@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/design-system';
+import { Select, Button } from '@/design-system';
 import { setApplicationReviewersAction } from '@/lib/applications/actions';
 
 export interface ReviewerOption {
@@ -20,23 +20,15 @@ export function ReviewerAssignmentPanel({
   assignedReviewerIds: string[];
 }) {
   const router = useRouter();
-  const [selected, setSelected] = React.useState<Set<string>>(new Set(assignedReviewerIds));
+  const [selected, setSelected] = React.useState<string>(assignedReviewerIds[0] ?? '');
   const [pending, setPending] = React.useState(false);
 
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  async function save() {
+  async function save(value: string) {
+    setSelected(value);
     setPending(true);
     const formData = new FormData();
     formData.set('applicationId', applicationId);
-    selected.forEach((id) => formData.append('reviewerIds', id));
+    if (value) formData.append('reviewerIds', value);
     try {
       await setApplicationReviewersAction(formData);
       router.refresh();
@@ -50,20 +42,22 @@ export function ReviewerAssignmentPanel({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+      <Select
+        aria-label="assigned reviewer"
+        value={selected}
+        disabled={pending}
+        onChange={(e) => save(e.target.value)}
+        containerStyle={{ minWidth: 260 }}
+      >
+        <option value="">unassigned</option>
         {reviewers.map((r) => (
-          <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
-            <span>
-              {r.name} <span style={{ color: 'var(--text-muted)' }}>· {r.email}</span>
-            </span>
-          </label>
+          <option key={r.id} value={r.id}>
+            {r.name} · {r.email}
+          </option>
         ))}
-      </div>
-      <Button variant="secondary" size="sm" disabled={pending} onClick={save} style={{ alignSelf: 'flex-start' }}>
-        {pending ? 'saving…' : 'save reviewers'}
-      </Button>
+      </Select>
+      {pending && <Button variant="ghost" size="sm" disabled>saving…</Button>}
     </div>
   );
 }

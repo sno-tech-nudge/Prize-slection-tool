@@ -1,6 +1,7 @@
 import type { Prisma, User } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { visibleApplicationWhere } from '@/lib/auth/guard';
+import { evaluateEligibility } from '@/lib/scoring/eligibility';
 
 export interface ApplicationListFilters {
   reviewed?: string;
@@ -10,6 +11,7 @@ export interface ApplicationListFilters {
   registrationType?: string;
   operatingModel?: string;
   state?: string;
+  eligible?: string;
 }
 
 export function applicationListInclude() {
@@ -35,11 +37,18 @@ export async function listApplications(filters: ApplicationListFilters, user: Us
   if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
   if (filters.state) where.statesOperating = { contains: filters.state };
 
-  return prisma.application.findMany({
+  const apps = await prisma.application.findMany({
     where,
     orderBy: { submittedAt: 'desc' },
     include: applicationListInclude(),
   });
+
+  // eligibility is derived (legal type + certifications), not a stored column, so it's filtered
+  // in-memory rather than pushed into the Prisma where clause — keeps evaluateEligibility as the
+  // single source of truth instead of duplicating its rules as a second query filter.
+  if (filters.eligible === 'YES') return apps.filter((a) => evaluateEligibility(a).eligible);
+  if (filters.eligible === 'NO') return apps.filter((a) => !evaluateEligibility(a).eligible);
+  return apps;
 }
 
 /** Registration type, operating model and state values are free text keyed off the real Zoho
