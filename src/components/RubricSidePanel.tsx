@@ -4,7 +4,7 @@ import { X, ListChecks } from 'lucide-react';
 import { Button } from '@/design-system';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 
-export function RubricSidePanel({ weights }: { weights: Record<string, number> }) {
+export function RubricSidePanel() {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -38,7 +38,7 @@ export function RubricSidePanel({ weights }: { weights: Record<string, number> }
               <div>
                 <h2 style={{ fontSize: 'var(--fs-h4)' }}>scoring rubric</h2>
                 <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                  the team&apos;s real selection rubric — 20 criteria across 4 sections, each scored 0/1/3/5.
+                  the team&apos;s real selection rubric — 11 criteria across 4 sections, each scored on its own point scale.
                 </p>
               </div>
               <button
@@ -69,18 +69,13 @@ export function RubricSidePanel({ weights }: { weights: Record<string, number> }
                           <span style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
                             {i + 1}. {c.label}
                           </span>
-                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>criterion weight {weights[c.key] ?? 1}</span>
+                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>max {c.maxScore}</span>
                         </div>
-                        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', marginBottom: 'var(--space-2)' }}>
-                          {c.prompt}
-                        </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          {c.bands.map((b) => (
-                            <div key={b.score} style={{ display: 'flex', gap: 'var(--space-2)', fontSize: 'var(--fs-caption)' }}>
-                              <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number, width: 12, flexShrink: 0 }}>
-                                {b.score}
-                              </span>
-                              <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
+                          {c.description.map((d) => (
+                            <div key={d} style={{ display: 'flex', gap: 'var(--space-2)', fontSize: 'var(--fs-caption)' }}>
+                              <span style={{ color: 'var(--delta-red)', flexShrink: 0 }}>·</span>
+                              <span style={{ color: 'var(--text-secondary)' }}>{d}</span>
                             </div>
                           ))}
                         </div>

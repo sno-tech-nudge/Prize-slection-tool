@@ -33,17 +33,17 @@ function label<T extends string>(map: Record<T, string>, value: string | null, f
 
 export function buildUserPrompt(app: ApplicationForScoring): string {
   const criteriaList = RUBRIC_CRITERIA.map((c) => {
-    const bandText = c.bands.map((b) => `${b.score}=${b.label}`).join(' | ');
-    return `- ${c.key} (${c.label}): ${c.prompt}\n  bands: ${bandText}`;
+    const points = c.description.map((d) => `    - ${d}`).join('\n');
+    return `- ${c.key} (${c.label}) — score as a whole number from 0 to ${c.maxScore}:\n${points}`;
   }).join('\n');
 
   return `CHALLENGE STATEMENT:
 ${CHALLENGE_STATEMENT}
 
-RUBRIC — this is a discrete 0/1/3/5 scale, not continuous 0-5. Score each criterion as EXACTLY one of \
-0, 1, 3, or 5 by matching the application against the band descriptions given for that criterion (never \
-score 2 or 4). Give a one-sentence rationale, a short quoted evidence excerpt from the application text \
-below (or "no evidence provided" if none exists), and a confidence 0-1:
+RUBRIC — each criterion has its OWN point scale (not a shared 0-5): score it as a whole number \
+between 0 and its maximum, based on how strongly the application demonstrates the points listed under \
+it. Give a one-sentence rationale, a short quoted evidence excerpt from the application text below (or \
+"no evidence provided" if none exists), and a confidence 0-1:
 ${criteriaList}
 
 APPLICATION — organisation profile:
@@ -99,7 +99,7 @@ ${app.enrichmentSummary ?? 'no enrichment data available'}
 RESPOND WITH ONLY THIS JSON SHAPE (no other text):
 {
   "criteria": [
-    {"key": "years_registered", "score": 0, "rationale": "", "evidence": "", "confidence": 0.0}
+    {"key": "operating_capacity", "score": 0, "rationale": "", "evidence": "", "confidence": 0.0}
     // ... one entry per rubric key above, in the same order
   ],
   "eligibility": {"farmers_reached": 0, "states_operating": "", "hectares_under_practice": "", "fit_notes": ""},

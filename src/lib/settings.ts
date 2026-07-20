@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db';
-import { DEFAULT_RUBRIC_WEIGHTS } from '@/lib/scoring/rubric';
 
 export interface EmailTemplate {
   subject: string;
@@ -7,9 +6,8 @@ export interface EmailTemplate {
 }
 
 export interface DeltaSettings {
-  rubricWeights: Record<string, number>;
-  /** bumped automatically whenever rubricWeights actually change — snapshotted onto every
-   *  AiEvaluation so historical scores stay interpretable after weights move later. */
+  /** snapshotted onto every AiEvaluation so historical scores stay interpretable if the rubric
+   *  itself is ever replaced again later. */
   rubricVersion: number;
   shortlistSize: number;
   autoSendRejections: boolean;
@@ -19,8 +17,7 @@ export interface DeltaSettings {
 }
 
 const DEFAULTS: DeltaSettings = {
-  rubricWeights: DEFAULT_RUBRIC_WEIGHTS,
-  rubricVersion: 1,
+  rubricVersion: 3,
   shortlistSize: Number(process.env.SHORTLIST_SIZE ?? 20),
   autoSendRejections: false,
   activeSource: (process.env.APPLICATION_SOURCE as DeltaSettings['activeSource']) ?? 'seed',
@@ -48,12 +45,7 @@ export async function getSettings(): Promise<DeltaSettings> {
 
 export async function updateSettings(patch: Partial<DeltaSettings>): Promise<DeltaSettings> {
   const current = await getSettings();
-  const weightsChanged = patch.rubricWeights && JSON.stringify(patch.rubricWeights) !== JSON.stringify(current.rubricWeights);
-  const next: DeltaSettings = {
-    ...current,
-    ...patch,
-    rubricVersion: weightsChanged ? current.rubricVersion + 1 : current.rubricVersion,
-  };
+  const next: DeltaSettings = { ...current, ...patch };
   await prisma.setting.upsert({
     where: { key: SETTINGS_KEY },
     create: { key: SETTINGS_KEY, value: JSON.stringify(next) },

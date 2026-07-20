@@ -5,7 +5,6 @@ import { seedTransitionPath } from '../src/lib/stages/machine';
 import { runMatcherForApplication } from '../src/lib/matching/matcher';
 import { scoreApplication } from '../src/lib/scoring/runner';
 import { updateSettings } from '../src/lib/settings';
-import { DEFAULT_RUBRIC_WEIGHTS } from '../src/lib/scoring/rubric';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -168,7 +167,6 @@ async function main() {
 
   console.log('Seeding settings...');
   await updateSettings({
-    rubricWeights: DEFAULT_RUBRIC_WEIGHTS,
     shortlistSize: 20,
     autoSendRejections: false,
     activeSource: 'seed',

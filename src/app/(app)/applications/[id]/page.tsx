@@ -63,6 +63,25 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+// a bare row of <Tag> chips with no caption above it doesn't say which question they're
+// answering — this wraps a tag list with the same caption style Field uses, so every
+// multi-select answer is legible on its own out of context (screenshot, export, etc.)
+function TagGroup({ label, values }: { label: string; values: string[] | undefined }) {
+  if (!values || values.length === 0) return null;
+  return (
+    <div style={{ marginBottom: 'var(--space-4)' }}>
+      <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+        {values.map((v) => (
+          <Tag key={v}>{v}</Tag>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
   const [app, adjacent, allUsers] = await Promise.all([getApplicationDetail(params.id, user?.id), getAdjacentApplications(params.id, user), listUsers()]);
@@ -88,14 +107,8 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
-            {latestEval && <CompositeBadge score={effectiveScore(latestEval).composite} />}
             {user && (
-              <ReviewSidePanel
-                applicationId={app.id}
-                orgName={app.orgName}
-                existing={myReview}
-                aiScore={latestEval ? { composite: effectiveScore(latestEval).composite, disposition: effectiveScore(latestEval).disposition } : undefined}
-              />
+              <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}
             <DownloadPdfButton />
           </div>
@@ -254,9 +267,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>problem and solution</h2>
               <Field label="problem addressing" value={app.problemAddressing} />
               <Field label="about the solution" value={app.aboutSolution} />
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
-                {app.valueChainFocus?.split(';').filter(Boolean).map((v) => <Tag key={v}>{v.trim()}</Tag>)}
-              </div>
+              <TagGroup label="value chain focus" values={app.valueChainFocus?.split(';').map((v) => v.trim()).filter(Boolean)} />
             </Card>
           )}
 
@@ -310,16 +321,10 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           {(app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-                {tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)?.map((v) => <Tag key={v}>{v}</Tag>)}
-              </div>
+              <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />
               <Field label="how it works in practice" value={app.operatingModelDescription} />
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-                {tagList(app.primaryCrops, CROP_TYPE_LABEL)?.map((v) => <Tag key={v}>{v}</Tag>)}
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-                {tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)?.map((v) => <Tag key={v}>{v}</Tag>)}
-              </div>
+              <TagGroup label="primary crops" values={tagList(app.primaryCrops, CROP_TYPE_LABEL)} />
+              <TagGroup label="regenerative practices" values={tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)} />
               <Field label="biggest adoption hurdle" value={app.adoptionHurdle} />
             </Card>
           )}
@@ -329,9 +334,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           {(app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-                {tagList(app.techTools, TECH_TOOL_LABEL)?.map((v) => <Tag key={v}>{v}</Tag>)}
-              </div>
+              <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />
               <Field label="tools developed internally" value={app.techToolsInternal === null ? undefined : app.techToolsInternal ? 'yes' : 'no'} />
               <Field label="other tools" value={app.otherTools} />
               <Field
@@ -476,7 +479,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
                     <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <strong style={{ textTransform: 'lowercase' }}>{def?.label ?? c.key}</strong>
-                        <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{c.score} / 5</span>
+                        <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{c.score} / {def?.maxScore ?? 5}</span>
                       </div>
                       <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', margin: 'var(--space-1) 0' }}>{c.rationale}</p>
                       {c.evidence && (

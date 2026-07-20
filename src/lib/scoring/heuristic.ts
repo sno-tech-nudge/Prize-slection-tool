@@ -9,25 +9,20 @@ type ApplicationForHeuristic = Application & {
   reportLinks: ReportLink[];
 };
 
-/** snaps a raw numeric estimate onto the rubric's actual 0/1/3/5 band scale — there's no "2" or
- *  "4" in the real rubric, so heuristic estimates must land on one of these four values too. */
-function band(n: number): 0 | 1 | 3 | 5 {
-  if (n <= 0.5) return 0;
-  if (n <= 2) return 1;
-  if (n <= 4) return 3;
-  return 5;
+/** clamps a 0-1 "how strong is this signal" fraction onto a criterion's own point scale, rounded
+ *  to the nearest whole point. */
+function points(fraction: number, maxScore: number): number {
+  return Math.round(Math.max(0, Math.min(fraction, 1)) * maxScore);
 }
 
 /**
- * Deterministic, rule-based fallback used when ANTHROPIC_API_KEY isn't set —
- * so the prototype still runs end to end with no live credentials. Scores
- * are derived from structured fields only (no language understanding), and
- * are labelled with model "heuristic-fallback-v1" so nobody mistakes this
- * for a real model judgement. Several of the new rubric's 20 criteria (e.g.
- * government linkage, in-house science integration, climate adaptation) have
- * no dedicated structured field on the application form — those default to
- * band 1 here and rely on the real AI/human scoring path for a proper read.
- * Swap out by setting ANTHROPIC_API_KEY.
+ * Deterministic, rule-based fallback used when no AI provider is configured — so the prototype
+ * still runs end to end with no live credentials. Scores are derived from structured fields only
+ * (no language understanding), and are labelled with model "heuristic-fallback-v1" so nobody
+ * mistakes this for a real model judgement. Criteria with no dedicated structured field on the
+ * application form (ecosystem linkages' government angle, last-mile tech integration, science
+ * integration) get a low default fraction here and rely on the real AI/human scoring path for a
+ * proper read.
  */
 export function heuristicScore(app: ApplicationForHeuristic): ScoringResult {
   const registeredYears = app.incorporationDate
@@ -52,37 +47,35 @@ export function heuristicScore(app: ApplicationForHeuristic): ScoringResult {
   const farmers = app.farmersCount ?? 0;
   const villages = app.villagesCount ?? 0;
   const districts = app.districtsCount ?? 0;
-  const hasMel = !!app.melHandling;
   const fundUsageLen = (app.fundUsagePlan ?? '').length;
 
-  const scoreFor: Record<string, 0 | 1 | 3 | 5> = {
-    // organisation health
-    years_registered: registeredYears === null ? 0 : registeredYears > 5 ? 5 : registeredYears > 3 ? 3 : registeredYears > 1 ? 1 : 0,
-    annual_budget: /ABOVE_25CR|CR5_TO_25|CR1_TO_5/.test(budgetBand) ? 5 : /L25_TO_1CR/.test(budgetBand) ? 3 : /UNDER_25L/.test(budgetBand) ? 1 : 0,
-    org_size_fte: /S_150_PLUS|S_50_150/.test(teamSizeBand) ? 5 : /S_10_50/.test(teamSizeBand) ? 3 : /S_0_10/.test(teamSizeBand) ? 1 : 0,
-    founder_expertise: band((hasFounders ? 2 : 0) + Math.min(founderTextLen / 100, 3)),
-    funder_pipeline: funderCount >= 3 ? 3 : funderCount >= 1 ? 1 : 0,
-    government_linkage: 1, // no structured field — needs manual/AI read
-    market_linkage: 1, // no structured field — needs manual/AI read
+  const budgetFrac = /ABOVE_25CR|CR5_TO_25|CR1_TO_5/.test(budgetBand) ? 1 : /L25_TO_1CR/.test(budgetBand) ? 0.6 : /UNDER_25L/.test(budgetBand) ? 0.3 : 0;
+  const teamFrac = /S_150_PLUS|S_50_150/.test(teamSizeBand) ? 1 : /S_10_50/.test(teamSizeBand) ? 0.6 : /S_0_10/.test(teamSizeBand) ? 0.3 : 0;
+  const yearsFrac = registeredYears === null ? 0 : registeredYears > 5 ? 1 : registeredYears > 3 ? 0.6 : registeredYears > 1 ? 0.3 : 0;
+  const fundVisionFrac = fundUsageLen > 150 ? 1 : fundUsageLen > 40 ? 0.5 : 0;
+  const founderFrac = Math.min(1, (hasFounders ? 0.4 : 0) + Math.min(founderTextLen / 150, 0.6));
+  const funderFrac = funderCount >= 3 ? 1 : funderCount >= 1 ? 0.5 : 0;
+  const practiceFrac = Math.min(practiceCount / 5, 1);
+  const modelClarityFrac = Math.min(1, (hasArchetype ? 0.3 : 0) + (descriptionLen > 150 ? 0.5 : descriptionLen > 40 ? 0.25 : 0));
+  const cropFrac = Math.min(cropCount / 4, 1);
+  const techFrac = Math.min(1, (hasTechUseCases ? app.techUseCases.length * 0.3 : 0) + Math.min(techToolCount, 3) * 0.15);
+  const lastMileFrac = Math.min(techToolCount / 4, 0.6); // weak proxy — no dedicated field
+  const impactFrac = Math.min(1, (hasVerifiedImpacts ? 0.6 : 0) + (hasReportLinks ? 0.4 : 0));
+  const scaleFrac = farmers >= 1000 ? 1 : farmers >= 100 ? 0.5 : 0;
+  const geoFrac = districts >= 2 ? 1 : districts >= 1 ? 0.6 : villages >= 1 ? 0.3 : 0;
 
-    // model and approach
-    operating_model_clarity: band((hasArchetype ? 2 : 0) + (descriptionLen > 150 ? 3 : descriptionLen > 40 ? 1.5 : 0)),
-    regen_practices_coverage: band(practiceCount),
-    climate_adaptation: 1, // no structured field — needs manual/AI read
-    crop_specificity: cropCount >= 4 ? 5 : cropCount >= 2 ? 3 : cropCount >= 1 ? 1 : 0,
-
-    // tech and science integration
-    tech_use_case_maturity: band((hasTechUseCases ? app.techUseCases.length : 0) * 1.2 + Math.min(techToolCount, 3) * 0.5),
-    internal_data_tools: band(Math.min(techToolCount, 4)),
-    inhouse_science_integration: 1, // no structured field — needs manual/AI read
-
-    // tangible impact / modality of operations
-    verified_impact: band((hasVerifiedImpacts ? 3 : 0) + (hasReportLinks ? 2 : 0)),
-    scale: farmers >= 1000 ? 3 : farmers >= 100 ? 1 : 0,
-    geographic_depth: districts >= 2 ? 5 : districts >= 1 ? 3 : villages >= 1 ? 1 : 0,
-    mel_system: hasMel ? 3 : 0,
-    published_evidence: hasReportLinks ? 3 : 0,
-    fund_utilization_vision: band(fundUsageLen > 150 ? 4 : fundUsageLen > 40 ? 2 : 0),
+  const scoreFor: Record<string, number> = {
+    operating_capacity: points((budgetFrac + teamFrac + yearsFrac + fundVisionFrac) / 4, 10),
+    team_expertise: points(founderFrac, 5),
+    ecosystem_linkages: points((funderFrac + 0.2) / 2, 5), // government linkage has no structured field
+    regen_practices: points(practiceFrac, 15),
+    operating_model: points(modelClarityFrac * 0.7 + cropFrac * 0.3, 20),
+    tech_use_case_maturity: points(techFrac, 10),
+    last_mile_integration: points(lastMileFrac, 10), // no dedicated field — needs manual/AI read
+    science_integration: points(0.2, 5), // no structured field — needs manual/AI read
+    verified_impact: points(impactFrac, 5),
+    scale: points(scaleFrac, 10),
+    geographic_depth: points(geoFrac, 5),
   };
 
   const criteria: CriterionScore[] = RUBRIC_CRITERIA.map((c) => ({
@@ -108,22 +101,22 @@ export function heuristicScore(app: ApplicationForHeuristic): ScoringResult {
       farmers_reached: app.farmersCount,
       states_operating: app.statesOperating ?? 'not provided',
       hectares_under_practice: app.areaUnderRegenPractice != null ? String(app.areaUnderRegenPractice) : 'not provided',
-      fit_notes: 'heuristic fallback — set ANTHROPIC_API_KEY for a real model read on eligibility fit.',
+      fit_notes: 'estimated from structured fields only — pending a full AI or human read for eligibility fit.',
     },
     composite,
     disposition: dispositionFromComposite(composite),
     red_flags: redFlags,
-    summary: `Heuristic composite ${composite}/100 from structured fields only — no model was called. Set ANTHROPIC_API_KEY and re-run npm run score:all for a real evaluation.`,
+    summary: `Composite ${composite}/100 estimated from structured form fields only — no AI model was consulted for this read.`,
   };
 }
 
 function excerptFor(app: ApplicationForHeuristic, key: string): string {
   const preferred =
-    key === 'operating_model_clarity' || key === 'regen_practices_coverage'
+    key === 'operating_model' || key === 'regen_practices'
       ? app.operatingModelDescription
       : key === 'verified_impact'
         ? app.verifiedImpacts
-        : key === 'fund_utilization_vision'
+        : key === 'operating_capacity'
           ? app.fundUsagePlan
           : app.aboutSolution ?? app.problemAddressing;
   const candidates = [preferred, app.aboutSolution, app.problemAddressing].filter(

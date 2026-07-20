@@ -137,10 +137,11 @@ export async function scoreApplication(applicationId: string): Promise<{ usedMod
   }
 
   if (provider !== 'heuristic') {
-    // recompute composite server-side from the weighted rubric so admin-tunable weights always
-    // apply, even though the model already returns its own composite estimate.
+    // recompute composite server-side from the rubric's own per-criterion point scale, even
+    // though the model already returns its own composite estimate — keeps the model honest to
+    // the maxScore each criterion actually carries.
     const scoreMap = Object.fromEntries(result.criteria.map((c) => [c.key, c.score]));
-    result.composite = computeComposite(scoreMap, settings.rubricWeights);
+    result.composite = computeComposite(scoreMap);
     result.disposition = dispositionFromComposite(result.composite);
   }
 
@@ -155,7 +156,7 @@ export async function scoreApplication(applicationId: string): Promise<{ usedMod
       eligibility: JSON.stringify(result.eligibility),
       summary: result.summary,
       rubricVersion: settings.rubricVersion,
-      rubricWeightsSnapshot: JSON.stringify(settings.rubricWeights),
+      rubricWeightsSnapshot: JSON.stringify(Object.fromEntries(RUBRIC_CRITERIA.map((c) => [c.key, c.maxScore]))),
     },
   });
 

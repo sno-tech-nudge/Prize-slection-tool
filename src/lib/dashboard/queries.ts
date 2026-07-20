@@ -40,9 +40,9 @@ export async function getFlaggedApplications() {
 }
 
 export async function getDashboardKpis() {
-  const [total, shortlisted, internalYes, statesRaw, yearsRaw] = await Promise.all([
+  const [total, reviewed, internalYes, statesRaw, yearsRaw] = await Promise.all([
     prisma.application.count({ where: { isDuplicateOf: null } }),
-    prisma.application.count({ where: { isDuplicateOf: null, stageStatus: { in: ['SHORTLISTED', 'JURY_REVIEW', 'FINALIST', 'WINNER'] } } }),
+    prisma.application.count({ where: { isDuplicateOf: null, humanReviews: { some: {} } } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
     prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } }),
     prisma.application.findMany({ where: { isDuplicateOf: null, yearsExperience: { not: null } }, select: { yearsExperience: true } }),
@@ -61,7 +61,7 @@ export async function getDashboardKpis() {
 
   return {
     total,
-    shortlisted,
+    reviewed,
     internalYes,
     statesRepresented: statesSet.size,
     avgYearsExperience,

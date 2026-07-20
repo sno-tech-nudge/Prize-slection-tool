@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
-import { listApplications } from '@/lib/applications/queries';
+import { listApplications, type ApplicationExportRow } from '@/lib/applications/queries';
 import { EXPORT_COLUMNS } from '@/lib/applications/exportColumns';
 import { effectiveScore } from '@/lib/scoring/effective';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { LEGAL_REGISTRATION_TYPE_LABEL, type LegalRegistrationTypeValue } from '@/lib/constants';
 
-type ExportRow = Awaited<ReturnType<typeof listApplications>>[number];
+type ExportRow = ApplicationExportRow;
 
 const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   organisation: (app) => app.orgName,
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       internal: params.get('internal') ?? undefined,
     },
     user,
+    true,
   );
 
   const requestedFields = params.get('fields');

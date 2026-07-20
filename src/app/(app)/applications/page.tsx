@@ -6,7 +6,6 @@ import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, getApplicationFilterOptions } from '@/lib/applications/queries';
-import { getSettings } from '@/lib/settings';
 
 const HEADERS = [
   'organisation',
@@ -36,11 +35,7 @@ export default async function ApplicationsPage({
   };
 }) {
   const user = await getCurrentUser();
-  const [applications, filterOptions, settings] = await Promise.all([
-    listApplications(searchParams, user),
-    getApplicationFilterOptions(),
-    getSettings(),
-  ]);
+  const [applications, filterOptions] = await Promise.all([listApplications(searchParams, user), getApplicationFilterOptions()]);
   const canManage = user?.role === 'ADMIN';
 
   return (
@@ -51,7 +46,7 @@ export default async function ApplicationsPage({
         subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'}`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            <RubricSidePanel weights={settings.rubricWeights} />
+            <RubricSidePanel />
             <ExportCsvButton searchParams={searchParams} />
           </div>
         }

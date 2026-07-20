@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { JuryScore } from '@prisma/client';
-import { Textarea, Radio, Button } from '@/design-system';
+import { Textarea, Radio, Input, Button } from '@/design-system';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { submitJuryScoreAction } from '@/lib/applications/jury-actions';
@@ -43,25 +43,30 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
               paddingBottom: 'var(--space-2)',
             }}
           >
-            {section.label} · weight {section.weight}
+            {section.label} · max {section.weight}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c, i) => (
-              <div key={c.key}>
-                <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-2)' }}>
-                  {i + 1}. {c.label}
+              <div key={c.key} style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
+                    {i + 1}. {c.label}
+                  </div>
+                  <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0, paddingLeft: 'var(--space-4)' }}>
+                    {c.description.map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
                 </div>
-                <Radio
+                <Input
                   name={`criterion_${c.key}`}
-                  defaultValue={String(existingScores[c.key] ?? '')}
-                  options={c.bands.map((b) => ({
-                    value: String(b.score),
-                    label: (
-                      <span>
-                        <strong style={{ color: 'var(--delta-red)' }}>{b.score}</strong> — {b.label}
-                      </span>
-                    ),
-                  }))}
+                  type="number"
+                  min={0}
+                  max={c.maxScore}
+                  step={1}
+                  defaultValue={existingScores[c.key] !== undefined ? String(existingScores[c.key]) : ''}
+                  containerStyle={{ width: 70, flexShrink: 0 }}
+                  helper={`/ ${c.maxScore}`}
                 />
               </div>
             ))}

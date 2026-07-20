@@ -82,7 +82,7 @@ export default async function ReviewApplicationPage({ params }: { params: { id: 
                   return (
                     <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-small)' }}>
                       <span>{def?.label ?? c.key}</span>
-                      <strong>{c.score} / 5</strong>
+                      <strong>{c.score} / {def?.maxScore ?? 5}</strong>
                     </div>
                   );
                 })}

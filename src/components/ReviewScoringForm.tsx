@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { HumanReview } from '@prisma/client';
-import { Textarea, Radio, Button } from '@/design-system';
+import { Textarea, Radio, Input, Button } from '@/design-system';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS, computeComposite } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { submitHumanReviewAction } from '@/lib/applications/actions';
@@ -27,8 +27,17 @@ export function ReviewScoringForm({
   const answeredCount = Object.keys(scores).length;
   const liveComposite = computeComposite(scores);
 
-  function setScore(key: string, value: number) {
-    setScores((prev) => ({ ...prev, [key]: value }));
+  function setScore(key: string, raw: string, maxScore: number) {
+    if (raw === '') {
+      setScores((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    const clamped = Math.max(0, Math.min(Number(raw), maxScore));
+    setScores((prev) => ({ ...prev, [key]: clamped }));
   }
 
   return (
@@ -75,11 +84,7 @@ export function ReviewScoringForm({
 
       {RUBRIC_SECTIONS.map((section) => {
         const sectionCriteria = RUBRIC_CRITERIA.filter((c) => c.section === section.key);
-        const sectionScored = sectionCriteria.filter((c) => scores[c.key] !== undefined);
-        const sectionSubtotal =
-          sectionScored.length > 0
-            ? Math.round((sectionScored.reduce((sum, c) => sum + (scores[c.key] ?? 0), 0) / (sectionScored.length * 5)) * 100)
-            : null;
+        const sectionSubtotal = sectionCriteria.reduce((sum, c) => sum + (scores[c.key] ?? 0), 0);
 
         return (
           <div key={section.key}>
@@ -97,30 +102,34 @@ export function ReviewScoringForm({
                 paddingBottom: 'var(--space-2)',
               }}
             >
-              <span>
-                {section.label} · weight {section.weight}
+              <span>{section.label}</span>
+              <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+                {sectionSubtotal} / {section.weight}
               </span>
-              {sectionSubtotal !== null && <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{sectionSubtotal}%</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               {sectionCriteria.map((c, i) => (
-                <div key={c.key}>
-                  <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
-                    {i + 1}. {c.label}
+                <div key={c.key} style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
+                      {i + 1}. {c.label}
+                    </div>
+                    <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0, paddingLeft: 'var(--space-4)' }}>
+                      {c.description.map((d) => (
+                        <li key={d}>{d}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>{c.prompt}</p>
-                  <Radio
+                  <Input
                     name={`criterion_${c.key}`}
-                    value={scores[c.key] !== undefined ? String(scores[c.key]) : undefined}
-                    onChange={(value) => setScore(c.key, Number(value))}
-                    options={c.bands.map((b) => ({
-                      value: String(b.score),
-                      label: (
-                        <span>
-                          <strong style={{ color: 'var(--delta-red)' }}>{b.score}</strong> — {b.label}
-                        </span>
-                      ),
-                    }))}
+                    type="number"
+                    min={0}
+                    max={c.maxScore}
+                    step={1}
+                    value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
+                    onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
+                    containerStyle={{ width: 70, flexShrink: 0 }}
+                    helper={`/ ${c.maxScore}`}
                   />
                 </div>
               ))}

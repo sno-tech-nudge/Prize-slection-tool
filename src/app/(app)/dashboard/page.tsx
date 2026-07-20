@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FileText, Layers, CheckCircle2, Globe2, type LucideIcon } from 'lucide-react';
+import { FileText, ClipboardCheck, CheckCircle2, Globe2, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
 import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
@@ -63,6 +63,14 @@ function SectionHeader({ title, action }: { title: string; action?: { href: stri
   );
 }
 
+function PartHeader({ title }: { title: string }) {
+  return (
+    <div style={{ borderTop: '2px solid var(--border-default)', paddingTop: 'var(--space-8)' }}>
+      <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>{title}</h2>
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   const [
     kpis,
@@ -102,37 +110,8 @@ export default async function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
           <Kpi label="total applications" value={kpis.total} icon={FileText} />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
-          <Kpi label="shortlisted+" value={kpis.shortlisted} icon={Layers} />
+          <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
           <Kpi label="states represented" value={kpis.statesRepresented} icon={Globe2} />
-        </div>
-
-        <Card accent>
-          <SectionHeader title="applicants by state" />
-          <IndiaStatesMap data={stateMix} />
-        </Card>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
-          <Card accent>
-            <SectionHeader title="operating model mix" />
-            <PieChart data={categoryMix.map((c) => ({ label: c.category, count: c.count }))} />
-          </Card>
-
-          <Card accent>
-            <SectionHeader title="operating budget mix" />
-            <PieChart data={budgetMix} />
-          </Card>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
-          <Card>
-            <SectionHeader title="organisation size (full-time employees)" />
-            <PieChart data={orgSizeMix} size={160} />
-          </Card>
-
-          <Card>
-            <SectionHeader title="organisation age" />
-            <PieChart data={orgAgeMix} size={160} />
-          </Card>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
@@ -234,6 +213,37 @@ export default async function DashboardPage() {
               ))}
               {activity.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)', paddingTop: 'var(--space-3)' }}>no activity yet.</p>}
             </div>
+          </Card>
+        </div>
+
+        <PartHeader title="application analytics" />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+          <Card accent>
+            <SectionHeader title="operating model mix" />
+            <PieChart data={categoryMix.map((c) => ({ label: c.category, count: c.count }))} />
+          </Card>
+
+          <Card accent>
+            <SectionHeader title="operating budget mix" />
+            <PieChart data={budgetMix} />
+          </Card>
+        </div>
+
+        <Card accent>
+          <SectionHeader title="applicants by state" />
+          <IndiaStatesMap data={stateMix} />
+        </Card>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+          <Card>
+            <SectionHeader title="organisation size (full-time employees)" />
+            <PieChart data={orgSizeMix} size={160} />
+          </Card>
+
+          <Card>
+            <SectionHeader title="organisation age" />
+            <PieChart data={orgAgeMix} size={160} />
           </Card>
         </div>
       </div>

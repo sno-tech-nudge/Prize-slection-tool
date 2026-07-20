@@ -15,14 +15,15 @@ const DISPOSITION_LABEL: Record<DispositionValue, string> = {
   REJECT: 'reject',
 };
 
+// Deliberately no red/amber/green-style coding by score or disposition here — the composite and
+// disposition are decision support, not a verdict, so they're shown as plain neutral badges the
+// reviewer reads and judges themselves rather than a traffic light telling them what to think.
 export function DispositionTag({ disposition }: { disposition: string }) {
-  const selected = disposition === 'STRONG_ADVANCE' || disposition === 'ADVANCE';
-  return <Tag selected={selected}>{DISPOSITION_LABEL[disposition as DispositionValue] ?? disposition}</Tag>;
+  return <Tag>{DISPOSITION_LABEL[disposition as DispositionValue] ?? disposition}</Tag>;
 }
 
 export function CompositeBadge({ score }: { score: number }) {
-  const tone = score >= 80 ? 'red' : score >= 60 ? 'ink' : score >= 45 ? 'yellow' : 'neutral';
-  return <Badge tone={tone}>{Math.round(score)} / 100</Badge>;
+  return <Badge tone="outline">{Math.round(score)} / 100</Badge>;
 }
 
 export function SolutionCategoryTag({ category }: { category: string }) {

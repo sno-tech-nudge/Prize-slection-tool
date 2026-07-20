@@ -2,24 +2,17 @@
 import React from 'react';
 import type { HumanReview } from '@prisma/client';
 import { X, ClipboardCheck } from 'lucide-react';
-import { Button, Badge } from '@/design-system';
+import { Button } from '@/design-system';
 import { ReviewScoringForm } from '@/components/ReviewScoringForm';
-
-export interface AiScoreSummary {
-  composite: number;
-  disposition: string;
-}
 
 export function ReviewSidePanel({
   applicationId,
   orgName,
   existing,
-  aiScore,
 }: {
   applicationId: string;
   orgName: string;
   existing?: HumanReview;
-  aiScore?: AiScoreSummary;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -54,7 +47,7 @@ export function ReviewSidePanel({
               <div>
                 <h2 style={{ fontSize: 'var(--fs-h4)' }}>score {orgName}</h2>
                 <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                  rate every criterion against the rubric bands below, then submit your recommendation.
+                  score every criterion against the rubric below, then submit your recommendation.
                 </p>
               </div>
               <button
@@ -66,13 +59,6 @@ export function ReviewSidePanel({
                 <X size={18} strokeLinejoin="miter" strokeLinecap="square" color="var(--text-secondary)" />
               </button>
             </div>
-
-            {aiScore && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
-                <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>for reference — AI read:</span>
-                <Badge tone="outline">{aiScore.composite} / 100 · {aiScore.disposition.toLowerCase().replace('_', ' ')}</Badge>
-              </div>
-            )}
 
             <ReviewScoringForm applicationId={applicationId} existing={existing} onSubmitted={() => setOpen(false)} />
           </div>
