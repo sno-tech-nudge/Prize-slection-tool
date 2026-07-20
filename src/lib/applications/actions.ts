@@ -9,7 +9,7 @@ import type { StageEmailTemplate } from '@/lib/mail/templates';
 import { getSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import type { StageStatusValue, InternalDecisionValue } from '@/lib/constants';
-import { RUBRIC_CRITERIA, computeComposite } from '@/lib/scoring/rubric';
+import { RUBRIC_CRITERIA, computeComposite, dispositionFromComposite } from '@/lib/scoring/rubric';
 
 /** Stages that trigger an automated email — rejection or a congratulatory confirmation. Stages
  *  not listed here (SCREENING, UNDER_REVIEW, JURY_REVIEW, WITHDRAWN) are internal-only moves. */
@@ -82,7 +82,6 @@ export async function submitHumanReviewAction(formData: FormData) {
   assertRole(user, CAN_REVIEW);
 
   const applicationId = String(formData.get('applicationId'));
-  const recommendation = String(formData.get('recommendation'));
   const comment = String(formData.get('comment') ?? '');
 
   const scoreMap: Record<string, number> = {};
@@ -92,6 +91,10 @@ export async function submitHumanReviewAction(formData: FormData) {
     return { key: c.key, score, rationale: '', evidence: '', confidence: 1 };
   });
   const composite = computeComposite(scoreMap);
+  // recommendation is no longer picked manually — it's derived straight from the reviewer's own
+  // composite score, since that's now the actual signal (no separate MCQ to keep in sync with it).
+  const disposition = dispositionFromComposite(composite);
+  const recommendation = disposition === 'REJECT' ? 'REJECT' : disposition === 'BORDERLINE' ? 'HOLD' : 'ADVANCE';
 
   await prisma.humanReview.upsert({
     where: { applicationId_reviewerId: { applicationId, reviewerId: user.id } },

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { HumanReview } from '@prisma/client';
-import { Textarea, Radio, Input, Button } from '@/design-system';
+import { Textarea, Input, Button } from '@/design-system';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS, computeComposite } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { submitHumanReviewAction } from '@/lib/applications/actions';
@@ -137,21 +137,6 @@ export function ReviewScoringForm({
           </div>
         );
       })}
-
-      <div>
-        <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-semibold)' as unknown as number, marginBottom: 'var(--space-2)' }}>
-          recommendation
-        </div>
-        <Radio
-          name="recommendation"
-          defaultValue={existing?.recommendation ?? 'HOLD'}
-          options={[
-            { value: 'ADVANCE', label: 'advance' },
-            { value: 'HOLD', label: 'hold for discussion' },
-            { value: 'REJECT', label: 'reject' },
-          ]}
-        />
-      </div>
 
       <Textarea name="comment" label="comment" rows={3} defaultValue={existing?.comment ?? ''} />
 
