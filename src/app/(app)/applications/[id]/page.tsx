@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AngularBanner, Card, Badge, Tag } from '@/design-system';
-import { CompositeBadge, DispositionTag } from '@/components/StatusBadges';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
 import { RescoreButton } from '@/components/RescoreButton';
@@ -18,8 +17,7 @@ import { getApplicationDetail, getAdjacentApplications } from '@/lib/application
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
-import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
-import { effectiveScore } from '@/lib/scoring/effective';
+import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { computeConsensus } from '@/lib/applications/consensus';
 import {
   TEAM_SIZE_LABEL,
@@ -43,6 +41,15 @@ function tagList(raw: string | null, labels: Record<string, string>) {
     ?.split(';')
     .filter(Boolean)
     .map((v) => labels[v] ?? v);
+}
+
+// section-level read at a glance — a color swatch + one-word summary instead of a precise
+// number, since the AI read is decision support, not a verdict a human should defer to.
+function sectionTone(pct: number): { color: string; label: string } {
+  if (pct >= 80) return { color: 'var(--delta-red)', label: 'strong' };
+  if (pct >= 60) return { color: 'var(--delta-charcoal)', label: 'solid' };
+  if (pct >= 40) return { color: 'var(--delta-yellow)', label: 'developing' };
+  return { color: 'var(--grey-400)', label: 'weak' };
 }
 
 function driveEmbedUrl(url?: string | null): string | null {
@@ -118,11 +125,8 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       {isAdmin && (
         <div style={{ padding: 'var(--space-6) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <Card accent accentSide="left">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-3)' }}>
+            <div style={{ marginBottom: 'var(--space-3)' }}>
               <h2 style={{ fontSize: 'var(--fs-h4)' }}>reviewers</h2>
-              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>
-                assign whoever should review this application. manual only — there&apos;s no auto-assignment.
-              </p>
             </div>
             <ReviewerAssignmentPanel
               applicationId={app.id}
@@ -431,15 +435,6 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
                 <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI evaluation</h2>
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <CompositeBadge score={effectiveScore(latestEval).composite} />
-                  <DispositionTag disposition={effectiveScore(latestEval).disposition} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-small)' }}>
-                  model: {latestEval.model} · rubric v{latestEval.rubricVersion}
-                </p>
                 {user && <RescoreButton applicationId={app.id} />}
               </div>
 
@@ -472,21 +467,23 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                {criteria.map((c) => {
-                  const def = RUBRIC_CRITERIA.find((r) => r.key === c.key);
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {RUBRIC_SECTIONS.map((section) => {
+                  const sectionDefs = RUBRIC_CRITERIA.filter((r) => r.section === section.key);
+                  const sectionMax = sectionDefs.reduce((sum, r) => sum + r.maxScore, 0);
+                  const sectionScore = criteria
+                    .filter((c) => sectionDefs.some((r) => r.key === c.key))
+                    .reduce((sum, c) => sum + c.score, 0);
+                  const pct = sectionMax > 0 ? (sectionScore / sectionMax) * 100 : 0;
+                  const tone = sectionTone(pct);
                   return (
-                    <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <strong style={{ textTransform: 'lowercase' }}>{def?.label ?? c.key}</strong>
-                        <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{c.score} / {def?.maxScore ?? 5}</span>
-                      </div>
-                      <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', margin: 'var(--space-1) 0' }}>{c.rationale}</p>
-                      {c.evidence && (
-                        <p style={{ fontSize: 'var(--fs-small)', fontStyle: 'italic', fontFamily: 'var(--font-serif)', color: 'var(--text-muted)' }}>
-                          &ldquo;{c.evidence}&rdquo;
-                        </p>
-                      )}
+                    <div
+                      key={section.key}
+                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
+                    >
+                      <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
+                      <strong style={{ textTransform: 'lowercase' }}>{section.label}</strong>
+                      <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
                     </div>
                   );
                 })}

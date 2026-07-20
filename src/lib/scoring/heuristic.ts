@@ -106,7 +106,7 @@ export function heuristicScore(app: ApplicationForHeuristic): ScoringResult {
     composite,
     disposition: dispositionFromComposite(composite),
     red_flags: redFlags,
-    summary: `Composite ${composite}/100 estimated from structured form fields only — no AI model was consulted for this read.`,
+    summary: 'Estimated from structured form fields only — no AI model was consulted for this read.',
   };
 }
 
