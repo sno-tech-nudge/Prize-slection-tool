@@ -3,6 +3,7 @@ import { getSupabaseClient } from './supabase-client';
 import { seedTransitionPath } from '@/lib/stages/machine';
 import { enqueueJob } from '@/lib/jobs/queue';
 import { autoAssignReviewer } from '@/lib/applications/assignment';
+import { deriveOrgTypeFromLegalRegistration } from './normalize';
 
 /**
  * Live rapid re.gen backend — a Supabase Postgres table (`applications`) fed automatically
@@ -274,6 +275,7 @@ export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult
       submittedAt: toDate(row.submitted_at),
 
       legalRegistrationType: row.legal_registration_type ?? undefined,
+      orgType: deriveOrgTypeFromLegalRegistration(row.legal_registration_type),
       fcraStatus: normalizeYesNo(row.fcra_registration),
       cert12A: normalizeYesNo(row.certificate_12a),
       cert80G: normalizeYesNo(row.certificate_80g),

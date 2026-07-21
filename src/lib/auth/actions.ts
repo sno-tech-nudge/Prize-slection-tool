@@ -18,7 +18,7 @@ export async function loginAction(formData: FormData): Promise<{ error: string }
 
   const user = username ? await prisma.user.findUnique({ where: { username } }) : null;
   if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
-    return { error: 'incorrect username or password' };
+    return { error: 'incorrect email or password' };
   }
 
   cookies().set(SESSION_COOKIE, await signSession(user.id), {

@@ -2,27 +2,28 @@ import 'dotenv/config';
 import { prisma } from '../src/lib/db';
 import { hashPassword } from '../src/lib/auth/password';
 
-// firstname_ddmmyyyy(date of joining), firstname lowercase — the team's own password scheme.
+// password = firstname_ddmmyyyy(date of joining), firstname lowercase — the team's own scheme.
+// login username = the user's email address (not the firstname).
 const LOGINS: {
   matchName: string;
-  username: string;
+  firstName: string;
   doj: string; // ddmmyyyy
   create?: { name: string; email: string; role: string };
 }[] = [
-  { matchName: 'KC', username: 'kanishka', doj: '02052022' },
-  { matchName: 'Sravya Jandhyala', username: 'sravya', doj: '26102022' },
-  { matchName: 'Nisha Chawla', username: 'nisha', doj: '16102023' },
-  { matchName: 'Paromita Sen', username: 'paromita', doj: '07072025' },
-  { matchName: 'Saba Ahmed', username: 'saba', doj: '05082024' },
+  { matchName: 'KC', firstName: 'kanishka', doj: '02052022' },
+  { matchName: 'Sravya Jandhyala', firstName: 'sravya', doj: '26102022' },
+  { matchName: 'Nisha Chawla', firstName: 'nisha', doj: '16102023' },
+  { matchName: 'Paromita Sen', firstName: 'paromita', doj: '07072025' },
+  { matchName: 'Saba Ahmed', firstName: 'saba', doj: '05082024' },
   {
     matchName: 'Anurag V',
-    username: 'anurag',
+    firstName: 'anurag',
     doj: '05122022',
     create: { name: 'Anurag V', email: 'anurag@thedelta.org.in', role: 'ADMIN' },
   },
   {
     matchName: 'Tanush Kalhan',
-    username: 'tanush',
+    firstName: 'tanush',
     doj: '21092006',
     create: { name: 'Tanush Kalhan', email: 'kalhan.tanush@gmail.com', role: 'ADMIN' },
   },
@@ -30,7 +31,7 @@ const LOGINS: {
 
 async function main() {
   for (const entry of LOGINS) {
-    const password = `${entry.username}_${entry.doj}`;
+    const password = `${entry.firstName}_${entry.doj}`;
     const passwordHash = hashPassword(password);
 
     let user = await prisma.user.findFirst({ where: { name: entry.matchName } });
@@ -43,8 +44,9 @@ async function main() {
       continue;
     }
 
-    await prisma.user.update({ where: { id: user.id }, data: { username: entry.username, passwordHash } });
-    console.log(`set login for ${user.name} — username: ${entry.username}`);
+    const username = user.email.toLowerCase();
+    await prisma.user.update({ where: { id: user.id }, data: { username, passwordHash } });
+    console.log(`set login for ${user.name} — username: ${username}`);
   }
 
   await prisma.$disconnect();

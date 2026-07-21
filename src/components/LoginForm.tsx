@@ -21,7 +21,7 @@ export function LoginForm() {
       }}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
     >
-      <Input name="username" label="username" autoComplete="username" required autoFocus />
+      <Input name="username" type="email" label="email" autoComplete="email" required autoFocus />
       <Input name="password" type="password" label="password" autoComplete="current-password" required />
       {error && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--delta-red)' }}>{error}</p>}
       <Button type="submit" variant="cta" size="lg" disabled={pending} style={{ marginTop: 'var(--space-2)' }}>

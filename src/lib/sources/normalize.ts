@@ -16,6 +16,24 @@ export function normalizeOrgType(raw: unknown): OrgTypeValue {
   return 'FOR_PROFIT';
 }
 
+/** Derives organisation type from the legal registration type, per the team's rules:
+ *  LLP / private limited -> for profit; FPO / FPC -> FPO/FPC; "other" -> other;
+ *  anything else (trust, society, section 8, partnership, etc.) -> non-profit. */
+export function deriveOrgTypeFromLegalRegistration(raw: unknown): OrgTypeValue {
+  const s = String(raw ?? '')
+    .toLowerCase()
+    .trim();
+  if (!s) return 'NON_PROFIT';
+  if (s === 'other') return 'OTHER';
+  if (s.includes('llp') || s.includes('private limited') || s.includes('pvt ltd') || s.includes('pvt. ltd')) {
+    return 'FOR_PROFIT';
+  }
+  if (s.includes('farmer producer') || s.includes('fpo') || s.includes('fpc')) {
+    return 'FPO_FPC';
+  }
+  return 'NON_PROFIT';
+}
+
 export function normalizeStage(raw: unknown): NormalizedStageValue {
   const s = String(raw ?? '').toLowerCase();
   if (!s || s === 'na' || s === 'n/a') return 'OTHER';

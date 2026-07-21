@@ -11,8 +11,14 @@ export const ROLE_LABEL: Record<UserRoleValue, string> = {
   OBSERVER: 'observer',
 };
 
-export const ORG_TYPES = ['FOR_PROFIT', 'NON_PROFIT'] as const;
+export const ORG_TYPES = ['FOR_PROFIT', 'NON_PROFIT', 'FPO_FPC', 'OTHER'] as const;
 export type OrgTypeValue = (typeof ORG_TYPES)[number];
+export const ORG_TYPE_LABEL: Record<OrgTypeValue, string> = {
+  FOR_PROFIT: 'for profit',
+  NON_PROFIT: 'non-profit',
+  FPO_FPC: 'FPO/FPC',
+  OTHER: 'other',
+};
 
 export const NORMALIZED_STAGES = ['IDEA', 'PROTOTYPE', 'MARKET_READY', 'GROWTH', 'SCALE', 'OTHER'] as const;
 export type NormalizedStageValue = (typeof NORMALIZED_STAGES)[number];

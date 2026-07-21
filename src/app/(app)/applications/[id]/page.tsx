@@ -18,6 +18,7 @@ import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
+import { ORG_TYPE_LABEL, type OrgTypeValue } from '@/lib/constants';
 import { computeConsensus } from '@/lib/applications/consensus';
 import {
   TEAM_SIZE_LABEL,
@@ -202,7 +203,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <Field label="organisation type" value={app.orgType === 'FOR_PROFIT' ? 'for-profit' : 'non-profit'} />
+              <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />
               <Field label="current stage (self-reported)" value={app.stageRaw} />
               <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
               <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
