@@ -8,3 +8,6 @@ prisma/dev.db-journal
 *.tsbuildinfo
 .vercel
 .env*
+
+# Local Netlify folder
+.netlify

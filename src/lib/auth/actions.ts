@@ -1,20 +1,43 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
-import { getCurrentUser, ROLE_COOKIE } from './session';
+import { getCurrentUser, SESSION_COOKIE } from './session';
+import { signSession } from './session-token';
+import { verifyPassword } from './password';
 import { assertRole, CAN_MANAGE_SETTINGS } from './guard';
 import type { UserRoleValue } from '@/lib/constants';
 
-export async function switchUser(userId: string) {
-  cookies().set(ROLE_COOKIE, userId, { httpOnly: true, sameSite: 'lax', path: '/' });
-  revalidatePath('/', 'layout');
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
+
+export async function loginAction(formData: FormData): Promise<{ error: string } | void> {
+  const username = String(formData.get('username') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+
+  const user = username ? await prisma.user.findUnique({ where: { username } }) : null;
+  if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+    return { error: 'incorrect username or password' };
+  }
+
+  cookies().set(SESSION_COOKIE, await signSession(user.id), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: THIRTY_DAYS,
+  });
+
+  redirect('/dashboard');
 }
 
-/** Admin-only: reassign another user's role. This is the closest thing this prototype has to
- *  real team/access management (see src/lib/auth/session.ts — there's no real auth yet, this
- *  just edits the User row that the dev role-switcher reads from). */
+export async function logoutAction() {
+  cookies().delete(SESSION_COOKIE);
+  redirect('/login');
+}
+
+/** Admin-only: reassign another user's role. */
 export async function setUserRoleAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
@@ -28,7 +51,9 @@ export async function setUserRoleAction(formData: FormData) {
   revalidatePath('/', 'layout');
 }
 
-/** Admin-only: add a new team member by email (created with a given starting role). */
+/** Admin-only: add a new team member by email (created with a given starting role). Note: this
+ *  doesn't set a username/password — that's done via the seed-users script, since logins are
+ *  provisioned by an admin out of band, not self-served. */
 export async function addUserAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);

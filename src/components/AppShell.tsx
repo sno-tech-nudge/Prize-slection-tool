@@ -1,12 +1,12 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, Target, Inbox, Settings, type LucideIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, type LucideIcon } from 'lucide-react';
 import type { User } from '@prisma/client';
 import { ROLE_LABEL, type UserRoleValue as UserRole } from '@/lib/constants';
-import { Logo, Select, Badge } from '@/design-system';
-import { switchUser } from '@/lib/auth/actions';
+import { Logo, Badge } from '@/design-system';
+import { logoutAction } from '@/lib/auth/actions';
 import { JobQueueTicker } from '@/components/JobQueueTicker';
 import { SupabaseSyncTicker } from '@/components/SupabaseSyncTicker';
 
@@ -31,17 +31,8 @@ const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Set
 // review, jury and analytics are deliberately off the nav for now — jury is getting its own
 // dedicated view later; until then these routes still exist, just aren't linked here.
 
-export function AppShell({
-  user,
-  users,
-  children,
-}: {
-  user: User | null;
-  users: User[];
-  children: React.ReactNode;
-}) {
+export function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const navItems = [...PRIMARY_NAV_ITEMS, SETTINGS_ITEM].filter((it) => !user || it.roles.includes(user.role as UserRole));
 
@@ -98,23 +89,33 @@ export function AppShell({
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <SupabaseSyncTicker />
           <JobQueueTicker />
-          {user && <Badge tone="outline">{ROLE_LABEL[user.role as UserRole]}</Badge>}
-          <Select
-            aria-label="switch role"
-            value={user?.id ?? ''}
-            style={{ minWidth: 220 }}
-            onChange={async (e) => {
-              await switchUser(e.target.value);
-              router.refresh();
-            }}
-          >
-            {users.length === 0 && <option value="">no users seeded yet</option>}
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} · {ROLE_LABEL[u.role as UserRole]}
-              </option>
-            ))}
-          </Select>
+          {user && (
+            <>
+              <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{user.name}</span>
+              <Badge tone="outline">{ROLE_LABEL[user.role as UserRole]}</Badge>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  aria-label="log out"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-1)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    fontSize: 'var(--fs-small)',
+                    fontFamily: 'var(--font-sans)',
+                    padding: 0,
+                  }}
+                >
+                  <LogOut size={14} strokeLinejoin="miter" strokeLinecap="square" />
+                  log out
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </header>
 
@@ -132,7 +133,7 @@ export function AppShell({
         }}
       >
         <span>the^delta prize · rapid re.gen challenge</span>
-        <span>internal platform · dev role switcher active</span>
+        <span>internal platform</span>
       </footer>
     </div>
   );
