@@ -19,10 +19,10 @@ interface NavItem {
 
 // the 4 core modules — the whole day-to-day workflow
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'OBSERVER'] },
+  { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
   { href: '/applications', label: 'applications', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
-  { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN'] },
-  { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'OBSERVER'] },
+  { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
+  { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
 ];
 
 // reachable, but not counted among the 4 modules — admin-only configuration
