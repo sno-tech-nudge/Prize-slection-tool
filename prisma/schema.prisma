@@ -201,6 +201,23 @@ model Application {
   enrichmentSource  String? // 'website' | 'website+search'
   enrichedAt        DateTime?
 
+  // organisation validation — manually-triggered, Groq-driven cross-check of self-reported
+  // claims against independent outside sources (operating model, funders, founder expertise).
+  // Never runs automatically; a human clicks "run validation" per application.
+  orgValidationStatus String? // PENDING | RUNNING | DONE | FAILED
+  orgValidationModel  String?
+  orgValidationRunAt  DateTime?
+  orgValidationError  String?
+  opModelVerdict      String? // CONFIRMED | PARTIAL | UNVERIFIED | CONTRADICTED
+  opModelSummary      String?
+  opModelRaw          String?
+  fundersVerdict      String?
+  fundersSummary      String?
+  fundersRaw          String?
+  founderVerdict      String?
+  founderSummary      String?
+  founderRaw          String?
+
   // Supabase source-record metadata — captured for completeness/audit, not used to drive any
   // logic in this app (our own AI scoring pipeline in src/lib/scoring/ is authoritative here;
   // the external* fields below are the source system's own score, kept only for comparison).

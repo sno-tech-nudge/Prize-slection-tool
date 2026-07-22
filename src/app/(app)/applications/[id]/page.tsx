@@ -5,6 +5,7 @@ import { AngularBanner, Card, Badge, Tag } from '@/design-system';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
 import { RescoreButton } from '@/components/RescoreButton';
+import { ValidateOrgButton } from '@/components/ValidateOrgButton';
 import { AiOverridePanel } from '@/components/AiOverridePanel';
 import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
 import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
@@ -51,6 +52,15 @@ function sectionTone(pct: number): { color: string; label: string } {
   if (pct >= 60) return { color: 'var(--delta-charcoal)', label: 'solid' };
   if (pct >= 40) return { color: 'var(--delta-yellow)', label: 'developing' };
   return { color: 'var(--grey-400)', label: 'weak' };
+}
+
+// same swatch-not-number treatment for organisation validation verdicts — confirmed
+// independently reads as the strongest signal, contradicted as the weakest.
+function verdictTone(verdict: string | null): { color: string; label: string } {
+  if (verdict === 'CONFIRMED') return { color: 'var(--delta-red)', label: 'confirmed independently' };
+  if (verdict === 'PARTIAL') return { color: 'var(--delta-charcoal)', label: 'partially confirmed' };
+  if (verdict === 'CONTRADICTED') return { color: 'var(--grey-400)', label: 'contradicted' };
+  return { color: 'var(--delta-yellow)', label: 'unverified' };
 }
 
 function driveEmbedUrl(url?: string | null): string | null {
@@ -506,6 +516,63 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               </div>
             </Card>
           )}
+
+          <Card style={{ marginBottom: 'var(--space-6)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+              <h2 style={{ fontSize: 'var(--fs-h3)' }}>organisation validation</h2>
+              {user && <ValidateOrgButton applicationId={app.id} hasRun={app.orgValidationStatus === 'DONE' || app.orgValidationStatus === 'FAILED'} />}
+            </div>
+            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+              checks self-reported claims against independent outside sources — manually triggered, never runs on its own.
+            </p>
+
+            {app.orgValidationStatus === 'RUNNING' && (
+              <p style={{ color: 'var(--text-secondary)' }}>running — searching the web for independent sources, this can take up to a minute…</p>
+            )}
+
+            {app.orgValidationStatus === 'FAILED' && (
+              <p style={{ color: 'var(--delta-red)' }}>validation failed: {app.orgValidationError ?? 'unknown error'}</p>
+            )}
+
+            {(!app.orgValidationStatus || app.orgValidationStatus === 'PENDING') && (
+              <p style={{ color: 'var(--text-secondary)' }}>not yet run for this application.</p>
+            )}
+
+            {app.orgValidationStatus === 'DONE' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {[
+                  { label: 'operating model', verdict: app.opModelVerdict, summary: app.opModelSummary, raw: app.opModelRaw },
+                  { label: 'funders (annual report scan)', verdict: app.fundersVerdict, summary: app.fundersSummary, raw: app.fundersRaw },
+                  { label: 'founder expertise', verdict: app.founderVerdict, summary: app.founderSummary, raw: app.founderRaw },
+                ].map((row) => {
+                  const tone = verdictTone(row.verdict);
+                  return (
+                    <div key={row.label} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
+                        <strong style={{ textTransform: 'lowercase' }}>{row.label}</strong>
+                        <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
+                      </div>
+                      {row.summary && (
+                        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>{row.summary}</p>
+                      )}
+                      {row.raw && (
+                        <details style={{ marginTop: 'var(--space-2)' }}>
+                          <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
+                          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginTop: 'var(--space-2)' }}>
+                            {row.raw}
+                          </p>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })}
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+                  model: {app.orgValidationModel ?? 'unknown'} · last run {app.orgValidationRunAt ? new Date(app.orgValidationRunAt).toLocaleString('en-GB') : 'unknown'}
+                </p>
+              </div>
+            )}
+          </Card>
 
           {app.humanReviews.length > 0 && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>

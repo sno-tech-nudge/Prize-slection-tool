@@ -11,6 +11,15 @@ export const ROLE_LABEL: Record<UserRoleValue, string> = {
   OBSERVER: 'observer',
 };
 
+export const ORG_VALIDATION_VERDICTS = ['CONFIRMED', 'PARTIAL', 'UNVERIFIED', 'CONTRADICTED'] as const;
+export type OrgValidationVerdictValue = (typeof ORG_VALIDATION_VERDICTS)[number];
+export const ORG_VALIDATION_VERDICT_LABEL: Record<OrgValidationVerdictValue, string> = {
+  CONFIRMED: 'confirmed independently',
+  PARTIAL: 'partially confirmed',
+  UNVERIFIED: 'unverified',
+  CONTRADICTED: 'contradicted',
+};
+
 export const ORG_TYPES = ['FOR_PROFIT', 'NON_PROFIT', 'FPO_FPC', 'OTHER'] as const;
 export type OrgTypeValue = (typeof ORG_TYPES)[number];
 export const ORG_TYPE_LABEL: Record<OrgTypeValue, string> = {
