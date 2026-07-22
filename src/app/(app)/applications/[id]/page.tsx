@@ -517,62 +517,91 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             </Card>
           )}
 
-          <Card style={{ marginBottom: 'var(--space-6)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h3)' }}>organisation validation</h2>
-              {user && <ValidateOrgButton applicationId={app.id} hasRun={app.orgValidationStatus === 'DONE' || app.orgValidationStatus === 'FAILED'} />}
-            </div>
-            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              checks self-reported claims against independent outside sources — manually triggered, never runs on its own.
+          <div id="section-scraper" style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>scraper</h2>
+            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+              checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
             </p>
+          </div>
 
-            {app.orgValidationStatus === 'RUNNING' && (
-              <p style={{ color: 'var(--text-secondary)' }}>running — searching the web for independent sources, this can take up to a minute…</p>
-            )}
+          {(
+            [
+              {
+                key: 'opModel' as const,
+                label: 'operating model',
+                blurb: 'does outside coverage describe them as working directly with farmers, through partners, or both — matching what they claim?',
+                status: app.opModelStatus,
+                error: app.opModelError,
+                verdict: app.opModelVerdict,
+                summary: app.opModelSummary,
+                raw: app.opModelRaw,
+                model: app.opModelModel,
+                runAt: app.opModelRunAt,
+              },
+              {
+                key: 'funders' as const,
+                label: 'funders (annual report scan)',
+                blurb: 'pulls funder names from every program in the annual report, not just the one under review.',
+                status: app.fundersStatus,
+                error: app.fundersError,
+                verdict: app.fundersVerdict,
+                summary: app.fundersSummary,
+                raw: app.fundersRaw,
+                model: app.fundersModel,
+                runAt: app.fundersRunAt,
+              },
+              {
+                key: 'founder' as const,
+                label: 'founder expertise',
+                blurb: 'confirms claimed founder expertise against LinkedIn, Scholar, press, or faculty pages — not just the bio page.',
+                status: app.founderStatus,
+                error: app.founderError,
+                verdict: app.founderVerdict,
+                summary: app.founderSummary,
+                raw: app.founderRaw,
+                model: app.founderModel,
+                runAt: app.founderRunAt,
+              },
+            ] as const
+          ).map((check) => {
+            const tone = verdictTone(check.verdict);
+            return (
+              <Card key={check.key} accent style={{ marginBottom: 'var(--space-6)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', textTransform: 'lowercase' }}>{check.label}</h2>
+                  {user && <ValidateOrgButton applicationId={app.id} section={check.key} hasRun={check.status === 'DONE' || check.status === 'FAILED'} />}
+                </div>
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{check.blurb}</p>
 
-            {app.orgValidationStatus === 'FAILED' && (
-              <p style={{ color: 'var(--delta-red)' }}>validation failed: {app.orgValidationError ?? 'unknown error'}</p>
-            )}
+                {check.status === 'RUNNING' && (
+                  <p style={{ color: 'var(--text-secondary)' }}>running — searching the web for independent sources, this can take up to a minute…</p>
+                )}
 
-            {(!app.orgValidationStatus || app.orgValidationStatus === 'PENDING') && (
-              <p style={{ color: 'var(--text-secondary)' }}>not yet run for this application.</p>
-            )}
+                {check.status === 'FAILED' && <p style={{ color: 'var(--delta-red)' }}>check failed: {check.error ?? 'unknown error'}</p>}
 
-            {app.orgValidationStatus === 'DONE' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                {[
-                  { label: 'operating model', verdict: app.opModelVerdict, summary: app.opModelSummary, raw: app.opModelRaw },
-                  { label: 'funders (annual report scan)', verdict: app.fundersVerdict, summary: app.fundersSummary, raw: app.fundersRaw },
-                  { label: 'founder expertise', verdict: app.founderVerdict, summary: app.founderSummary, raw: app.founderRaw },
-                ].map((row) => {
-                  const tone = verdictTone(row.verdict);
-                  return (
-                    <div key={row.label} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                        <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
-                        <strong style={{ textTransform: 'lowercase' }}>{row.label}</strong>
-                        <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
-                      </div>
-                      {row.summary && (
-                        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>{row.summary}</p>
-                      )}
-                      {row.raw && (
-                        <details style={{ marginTop: 'var(--space-2)' }}>
-                          <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
-                          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginTop: 'var(--space-2)' }}>
-                            {row.raw}
-                          </p>
-                        </details>
-                      )}
+                {(!check.status || check.status === 'PENDING') && <p style={{ color: 'var(--text-secondary)' }}>not yet run for this application.</p>}
+
+                {check.status === 'DONE' && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                      <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
+                      <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
                     </div>
-                  );
-                })}
-                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
-                  model: {app.orgValidationModel ?? 'unknown'} · last run {app.orgValidationRunAt ? new Date(app.orgValidationRunAt).toLocaleString('en-GB') : 'unknown'}
-                </p>
-              </div>
-            )}
-          </Card>
+                    {check.summary && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>{check.summary}</p>}
+                    {check.raw && (
+                      <details style={{ marginTop: 'var(--space-2)' }}>
+                        <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
+                        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginTop: 'var(--space-2)' }}>{check.raw}</p>
+                      </details>
+                    )}
+                    <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
+                      model: {check.model ?? 'unknown'} · last run {check.runAt ? new Date(check.runAt).toLocaleString('en-GB') : 'unknown'}
+                    </p>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
 
           {app.humanReviews.length > 0 && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>

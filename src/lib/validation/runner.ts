@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/db';
 import { ORG_VALIDATION_VERDICTS, type OrgValidationVerdictValue } from '@/lib/constants';
-import { ORG_VALIDATION_SYSTEM_PROMPT, buildOrgValidationPrompt } from './prompt';
+import {
+  OPERATING_MODEL_SYSTEM_PROMPT,
+  FUNDERS_SYSTEM_PROMPT,
+  FOUNDER_EXPERTISE_SYSTEM_PROMPT,
+  buildOperatingModelPrompt,
+  buildFundersPrompt,
+  buildFounderExpertisePrompt,
+  type ApplicationForValidation,
+} from './prompt';
 
 // groq/compound is Groq's agentic model with a built-in web-search tool — this IS the scraper.
 // No separate search API key is configured or required for this feature.
@@ -10,12 +18,6 @@ interface ValidationSection {
   verdict: OrgValidationVerdictValue;
   summary: string;
   raw: string;
-}
-
-interface ValidationResult {
-  operating_model: ValidationSection;
-  funders: ValidationSection;
-  founder_expertise: ValidationSection;
 }
 
 function extractJson(text: string): unknown {
@@ -34,12 +36,6 @@ function isValidSection(v: unknown): v is ValidationSection {
     typeof s.verdict === 'string' &&
     (ORG_VALIDATION_VERDICTS as readonly string[]).includes(s.verdict)
   );
-}
-
-function isValidResult(v: unknown): v is ValidationResult {
-  if (!v || typeof v !== 'object') return false;
-  const r = v as Record<string, unknown>;
-  return isValidSection(r.operating_model) && isValidSection(r.funders) && isValidSection(r.founder_expertise);
 }
 
 function sleep(ms: number) {
@@ -76,13 +72,13 @@ async function groqCompoundRequest(body: unknown, maxRetries = 2): Promise<Respo
   throw new Error('unreachable');
 }
 
-async function callGroqCompound(userPrompt: string): Promise<ValidationResult> {
-  async function attempt(extra?: string): Promise<ValidationResult> {
+async function callGroqCompoundSection(systemPrompt: string, userPrompt: string): Promise<ValidationSection> {
+  async function attempt(extra?: string): Promise<ValidationSection> {
     const res = await groqCompoundRequest({
       model: GROQ_COMPOUND_MODEL,
-      max_tokens: 4000,
+      max_tokens: 1200,
       messages: [
-        { role: 'system', content: ORG_VALIDATION_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: extra ? `${userPrompt}\n\n${extra}` : userPrompt },
       ],
     });
@@ -90,7 +86,7 @@ async function callGroqCompound(userPrompt: string): Promise<ValidationResult> {
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content ?? '';
     const parsed = extractJson(text);
-    if (!isValidResult(parsed)) throw new Error('Model response failed JSON contract validation.');
+    if (!isValidSection(parsed)) throw new Error('Model response failed JSON contract validation.');
     return parsed;
   }
 
@@ -102,25 +98,102 @@ async function callGroqCompound(userPrompt: string): Promise<ValidationResult> {
   }
 }
 
-/** Manually triggered only — never runs automatically on ingest or sync. A reviewer clicks
- *  "run validation" on a single application; this never processes more than one at a time. */
-export async function validateOrganisation(applicationId: string): Promise<{ usedModel: string }> {
+type SectionKey = 'opModel' | 'funders' | 'founder';
+
+const SECTION_CONFIG: Record<
+  SectionKey,
+  { systemPrompt: string; buildPrompt: (app: ApplicationForValidation) => string }
+> = {
+  opModel: { systemPrompt: OPERATING_MODEL_SYSTEM_PROMPT, buildPrompt: buildOperatingModelPrompt },
+  funders: { systemPrompt: FUNDERS_SYSTEM_PROMPT, buildPrompt: buildFundersPrompt },
+  founder: { systemPrompt: FOUNDER_EXPERTISE_SYSTEM_PROMPT, buildPrompt: buildFounderExpertisePrompt },
+};
+
+interface RunningCheck {
+  getStatus(applicationId: string): Promise<string | null>;
+  markRunning(applicationId: string): Promise<void>;
+  markDone(applicationId: string, result: ValidationSection): Promise<void>;
+  markFailed(applicationId: string, message: string): Promise<void>;
+}
+
+const CHECKS: Record<SectionKey, RunningCheck> = {
+  opModel: {
+    getStatus: async (id) => (await prisma.application.findUniqueOrThrow({ where: { id }, select: { opModelStatus: true } })).opModelStatus,
+    markRunning: (id) => prisma.application.update({ where: { id }, data: { opModelStatus: 'RUNNING', opModelError: null } }).then(() => undefined),
+    markDone: (id, r) =>
+      prisma.application
+        .update({
+          where: { id },
+          data: {
+            opModelStatus: 'DONE',
+            opModelModel: GROQ_COMPOUND_MODEL,
+            opModelRunAt: new Date(),
+            opModelError: null,
+            opModelVerdict: r.verdict,
+            opModelSummary: r.summary,
+            opModelRaw: r.raw,
+          },
+        })
+        .then(() => undefined),
+    markFailed: (id, message) => prisma.application.update({ where: { id }, data: { opModelStatus: 'FAILED', opModelError: message } }).then(() => undefined),
+  },
+  funders: {
+    getStatus: async (id) => (await prisma.application.findUniqueOrThrow({ where: { id }, select: { fundersStatus: true } })).fundersStatus,
+    markRunning: (id) => prisma.application.update({ where: { id }, data: { fundersStatus: 'RUNNING', fundersError: null } }).then(() => undefined),
+    markDone: (id, r) =>
+      prisma.application
+        .update({
+          where: { id },
+          data: {
+            fundersStatus: 'DONE',
+            fundersModel: GROQ_COMPOUND_MODEL,
+            fundersRunAt: new Date(),
+            fundersError: null,
+            fundersVerdict: r.verdict,
+            fundersSummary: r.summary,
+            fundersRaw: r.raw,
+          },
+        })
+        .then(() => undefined),
+    markFailed: (id, message) => prisma.application.update({ where: { id }, data: { fundersStatus: 'FAILED', fundersError: message } }).then(() => undefined),
+  },
+  founder: {
+    getStatus: async (id) => (await prisma.application.findUniqueOrThrow({ where: { id }, select: { founderStatus: true } })).founderStatus,
+    markRunning: (id) => prisma.application.update({ where: { id }, data: { founderStatus: 'RUNNING', founderError: null } }).then(() => undefined),
+    markDone: (id, r) =>
+      prisma.application
+        .update({
+          where: { id },
+          data: {
+            founderStatus: 'DONE',
+            founderModel: GROQ_COMPOUND_MODEL,
+            founderRunAt: new Date(),
+            founderError: null,
+            founderVerdict: r.verdict,
+            founderSummary: r.summary,
+            founderRaw: r.raw,
+          },
+        })
+        .then(() => undefined),
+    markFailed: (id, message) => prisma.application.update({ where: { id }, data: { founderStatus: 'FAILED', founderError: message } }).then(() => undefined),
+  },
+};
+
+/** Shared runner for a single validation check — manually triggered only, never runs
+ *  automatically on ingest or sync. Each section (operating model / funders / founder expertise)
+ *  is billed and can fail independently, so a rate limit on one doesn't block the others. */
+async function runSection(applicationId: string, section: SectionKey): Promise<{ usedModel: string }> {
   if (!process.env.GROQ_API_KEY) {
     throw new Error('GROQ_API_KEY is not configured — organisation validation requires Groq.');
   }
 
-  const current = await prisma.application.findUniqueOrThrow({
-    where: { id: applicationId },
-    select: { orgValidationStatus: true },
-  });
-  if (current.orgValidationStatus === 'RUNNING') {
-    throw new Error('Validation is already running for this application — wait for it to finish.');
+  const check = CHECKS[section];
+  const currentStatus = await check.getStatus(applicationId);
+  if (currentStatus === 'RUNNING') {
+    throw new Error('This check is already running for this application — wait for it to finish.');
   }
 
-  await prisma.application.update({
-    where: { id: applicationId },
-    data: { orgValidationStatus: 'RUNNING', orgValidationError: null },
-  });
+  await check.markRunning(applicationId);
 
   try {
     const app = await prisma.application.findUniqueOrThrow({
@@ -129,35 +202,26 @@ export async function validateOrganisation(applicationId: string): Promise<{ use
     });
     if (!app.orgName) throw new Error('Application has no organisation name — cannot validate.');
 
-    const userPrompt = buildOrgValidationPrompt(app);
-    const result = await callGroqCompound(userPrompt);
+    const { systemPrompt, buildPrompt } = SECTION_CONFIG[section];
+    const result = await callGroqCompoundSection(systemPrompt, buildPrompt(app));
 
-    await prisma.application.update({
-      where: { id: applicationId },
-      data: {
-        orgValidationStatus: 'DONE',
-        orgValidationModel: GROQ_COMPOUND_MODEL,
-        orgValidationRunAt: new Date(),
-        orgValidationError: null,
-        opModelVerdict: result.operating_model.verdict,
-        opModelSummary: result.operating_model.summary,
-        opModelRaw: result.operating_model.raw,
-        fundersVerdict: result.funders.verdict,
-        fundersSummary: result.funders.summary,
-        fundersRaw: result.funders.raw,
-        founderVerdict: result.founder_expertise.verdict,
-        founderSummary: result.founder_expertise.summary,
-        founderRaw: result.founder_expertise.raw,
-      },
-    });
-
+    await check.markDone(applicationId, result);
     return { usedModel: GROQ_COMPOUND_MODEL };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'organisation validation failed';
-    await prisma.application.update({
-      where: { id: applicationId },
-      data: { orgValidationStatus: 'FAILED', orgValidationError: message },
-    });
+    const message = err instanceof Error ? err.message : 'validation check failed';
+    await check.markFailed(applicationId, message);
     throw err;
   }
+}
+
+export async function validateOperatingModel(applicationId: string) {
+  return runSection(applicationId, 'opModel');
+}
+
+export async function validateFunders(applicationId: string) {
+  return runSection(applicationId, 'funders');
+}
+
+export async function validateFounderExpertise(applicationId: string) {
+  return runSection(applicationId, 'founder');
 }
