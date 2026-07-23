@@ -89,6 +89,14 @@ export async function getReviewDecisionFunnel() {
   ];
 }
 
+/** Count of applications currently assigned to this specific user — backs the "assigned to me"
+ *  dashboard tile, independent of role (admins get assigned applications too). */
+export async function getAssignedToMeCount(userId: string) {
+  return prisma.application.count({
+    where: { isDuplicateOf: null, reviewAssignments: { some: { reviewerId: userId } } },
+  });
+}
+
 /** One row per user (admins review too, so this isn't reviewer-role-only) showing how many of
  *  their assigned applications they've submitted a HumanReview for vs. still owe. */
 export async function getReviewerStats() {

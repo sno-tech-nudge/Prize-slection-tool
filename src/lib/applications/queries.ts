@@ -12,6 +12,45 @@ export interface ApplicationListFilters {
   operatingModel?: string;
   state?: string;
   eligible?: string;
+  assignedToMe?: string;
+  // route searchParams objects carry other page-specific keys too (e.g. "stage") that this
+  // filter set doesn't act on — an index signature lets callers pass the whole searchParams
+  // object through without a separate narrower type at each call site.
+  [key: string]: string | undefined;
+}
+
+/** Shared between listApplications and getAdjacentApplications so "next"/"previous" on an
+ *  application detail page walks the exact same filtered, ordered set the user was browsing —
+ *  including "assigned to me", which any role can opt into (not just the REVIEWER-locked view). */
+function buildApplicationWhere(filters: ApplicationListFilters, user: User | null): Prisma.ApplicationWhereInput {
+  const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
+  if (filters.reviewed === 'YES') where.humanReviews = { some: {} };
+  if (filters.reviewed === 'NO') where.humanReviews = { none: {} };
+  if (filters.q) where.orgName = { contains: filters.q };
+  if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
+  if (filters.internal === 'UNDECIDED') where.internalDecision = null;
+  if (filters.assignedToMe === '1' && user) where.reviewAssignments = { some: { reviewerId: user.id } };
+
+  // multi-select filters — each URL param is a comma-separated list of values; a row matches if
+  // it matches ANY selected value within that filter (OR), combined with an AND across the
+  // different filter types (each becomes its own entry in this AND-of-ORs list).
+  const andGroups: Prisma.ApplicationWhereInput[] = [];
+
+  const categories = splitCsv(filters.category);
+  if (categories.length) where.solutionCategory = { in: categories };
+
+  const registrationTypes = splitCsv(filters.registrationType);
+  if (registrationTypes.length) where.legalRegistrationType = { in: registrationTypes };
+
+  const operatingModels = splitCsv(filters.operatingModel);
+  if (operatingModels.length) andGroups.push({ OR: operatingModels.map((m) => ({ operatingModelArchetype: { contains: m } })) });
+
+  const states = splitCsv(filters.state);
+  if (states.length) andGroups.push({ OR: states.map((s) => ({ statesOperating: { contains: s } })) });
+
+  if (andGroups.length) where.AND = andGroups;
+
+  return where;
 }
 
 const BASE_INCLUDE = {
@@ -49,31 +88,7 @@ export async function listApplications(
   withExportFields?: false,
 ): Promise<Prisma.ApplicationGetPayload<{ include: typeof BASE_INCLUDE }>[]>;
 export async function listApplications(filters: ApplicationListFilters, user: User | null, withExportFields?: boolean) {
-  const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
-  if (filters.reviewed === 'YES') where.humanReviews = { some: {} };
-  if (filters.reviewed === 'NO') where.humanReviews = { none: {} };
-  if (filters.q) where.orgName = { contains: filters.q };
-  if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
-  if (filters.internal === 'UNDECIDED') where.internalDecision = null;
-
-  // multi-select filters — each URL param is a comma-separated list of values; a row matches if
-  // it matches ANY selected value within that filter (OR), combined with an AND across the
-  // different filter types (each becomes its own entry in this AND-of-ORs list).
-  const andGroups: Prisma.ApplicationWhereInput[] = [];
-
-  const categories = splitCsv(filters.category);
-  if (categories.length) where.solutionCategory = { in: categories };
-
-  const registrationTypes = splitCsv(filters.registrationType);
-  if (registrationTypes.length) where.legalRegistrationType = { in: registrationTypes };
-
-  const operatingModels = splitCsv(filters.operatingModel);
-  if (operatingModels.length) andGroups.push({ OR: operatingModels.map((m) => ({ operatingModelArchetype: { contains: m } })) });
-
-  const states = splitCsv(filters.state);
-  if (states.length) andGroups.push({ OR: states.map((s) => ({ statesOperating: { contains: s } })) });
-
-  if (andGroups.length) where.AND = andGroups;
+  const where = buildApplicationWhere(filters, user);
 
   // relationLoadStrategy: 'join' collapses the include's relations into one query via SQL LATERAL
   // joins instead of Prisma's default one-round-trip-per-relation strategy — on this remote
@@ -180,20 +195,43 @@ export async function listJuryQueue() {
 /** Prev/next neighbours of an application in the same order as the applications list (most
  *  recently submitted first), respecting the viewer's role-based visibility — a reviewer
  *  stepping through their assigned applications never lands on one they can't see. */
-export async function getAdjacentApplications(id: string, user: User | null) {
-  const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
-  const ids = await prisma.application.findMany({
+/** filters is optional so callers that don't have a filter context (e.g. the jury queue) keep
+ *  the old "everything visible to this user" behaviour; the applications table always passes its
+ *  current filters through so "next"/"previous" stays inside whatever view the user came from. */
+export async function getAdjacentApplications(id: string, user: User | null, filters: ApplicationListFilters = {}) {
+  const where = buildApplicationWhere(filters, user);
+  let apps = await prisma.application.findMany({
     where,
     orderBy: { submittedAt: 'desc' },
-    select: { id: true },
+    select: {
+      id: true,
+      legalRegistrationType: true,
+      cert12A: true,
+      cert80G: true,
+      csr1Registration: true,
+      darpanRegistered: true,
+      orgName: true,
+      pocFirstName: true,
+      pocLastName: true,
+      designation: true,
+      phone: true,
+      email: true,
+      website: true,
+      linkedinUrl: true,
+      founders: { select: { fullName: true, email: true, linkedin: true } },
+    },
   });
 
-  const index = ids.findIndex((a) => a.id === id);
+  if (filters.eligible === 'YES') apps = apps.filter((a) => evaluateEligibility(a).eligible);
+  if (filters.eligible === 'NO') apps = apps.filter((a) => !evaluateEligibility(a).eligible);
+
+  const ids = apps.map((a) => a.id);
+  const index = ids.indexOf(id);
   if (index === -1) return { prevId: null, nextId: null, position: null, total: ids.length };
 
   return {
-    prevId: index > 0 ? ids[index - 1].id : null,
-    nextId: index < ids.length - 1 ? ids[index + 1].id : null,
+    prevId: index > 0 ? ids[index - 1] : null,
+    nextId: index < ids.length - 1 ? ids[index + 1] : null,
     position: index + 1,
     total: ids.length,
   };

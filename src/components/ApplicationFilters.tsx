@@ -73,6 +73,7 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
   }
 
   const currentReviewed = searchParams.get('reviewed') ?? '';
+  const currentAssignedToMe = searchParams.get('assignedToMe') === '1';
 
   return (
     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: 'var(--space-6)', alignItems: 'center', paddingBottom: 'var(--space-1)' }}>
@@ -83,6 +84,13 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
         containerStyle={fixedWidth(160)}
         style={compactFieldStyle}
       />
+      <button
+        type="button"
+        onClick={() => setParam('assignedToMe', currentAssignedToMe ? '' : '1')}
+        style={pillStyle(currentAssignedToMe)}
+      >
+        assigned to me
+      </button>
       <div role="group" aria-label="toggle review status" style={{ display: 'flex', gap: 'var(--space-1)', flexShrink: 0 }}>
         {REVIEW_TOGGLE_OPTIONS.map((o) => (
           <button key={o.value} type="button" onClick={() => setParam('reviewed', o.value)} style={pillStyle(currentReviewed === o.value)}>

@@ -5,7 +5,7 @@ import { ApplicationRow } from '@/components/ApplicationRow';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { getCurrentUser } from '@/lib/auth/session';
-import { listApplications, getApplicationFilterOptions } from '@/lib/applications/queries';
+import { listApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
 
 const HEADERS = [
   'organisation',
@@ -22,21 +22,17 @@ const HEADERS = [
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: {
-    stage?: string;
-    category?: string;
-    q?: string;
-    internal?: string;
-    reviewed?: string;
-    registrationType?: string;
-    operatingModel?: string;
-    state?: string;
-    eligible?: string;
-  };
+  searchParams: ApplicationListFilters;
 }) {
   const user = await getCurrentUser();
   const [applications, filterOptions] = await Promise.all([listApplications(searchParams, user), getApplicationFilterOptions()]);
   const canManage = user?.role === 'ADMIN';
+
+  const rowParams = new URLSearchParams();
+  Object.entries(searchParams ?? {}).forEach(([key, value]) => {
+    if (value) rowParams.set(key, value);
+  });
+  const rowQueryString = rowParams.toString() ? `?${rowParams.toString()}` : '';
 
   return (
     <div>
@@ -79,7 +75,7 @@ export default async function ApplicationsPage({
             </thead>
             <tbody>
               {applications.map((app) => (
-                <ApplicationRow key={app.id} app={app} canManage={canManage} />
+                <ApplicationRow key={app.id} app={app} canManage={canManage} queryString={rowQueryString} />
               ))}
               {applications.length === 0 && (
                 <tr>

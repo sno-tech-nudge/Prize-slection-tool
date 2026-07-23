@@ -14,7 +14,7 @@ import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { ReviewSidePanel } from '@/components/ReviewSidePanel';
 import { PersonalNotes } from '@/components/PersonalNotes';
 import { CommentThread } from '@/components/CommentThread';
-import { getApplicationDetail, getAdjacentApplications } from '@/lib/applications/queries';
+import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
@@ -115,11 +115,27 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
   );
 }
 
-export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
+export default async function ApplicationDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: ApplicationListFilters;
+}) {
   const user = await getCurrentUser();
-  const [app, adjacent, allUsers] = await Promise.all([getApplicationDetail(params.id, user?.id), getAdjacentApplications(params.id, user), listUsers()]);
+  const [app, adjacent, allUsers] = await Promise.all([
+    getApplicationDetail(params.id, user?.id),
+    getAdjacentApplications(params.id, user, searchParams),
+    listUsers(),
+  ]);
   const reviewers = allUsers;
   if (!app) notFound();
+
+  const pagerParams = new URLSearchParams();
+  Object.entries(searchParams ?? {}).forEach(([key, value]) => {
+    if (value) pagerParams.set(key, value);
+  });
+  const pagerQueryString = pagerParams.toString() ? `?${pagerParams.toString()}` : '';
 
   const latestEval = app.aiEvaluations[0];
   const criteria = latestEval ? parseCriteria(latestEval.criteria) : [];
@@ -132,7 +148,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
 
   return (
     <div>
-      <ApplicationPagerKeys prevId={adjacent.prevId} nextId={adjacent.nextId} />
+      <ApplicationPagerKeys prevId={adjacent.prevId} nextId={adjacent.nextId} queryString={pagerQueryString} />
       <AngularBanner
         eyebrow={app.historicallyShortlisted ? 'historically shortlisted · agwater 2024 cohort' : 'rapid re.gen challenge applicant'}
         title={app.orgName}
@@ -197,7 +213,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
 
       <div style={{ padding: 'var(--space-6) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {adjacent.prevId ? (
-          <Link href={`/applications/${adjacent.prevId}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+          <Link href={`/applications/${adjacent.prevId}${pagerQueryString}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
             <ChevronLeft size={16} strokeLinejoin="miter" strokeLinecap="square" />
             previous
           </Link>
@@ -213,7 +229,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           </span>
         )}
         {adjacent.nextId ? (
-          <Link href={`/applications/${adjacent.nextId}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+          <Link href={`/applications/${adjacent.nextId}${pagerQueryString}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
             next
             <ChevronRight size={16} strokeLinejoin="miter" strokeLinecap="square" />
           </Link>

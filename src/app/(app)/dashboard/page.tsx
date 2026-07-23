@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { FileText, ClipboardCheck, CheckCircle2, Globe2, type LucideIcon } from 'lucide-react';
+import { FileText, ClipboardCheck, CheckCircle2, Globe2, UserCheck, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
-import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
+import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats, getAssignedToMeCount } from '@/lib/dashboard/queries';
+import { getCurrentUser } from '@/lib/auth/session';
 import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
 import {
   getOperatingModelMix,
@@ -82,6 +83,7 @@ function PartHeader({ title }: { title: string }) {
 }
 
 export default async function DashboardPage() {
+  const user = await getCurrentUser();
   const [
     kpis,
     funnel,
@@ -94,6 +96,7 @@ export default async function DashboardPage() {
     orgSizeMix,
     orgAgeMix,
     reviewerStats,
+    assignedToMeCount,
   ] = await Promise.all([
     getDashboardKpis(),
     getReviewDecisionFunnel(),
@@ -106,6 +109,7 @@ export default async function DashboardPage() {
     getOrgSizeMix(),
     getOrgAgeMix(),
     getReviewerStats(),
+    user ? getAssignedToMeCount(user.id) : Promise.resolve(0),
   ]);
   const funnelMax = Math.max(...funnel.map((f) => f.count), 1);
 
@@ -119,6 +123,7 @@ export default async function DashboardPage() {
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
           <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
+          <Kpi label="assigned to me" value={assignedToMeCount} icon={UserCheck} href="/applications?assignedToMe=1" />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
           <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
           <Kpi label="states represented" value={kpis.statesRepresented} icon={Globe2} />
