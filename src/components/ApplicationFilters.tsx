@@ -2,6 +2,7 @@
 import React from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Input, Select } from '@/design-system';
+import { MultiSelect } from '@/components/MultiSelect';
 import { SOLUTION_CATEGORIES, SOLUTION_CATEGORY_LABEL } from '@/lib/constants';
 
 export interface ApplicationFilterOptions {
@@ -63,6 +64,14 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  function setMultiParam(key: string, values: string[]) {
+    setParam(key, values.join(','));
+  }
+
+  function getMultiParam(key: string): string[] {
+    return (searchParams.get(key) ?? '').split(',').filter(Boolean);
+  }
+
   const currentReviewed = searchParams.get('reviewed') ?? '';
 
   return (
@@ -81,20 +90,13 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
           </button>
         ))}
       </div>
-      <Select
-        aria-label="filter by solution category"
-        defaultValue={searchParams.get('category') ?? ''}
-        onChange={(e) => setParam('category', e.target.value)}
-        containerStyle={fixedWidth(150)}
-        style={compactSelectStyle}
-      >
-        <option value="">all solution categories</option>
-        {SOLUTION_CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {SOLUTION_CATEGORY_LABEL[c]}
-          </option>
-        ))}
-      </Select>
+      <MultiSelect
+        label="solution category"
+        width={150}
+        selected={getMultiParam('category')}
+        onChange={(v) => setMultiParam('category', v)}
+        options={SOLUTION_CATEGORIES.map((c) => ({ value: c, label: SOLUTION_CATEGORY_LABEL[c] }))}
+      />
       <Select
         aria-label="filter by decision status"
         defaultValue={searchParams.get('internal') ?? ''}
@@ -107,48 +109,27 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
         <option value="NO">decision: no</option>
         <option value="UNDECIDED">decision: undecided</option>
       </Select>
-      <Select
-        aria-label="filter by registration type"
-        defaultValue={searchParams.get('registrationType') ?? ''}
-        onChange={(e) => setParam('registrationType', e.target.value)}
-        containerStyle={fixedWidth(140)}
-        style={compactSelectStyle}
-      >
-        <option value="">all registration types</option>
-        {options.registrationTypes.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </Select>
-      <Select
-        aria-label="filter by operating model"
-        defaultValue={searchParams.get('operatingModel') ?? ''}
-        onChange={(e) => setParam('operatingModel', e.target.value)}
-        containerStyle={fixedWidth(150)}
-        style={compactSelectStyle}
-      >
-        <option value="">all operating models</option>
-        {options.operatingModels.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-      </Select>
-      <Select
-        aria-label="filter by state"
-        defaultValue={searchParams.get('state') ?? ''}
-        onChange={(e) => setParam('state', e.target.value)}
-        containerStyle={fixedWidth(110)}
-        style={compactSelectStyle}
-      >
-        <option value="">all states</option>
-        {options.states.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </Select>
+      <MultiSelect
+        label="registration type"
+        width={140}
+        selected={getMultiParam('registrationType')}
+        onChange={(v) => setMultiParam('registrationType', v)}
+        options={options.registrationTypes.map((t) => ({ value: t, label: t }))}
+      />
+      <MultiSelect
+        label="operating model"
+        width={150}
+        selected={getMultiParam('operatingModel')}
+        onChange={(v) => setMultiParam('operatingModel', v)}
+        options={options.operatingModels.map((m) => ({ value: m, label: m }))}
+      />
+      <MultiSelect
+        label="state"
+        width={110}
+        selected={getMultiParam('state')}
+        onChange={(v) => setMultiParam('state', v)}
+        options={options.states.map((s) => ({ value: s, label: s }))}
+      />
       <Select
         aria-label="filter by eligibility"
         defaultValue={searchParams.get('eligible') ?? ''}

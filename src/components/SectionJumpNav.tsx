@@ -6,7 +6,7 @@ const SECTIONS = [
   { id: 'section-tech-and-tools', label: 'tech and tools' },
   { id: 'section-experience-impact', label: 'experience & impact' },
   { id: 'section-scoring', label: 'scoring & evaluation' },
-  { id: 'section-scraper', label: 'scraper' },
+  { id: 'section-scraper', label: 'scraper data' },
 ];
 
 /** Quick-jump nav mirroring the real application form's own step names (organisation profile /

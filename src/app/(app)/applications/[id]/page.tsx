@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { AngularBanner, Card, Badge, Tag } from '@/design-system';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
@@ -19,6 +19,7 @@ import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
+import { slugify } from '@/lib/sources/normalize';
 import { ORG_TYPE_LABEL, type OrgTypeValue } from '@/lib/constants';
 import { computeConsensus } from '@/lib/applications/consensus';
 import {
@@ -81,6 +82,20 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+// missing/NO certificates are a real eligibility risk, not just an empty field — flag them with
+// the same warning icon + red text used in the eligibility banners above, instead of plain text.
+function certStatus(value: string | null): React.ReactNode {
+  if (!value || value === 'NO') {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+        <AlertTriangle size={14} strokeLinejoin="miter" strokeLinecap="square" />
+        {value === 'NO' ? 'no' : 'not provided'}
+      </span>
+    );
+  }
+  return value;
+}
+
 // a bare row of <Tag> chips with no caption above it doesn't say which question they're
 // answering — this wraps a tag list with the same caption style Field uses, so every
 // multi-select answer is legible on its own out of context (screenshot, export, etc.)
@@ -128,7 +143,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             {user && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}
-            <DownloadPdfButton />
+            <DownloadPdfButton filename={slugify(app.orgName)} />
           </div>
         }
       />
@@ -151,7 +166,10 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       {!eligibilityScreen.eligible && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <div style={{ background: 'var(--delta-red)', color: 'var(--text-inverse)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-            <strong style={{ fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>fails Level 1 eligibility screening</strong>
+            <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
+              <AlertTriangle size={16} strokeLinejoin="miter" strokeLinecap="square" />
+              fails Level 1 eligibility screening
+            </strong>
             <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: 'var(--fs-small)' }}>
               {eligibilityScreen.failedReasons.map((r) => (
                 <li key={r}>{r}</li>
@@ -164,7 +182,8 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       {eligibilityScreen.eligible && eligibilityScreen.identityGaps.length > 0 && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <div style={{ background: 'var(--delta-yellow)', color: 'var(--delta-charcoal)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-            <strong style={{ fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
+            <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
+              <AlertTriangle size={16} strokeLinejoin="miter" strokeLinecap="square" />
               identity details missing — passes eligibility, needs a human look
             </strong>
             <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', fontSize: 'var(--fs-small)' }}>
@@ -322,10 +341,10 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
                   value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
                 />
                 <Field label="FCRA registration" value={app.fcraStatus} />
-                <Field label="12A certificate" value={app.cert12A} />
-                <Field label="80G certificate" value={app.cert80G} />
-                <Field label="CSR-1 registration" value={app.csr1Registration} />
-                <Field label="NITI Aayog DARPAN ID" value={app.darpanRegistered} />
+                <Field label="12A certificate" value={certStatus(app.cert12A)} />
+                <Field label="80G certificate" value={certStatus(app.cert80G)} />
+                <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />
+                <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered)} />
                 <Field label="DARPAN registration number" value={app.darpanIdNumber} />
               </div>
             </Card>
@@ -374,7 +393,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>experience and impact</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-                <Field label="years of experience" value={app.yearsExperience} />
+                <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />
                 <Field label="farmers reached" value={app.farmersCount} />
                 <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />
                 <Field label="average land holding (ha)" value={app.avgLandHolding} />
@@ -518,7 +537,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           )}
 
           <div id="section-scraper" style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>scraper</h2>
+            <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>scraper data</h2>
             <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
               checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
             </p>
@@ -528,7 +547,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
             [
               {
                 key: 'opModel' as const,
-                label: 'operating model',
+                label: 'organisation validation (presence in the ecosystem)',
                 blurb: 'does outside coverage describe them as working directly with farmers, through partners, or both — matching what they claim?',
                 status: app.opModelStatus,
                 error: app.opModelError,
@@ -540,8 +559,8 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
               },
               {
                 key: 'funders' as const,
-                label: 'funders (annual report scan)',
-                blurb: 'pulls funder names from every program in the annual report, not just the one under review.',
+                label: 'organisation understanding',
+                blurb: 'other agriculture programmes, funding, and annual-report disclosures — pulls funder names from every program in the report, not just the one under review.',
                 status: app.fundersStatus,
                 error: app.fundersError,
                 verdict: app.fundersVerdict,
@@ -677,7 +696,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
 
           <Card style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>discussion</h2>
-            <CommentThread applicationId={app.id} comments={app.comments} />
+            <CommentThread applicationId={app.id} comments={app.comments} users={allUsers.map((u) => ({ id: u.id, name: u.name }))} />
           </Card>
 
           <Card style={{ marginBottom: 'var(--space-6)' }}>

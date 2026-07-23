@@ -4,6 +4,7 @@ export interface CriterionScore {
   rationale: string;
   evidence: string;
   confidence: number; // 0-1
+  comment?: string; // reviewer's own note on this criterion — human reviews only, AI leaves unset
 }
 
 export interface EligibilitySignals {

@@ -52,13 +52,28 @@ export async function listApplications(filters: ApplicationListFilters, user: Us
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
   if (filters.reviewed === 'YES') where.humanReviews = { some: {} };
   if (filters.reviewed === 'NO') where.humanReviews = { none: {} };
-  if (filters.category) where.solutionCategory = filters.category;
   if (filters.q) where.orgName = { contains: filters.q };
   if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.internalDecision = null;
-  if (filters.registrationType) where.legalRegistrationType = filters.registrationType;
-  if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
-  if (filters.state) where.statesOperating = { contains: filters.state };
+
+  // multi-select filters — each URL param is a comma-separated list of values; a row matches if
+  // it matches ANY selected value within that filter (OR), combined with an AND across the
+  // different filter types (each becomes its own entry in this AND-of-ORs list).
+  const andGroups: Prisma.ApplicationWhereInput[] = [];
+
+  const categories = splitCsv(filters.category);
+  if (categories.length) where.solutionCategory = { in: categories };
+
+  const registrationTypes = splitCsv(filters.registrationType);
+  if (registrationTypes.length) where.legalRegistrationType = { in: registrationTypes };
+
+  const operatingModels = splitCsv(filters.operatingModel);
+  if (operatingModels.length) andGroups.push({ OR: operatingModels.map((m) => ({ operatingModelArchetype: { contains: m } })) });
+
+  const states = splitCsv(filters.state);
+  if (states.length) andGroups.push({ OR: states.map((s) => ({ statesOperating: { contains: s } })) });
+
+  if (andGroups.length) where.AND = andGroups;
 
   // relationLoadStrategy: 'join' collapses the include's relations into one query via SQL LATERAL
   // joins instead of Prisma's default one-round-trip-per-relation strategy — on this remote
@@ -77,6 +92,13 @@ export async function listApplications(filters: ApplicationListFilters, user: Us
   if (filters.eligible === 'YES') return apps.filter((a) => evaluateEligibility(a).eligible);
   if (filters.eligible === 'NO') return apps.filter((a) => !evaluateEligibility(a).eligible);
   return apps;
+}
+
+function splitCsv(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
 }
 
 /** Registration type, operating model and state values are free text keyed off the real Zoho

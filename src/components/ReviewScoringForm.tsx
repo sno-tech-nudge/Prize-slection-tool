@@ -23,9 +23,16 @@ export function ReviewScoringForm({
     return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.score]));
   }, [existing]);
 
+  const existingComments = React.useMemo(() => {
+    if (!existing) return {};
+    return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.comment ?? '']));
+  }, [existing]);
+
   const [scores, setScores] = React.useState<Record<string, number>>(existingScores);
+  const [criterionComments, setCriterionComments] = React.useState<Record<string, string>>(existingComments);
   const answeredCount = Object.keys(scores).length;
   const liveComposite = computeComposite(scores);
+  let runningIndex = 0;
 
   function setScore(key: string, raw: string, maxScore: number) {
     if (raw === '') {
@@ -108,31 +115,43 @@ export function ReviewScoringForm({
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-              {sectionCriteria.map((c, i) => (
-                <div key={c.key} style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
-                      {i + 1}. {c.label}
+              {sectionCriteria.map((c) => {
+                runningIndex += 1;
+                return (
+                  <div key={c.key} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
+                          {runningIndex}. {c.label}
+                        </div>
+                        <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0, paddingLeft: 'var(--space-4)' }}>
+                          {c.description.map((d) => (
+                            <li key={d}>{d}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <Input
+                        name={`criterion_${c.key}`}
+                        type="number"
+                        min={0}
+                        max={c.maxScore}
+                        step={1}
+                        value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
+                        onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
+                        containerStyle={{ width: 70, flexShrink: 0 }}
+                        helper={`/ ${c.maxScore}`}
+                      />
                     </div>
-                    <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0, paddingLeft: 'var(--space-4)' }}>
-                      {c.description.map((d) => (
-                        <li key={d}>{d}</li>
-                      ))}
-                    </ul>
+                    <Textarea
+                      name={`criterion_comment_${c.key}`}
+                      placeholder="note on this criterion (optional)"
+                      rows={2}
+                      value={criterionComments[c.key] ?? ''}
+                      onChange={(e) => setCriterionComments((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                    />
                   </div>
-                  <Input
-                    name={`criterion_${c.key}`}
-                    type="number"
-                    min={0}
-                    max={c.maxScore}
-                    step={1}
-                    value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
-                    onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
-                    containerStyle={{ width: 70, flexShrink: 0 }}
-                    helper={`/ ${c.maxScore}`}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

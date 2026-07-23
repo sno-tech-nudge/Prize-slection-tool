@@ -15,9 +15,9 @@ import { PieChart } from '@/components/PieChart';
 import { IndiaStatesMap } from '@/components/IndiaStatesMap';
 import { OrgTitle } from '@/components/OrgTitle';
 
-function Kpi({ label, value, icon: Icon }: { label: string; value: number | string; icon: LucideIcon }) {
-  return (
-    <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
+  const content = (
+    <>
       <div
         style={{
           width: 32,
@@ -46,8 +46,18 @@ function Kpi({ label, value, icon: Icon }: { label: string; value: number | stri
           {label}
         </div>
       </div>
-    </Card>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', cursor: 'pointer' }}>{content}</Card>
+      </Link>
+    );
+  }
+
+  return <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>{content}</Card>;
 }
 
 function SectionHeader({ title, action }: { title: string; action?: { href: string; label: string } }) {
@@ -108,7 +118,7 @@ export default async function DashboardPage() {
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
-          <Kpi label="total applications" value={kpis.total} icon={FileText} />
+          <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
           <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
           <Kpi label="states represented" value={kpis.statesRepresented} icon={Globe2} />

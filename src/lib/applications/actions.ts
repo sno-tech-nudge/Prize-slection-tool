@@ -88,7 +88,8 @@ export async function submitHumanReviewAction(formData: FormData) {
   const criteria = RUBRIC_CRITERIA.map((c) => {
     const score = Number(formData.get(`criterion_${c.key}`) ?? 0);
     scoreMap[c.key] = score;
-    return { key: c.key, score, rationale: '', evidence: '', confidence: 1 };
+    const criterionComment = String(formData.get(`criterion_comment_${c.key}`) ?? '').trim();
+    return { key: c.key, score, rationale: '', evidence: '', confidence: 1, comment: criterionComment || undefined };
   });
   const composite = computeComposite(scoreMap);
   // recommendation is no longer picked manually — it's derived straight from the reviewer's own
