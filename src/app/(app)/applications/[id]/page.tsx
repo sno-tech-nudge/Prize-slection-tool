@@ -84,10 +84,11 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 // missing/NO certificates are a real eligibility risk, not just an empty field — flag them with
 // the same warning icon + red text used in the eligibility banners above, instead of plain text.
-function certStatus(value: string | null): React.ReactNode {
+function certStatus(value: string | null, tone: 'red' | 'yellow' = 'red'): React.ReactNode {
   if (!value || value === 'NO') {
+    const color = tone === 'yellow' ? 'var(--delta-yellow)' : 'var(--delta-red)';
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', color, fontWeight: 'var(--fw-bold)' as unknown as number }}>
         <AlertTriangle size={14} strokeLinejoin="miter" strokeLinecap="square" />
         {value === 'NO' ? 'no' : 'not provided'}
       </span>
@@ -360,7 +361,7 @@ export default async function ApplicationDetailPage({
                 <Field label="12A certificate" value={certStatus(app.cert12A)} />
                 <Field label="80G certificate" value={certStatus(app.cert80G)} />
                 <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />
-                <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered)} />
+                <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />
                 <Field label="DARPAN registration number" value={app.darpanIdNumber} />
               </div>
             </Card>

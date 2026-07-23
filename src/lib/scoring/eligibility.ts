@@ -56,12 +56,14 @@ export function evaluateEligibility(app: EligibilityInput): EligibilityResult {
   if (isNo(app.cert12A)) failedReasons.push('no 12A certificate');
   if (isNo(app.cert80G)) failedReasons.push('no 80G certificate');
   if (isNo(app.csr1Registration)) failedReasons.push('no CSR-1 registration');
-  if (isNo(app.darpanRegistered)) failedReasons.push('no NITI Aayog / DARPAN ID');
 
   // Identity/founder-detail gaps (missing website, LinkedIn, founder email, etc.) are a flag for
   // a human to double-check during review, not an automatic disqualification — an application
   // shouldn't fail Level 1 eligibility just because a founder's LinkedIn wasn't filled in.
+  // NITI Aayog / DARPAN ID lives here too, not in failedReasons — it's a soft flag, not a
+  // hard reject, per the team's call.
   const identityGaps: string[] = [];
+  if (isNo(app.darpanRegistered)) identityGaps.push('no NITI Aayog / DARPAN ID');
   if (!app.orgName.trim()) identityGaps.push('organisation name');
   if (!app.pocFirstName.trim() || !app.pocLastName.trim()) identityGaps.push('applicant name');
   if (!app.designation) identityGaps.push('applicant designation');
