@@ -25,43 +25,44 @@ export function ReviewSidePanel({
         </span>
       </Button>
 
+      {/* No dimming backdrop on purpose — the underlying application page stays fully normal
+       *  (same brightness, scrollable, section-jump-nav still clickable) while this panel is
+       *  open alongside it, rather than reading as a separate blocked-out modal view. */}
       {open && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: 'absolute', inset: 0, background: 'var(--surface-ink)', opacity: 0.5 }}
-          />
-          <div
-            style={{
-              position: 'relative',
-              width: 520,
-              maxWidth: '100%',
-              height: '100%',
-              background: 'var(--surface-card)',
-              borderLeft: '4px solid var(--delta-red)',
-              overflowY: 'auto',
-              padding: 'var(--space-6)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
-              <div>
-                <h2 style={{ fontSize: 'var(--fs-h4)' }}>score {orgName}</h2>
-                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                  score every criterion against the rubric below, then submit your recommendation.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="close"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--space-1)' }}
-              >
-                <X size={18} strokeLinejoin="miter" strokeLinecap="square" color="var(--text-secondary)" />
-              </button>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: 520,
+            maxWidth: '100%',
+            height: '100%',
+            zIndex: 100,
+            background: 'var(--surface-card)',
+            borderLeft: '4px solid var(--delta-red)',
+            boxShadow: 'var(--shadow-md)',
+            overflowY: 'auto',
+            padding: 'var(--space-6)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
+            <div>
+              <h2 style={{ fontSize: 'var(--fs-h4)' }}>score {orgName}</h2>
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
+                score every criterion against the rubric below, then submit your recommendation.
+              </p>
             </div>
-
-            <ReviewScoringForm applicationId={applicationId} existing={existing} onSubmitted={() => setOpen(false)} />
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="close"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--space-1)' }}
+            >
+              <X size={18} strokeLinejoin="miter" strokeLinecap="square" color="var(--text-secondary)" />
+            </button>
           </div>
+
+          <ReviewScoringForm applicationId={applicationId} existing={existing} onSubmitted={() => setOpen(false)} />
         </div>
       )}
     </>

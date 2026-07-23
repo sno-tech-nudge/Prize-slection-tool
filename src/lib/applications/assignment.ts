@@ -1,13 +1,19 @@
 import { prisma } from '@/lib/db';
 
+/** Tanush and Anurag review nothing in the normal rotation — they're excluded here rather than
+ *  by role, since every current account happens to be ADMIN. An admin can still hand-assign
+ *  either of them to a specific application from its detail page if genuinely needed. */
+const ROTATION_EXCLUDED_EMAILS = ['kalhan.tanush@gmail.com', 'anurag@thedelta.org.in'];
+
 /** Fixed round-robin order for auto-assignment — same ordering shown in the header role
  *  switcher (role asc, then name asc), which happens to match the order the team wants:
  *  1. Nisha Chawla  2. Sravya Jandhyala  3. KC  4. Paromita Sen  5. Saba Ahmed
  *  New applications cycle through this list one at a time; once it reaches the end it wraps
- *  back to position 1. Anyone (admin or reviewer) can be in the rotation, and an admin can
- *  always override an individual application's assignment from its detail page. */
+ *  back to position 1. An admin can always override an individual application's assignment
+ *  from its detail page. */
 async function getRotationOrder() {
-  return prisma.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] });
+  const users = await prisma.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }] });
+  return users.filter((u) => !ROTATION_EXCLUDED_EMAILS.includes(u.email));
 }
 
 /** Assigns exactly one person to a newly-created application, continuing the rotation from
