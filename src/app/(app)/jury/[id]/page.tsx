@@ -33,7 +33,7 @@ export default async function JuryApplicationPage({ params }: { params: { id: st
       <AngularBanner
         eyebrow="jury review · blind until you submit"
         title={app.orgName}
-        subtitle={`${app.pocFirstName} ${app.pocLastName} · ${app.location ?? 'location not provided'}`}
+        subtitle={`${app.pocFirstName} ${app.pocLastName}`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <SolutionCategoryTag category={app.solutionCategory} />

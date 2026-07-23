@@ -91,15 +91,11 @@ export function ReviewScoringForm({
 
       {RUBRIC_SECTIONS.map((section) => {
         const sectionCriteria = RUBRIC_CRITERIA.filter((c) => c.section === section.key);
-        const sectionSubtotal = sectionCriteria.reduce((sum, c) => sum + (scores[c.key] ?? 0), 0);
 
         return (
           <div key={section.key}>
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'baseline',
                 fontSize: 'var(--fs-caption)',
                 textTransform: 'uppercase',
                 letterSpacing: 'var(--ls-wide)',
@@ -110,9 +106,6 @@ export function ReviewScoringForm({
               }}
             >
               <span>{section.label}</span>
-              <span style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
-                {sectionSubtotal} / {section.weight}
-              </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               {sectionCriteria.map((c) => {

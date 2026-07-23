@@ -136,7 +136,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       <AngularBanner
         eyebrow={app.historicallyShortlisted ? 'historically shortlisted · agwater 2024 cohort' : 'rapid re.gen challenge applicant'}
         title={app.orgName}
-        subtitle={`${app.pocFirstName} ${app.pocLastName}${app.designation ? `, ${app.designation}` : ''} · ${app.location ?? 'location not provided'}`}
+        subtitle={`${app.pocFirstName} ${app.pocLastName}${app.designation ? `, ${app.designation}` : ''}`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}

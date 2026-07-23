@@ -89,7 +89,6 @@ export async function submitApplicationAction(formData: FormData) {
       designation: str(formData, 'designation'),
       website: str(formData, 'website'),
       linkedinUrl: str(formData, 'linkedinUrl'),
-      location: str(formData, 'location'),
       orgType: (str(formData, 'orgType') as OrgTypeValue) ?? 'FOR_PROFIT',
       incorporationDate: incorporationDate ? new Date(incorporationDate) : undefined,
       stageRaw,

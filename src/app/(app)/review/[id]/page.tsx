@@ -41,13 +41,13 @@ export default async function ReviewApplicationPage({ params }: { params: { id: 
         <div>
           <Card style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>model</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-small)', lineHeight: 'var(--lh-relaxed)' }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: 'var(--fs-small)', lineHeight: 'var(--lh-relaxed)' }}>
               {app.operatingModelDescription ?? app.aboutSolution ?? '—'}
             </p>
           </Card>
           <Card style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>biggest adoption hurdle</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-small)', lineHeight: 'var(--lh-relaxed)' }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: 'var(--fs-small)', lineHeight: 'var(--lh-relaxed)' }}>
               {app.adoptionHurdle ?? app.problemAddressing ?? '—'}
             </p>
           </Card>
@@ -75,7 +75,7 @@ export default async function ReviewApplicationPage({ params }: { params: { id: 
           {latestEval && (
             <Card accent style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>AI read (decision support only)</h2>
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>{latestEval.summary}</p>
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>{latestEval.summary}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                 {aiCriteria.map((c) => {
                   const def = RUBRIC_CRITERIA.find((r) => r.key === c.key);

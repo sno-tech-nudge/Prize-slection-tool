@@ -51,7 +51,6 @@ export default function ApplyPage() {
               <Input name="linkedinUrl" label="organisation linkedin profile" placeholder="https://linkedin.com/company/…" />
             </div>
             <Input name="incorporationDate" type="date" label="when was your organisation formally registered?" required />
-            <Input name="location" label="organisation location" placeholder="city, state" />
           </div>
         </Card>
 

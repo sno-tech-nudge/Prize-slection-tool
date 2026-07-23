@@ -49,7 +49,6 @@ ${criteriaList}
 APPLICATION — organisation profile:
 Organisation: ${app.orgName}
 Organisation type: ${app.orgType}
-Location: ${app.location ?? 'not provided'}
 Legal registration type: ${label(LEGAL_REGISTRATION_TYPE_LABEL, app.legalRegistrationType)}
 FCRA registration: ${app.fcraStatus ?? 'not provided'}
 12A certificate: ${app.cert12A ?? 'not provided'}
