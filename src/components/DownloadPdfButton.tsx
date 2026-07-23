@@ -21,7 +21,21 @@ export function DownloadPdfButton({ filename }: { filename: string }) {
           const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
 
           const cardBackground = getComputedStyle(document.documentElement).getPropertyValue('--surface-card').trim();
-          const canvas = await html2canvas(main as HTMLElement, { scale: 2, useCORS: true, backgroundColor: cardBackground });
+          const canvas = await html2canvas(main as HTMLElement, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: cardBackground,
+            // internal-only sidebar (stage action, decision status, personal notes, discussion,
+            // transition/outreach history) shouldn't end up in a file an applicant could see —
+            // remove it from the clone entirely (not just skip drawing it) so the two-column grid
+            // collapses to one column instead of leaving a blank gap where it used to be.
+            onclone: (clonedDoc) => {
+              clonedDoc.querySelectorAll('[data-pdf-exclude="true"]').forEach((el) => el.remove());
+              clonedDoc.querySelectorAll<HTMLElement>('[data-pdf-grid="true"]').forEach((el) => {
+                el.style.gridTemplateColumns = '1fr';
+              });
+            },
+          });
 
           const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
           const pageWidth = pdf.internal.pageSize.getWidth();

@@ -225,7 +225,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
         )}
       </div>
 
-      <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-8)' }}>
+      <div data-pdf-grid="true" style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-8)' }}>
         <div>
           <SectionJumpNav />
           <div id="section-organisation-profile">
@@ -666,7 +666,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
           )}
         </div>
 
-        <div>
+        <div data-pdf-exclude="true">
           {isAdmin && (
             <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
