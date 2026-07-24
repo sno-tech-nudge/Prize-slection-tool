@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/db';
 import { STAGE_ORDER } from '@/lib/stages/rules';
 import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue, type StageStatusValue } from '@/lib/constants';
-import { effectiveScore } from '@/lib/scoring/effective';
 
 /**
  * "Reached stage X" = the application's furthest position at or beyond X in the linear
@@ -240,7 +239,7 @@ export async function getCalibrationNote() {
       aiEvaluations: {
         orderBy: { createdAt: 'desc' },
         take: 1,
-        select: { disposition: true, composite: true, overrideComposite: true, overrideDisposition: true },
+        select: { disposition: true, composite: true },
       },
     },
   });
@@ -253,8 +252,7 @@ export async function getCalibrationNote() {
 
   for (const app of evaluated) {
     const evaluation = app.aiEvaluations[0];
-    // an admin override is a corrected ground truth for this backtest, not the raw model output
-    const disposition = evaluation && effectiveScore(evaluation).disposition;
+    const disposition = evaluation?.disposition;
     const aiAdvanced = disposition === 'STRONG_ADVANCE' || disposition === 'ADVANCE';
     if (app.historicallyShortlisted && aiAdvanced) truePositive++;
     else if (app.historicallyShortlisted && !aiAdvanced) falseNegative++;

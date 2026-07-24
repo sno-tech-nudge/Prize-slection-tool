@@ -245,7 +245,7 @@ export async function getApplicationDetail(id: string, userId?: string) {
       funders: true,
       techUseCases: true,
       reportLinks: true,
-      aiEvaluations: { orderBy: { createdAt: 'desc' }, include: { overriddenBy: true } },
+      aiEvaluations: { orderBy: { createdAt: 'desc' } },
       humanReviews: { include: { reviewer: true }, orderBy: { submittedAt: 'desc' } },
       juryScores: { include: { juror: true }, orderBy: { submittedAt: 'desc' } },
       stageTransitions: { include: { actor: true }, orderBy: { createdAt: 'asc' } },

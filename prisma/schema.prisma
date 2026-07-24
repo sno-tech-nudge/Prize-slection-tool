@@ -50,7 +50,6 @@ model User {
   juryScores       JuryScore[]
   stageTransitions StageTransition[]
   assignments      ReviewAssignment[]
-  aiOverrides      AiEvaluation[] @relation("AiOverrides")
   comments         Comment[]
   notes            Note[]
 }
@@ -313,14 +312,6 @@ model AiEvaluation {
   // changing weights in Settings later never silently reinterprets old scores.
   rubricVersion         Int     @default(1)
   rubricWeightsSnapshot String? // JSON
-
-  // explicit human override — distinct from a HumanReview, this corrects the AI's own record.
-  overrideComposite    Float?
-  overrideDisposition  String?
-  overrideReason       String?
-  overriddenById       String?
-  overriddenBy         User?     @relation("AiOverrides", fields: [overriddenById], references: [id])
-  overriddenAt         DateTime?
 
   createdAt     DateTime @default(now())
 }

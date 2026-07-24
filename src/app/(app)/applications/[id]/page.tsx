@@ -6,7 +6,6 @@ import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
 import { RescoreButton } from '@/components/RescoreButton';
 import { ValidateOrgButton } from '@/components/ValidateOrgButton';
-import { AiOverridePanel } from '@/components/AiOverridePanel';
 import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
 import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
 import { ApplicationPagerKeys } from '@/components/ApplicationPagerKeys';
@@ -485,23 +484,6 @@ export default async function ApplicationDetailPage({
                 {user && <RescoreButton applicationId={app.id} />}
               </div>
 
-              {isAdmin && (
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  <AiOverridePanel
-                    evaluationId={latestEval.id}
-                    applicationId={app.id}
-                    aiComposite={latestEval.composite}
-                    aiDisposition={latestEval.disposition}
-                    override={{
-                      overrideComposite: latestEval.overrideComposite,
-                      overrideDisposition: latestEval.overrideDisposition,
-                      overrideReason: latestEval.overrideReason,
-                      overriddenByName: latestEval.overriddenBy?.name ?? null,
-                      overriddenAt: latestEval.overriddenAt ? latestEval.overriddenAt.toISOString() : null,
-                    }}
-                  />
-                </div>
-              )}
               {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)' }}>{latestEval.summary}</p>}
 
               {redFlags.length > 0 && (

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, type ApplicationExportRow } from '@/lib/applications/queries';
 import { EXPORT_COLUMNS } from '@/lib/applications/exportColumns';
-import { effectiveScore } from '@/lib/scoring/effective';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { LEGAL_REGISTRATION_TYPE_LABEL, type LegalRegistrationTypeValue } from '@/lib/constants';
 
@@ -32,7 +31,7 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
     app.humanReviews.length > 0
       ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
       : '',
-  aiComposite: (app) => (app.aiEvaluations[0] ? effectiveScore(app.aiEvaluations[0]).composite : ''),
+  aiComposite: (app) => (app.aiEvaluations[0] ? app.aiEvaluations[0].composite : ''),
   reviewer: (app) => app.reviewAssignments.map((r) => r.reviewer.name).join('; '),
   submittedAt: (app) => app.submittedAt.toISOString(),
   comments: (app) => app.comments.map((c) => `${c.author.name}: ${c.body}`).join(' | '),
