@@ -15,7 +15,7 @@ const HEADERS = [
   'operating model',
   'states',
   'eligibility',
-  'human score',
+  'score',
   'reviewer',
 ];
 
