@@ -624,7 +624,7 @@ export default async function ApplicationDetailPage({
           {app.humanReviews.length > 0 && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-                <h2 style={{ fontSize: 'var(--fs-h3)' }}>human reviews</h2>
+                <h2 style={{ fontSize: 'var(--fs-h3)' }}>score</h2>
                 {(() => {
                   const consensus = computeConsensus({
                     aiComposite: latestEval?.composite,

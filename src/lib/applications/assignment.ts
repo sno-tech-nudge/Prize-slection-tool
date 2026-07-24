@@ -2,8 +2,10 @@ import { prisma } from '@/lib/db';
 
 /** Tanush and Anurag review nothing in the normal rotation — they're excluded here rather than
  *  by role, since every current account happens to be ADMIN. An admin can still hand-assign
- *  either of them to a specific application from its detail page if genuinely needed. */
-const ROTATION_EXCLUDED_EMAILS = ['kalhan.tanush@gmail.com', 'anurag@thedelta.org.in'];
+ *  either of them to a specific application from its detail page if genuinely needed. Exported
+ *  so other reviewer-facing views (e.g. the dashboard's reviewer stats) can apply the same
+ *  exclusion instead of drifting out of sync with this list. */
+export const ROTATION_EXCLUDED_EMAILS = ['kalhan.tanush@gmail.com', 'anurag@thedelta.org.in'];
 
 /** Fixed round-robin order for auto-assignment — same ordering shown in the header role
  *  switcher (role asc, then name asc), which happens to match the order the team wants:

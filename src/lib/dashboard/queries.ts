@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { computeConsensus } from '@/lib/applications/consensus';
 import { parseRedFlags } from '@/lib/scoring/parse';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
+import { ROTATION_EXCLUDED_EMAILS } from '@/lib/applications/assignment';
 
 /** Surfaces applications that need attention before they slip through the pipeline unnoticed:
  *  either the AI evaluation raised red flags, or the Level 1 eligibility screen (see
@@ -92,11 +93,14 @@ export async function getReviewDecisionFunnel() {
 /** One row per user (admins review too, so this isn't reviewer-role-only) showing how many of
  *  their assigned applications they've submitted a HumanReview for vs. still owe. */
 export async function getReviewerStats() {
-  const [users, assignments, reviews] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true } }),
+  const [allUsers, assignments, reviews] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, name: true, email: true } }),
     prisma.reviewAssignment.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
     prisma.humanReview.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
   ]);
+  // Tanush and Anurag aren't in the review rotation (see assignment.ts) — leaving them in this
+  // list would just show two permanent 0/0 rows.
+  const users = allUsers.filter((u) => !ROTATION_EXCLUDED_EMAILS.includes(u.email));
   const reviewedSet = new Set(reviews.map((r) => `${r.reviewerId}:${r.applicationId}`));
   const byUser = new Map(users.map((u) => [u.id, { name: u.name, assigned: 0, reviewed: 0 }]));
   for (const a of assignments) {

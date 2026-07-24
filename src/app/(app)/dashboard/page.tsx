@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FileText, ClipboardCheck, CheckCircle2, Globe2, type LucideIcon } from 'lucide-react';
+import { FileText, ClipboardCheck, CheckCircle2, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
 import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
@@ -119,9 +119,8 @@ export default async function DashboardPage() {
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
           <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
-          <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
           <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
-          <Kpi label="states represented" value={kpis.statesRepresented} icon={Globe2} />
+          <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
@@ -241,7 +240,10 @@ export default async function DashboardPage() {
         </div>
 
         <Card accent>
-          <SectionHeader title="applicants by state" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by state</h2>
+            <Badge tone="outline">{kpis.statesRepresented} states represented</Badge>
+          </div>
           <IndiaStatesMap data={stateMix} />
         </Card>
 
