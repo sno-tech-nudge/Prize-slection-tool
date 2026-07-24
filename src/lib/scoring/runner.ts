@@ -8,6 +8,7 @@ import type { ScoringResult } from './types';
 
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
 function extractJson(text: string): unknown {
   const trimmed = text.trim();
@@ -101,13 +102,46 @@ async function callGroq(userPrompt: string): Promise<ScoringResult> {
   }
 }
 
+/** Gemini's generateContent REST endpoint — responseMimeType: application/json gets a reliable
+ *  JSON-only reply, same role response_format plays for Groq. Used both as an explicit provider
+ *  and as scoreApplication's automatic fallback when Groq is rate-limited. */
+async function callGemini(userPrompt: string): Promise<ScoringResult> {
+  async function attempt(extra?: string): Promise<ScoringResult> {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: 'user', parts: [{ text: extra ? `${userPrompt}\n\n${extra}` : userPrompt }] }],
+          generationConfig: { responseMimeType: 'application/json' },
+        }),
+      },
+    );
+    if (!res.ok) throw new Error(`Gemini API responded ${res.status}: ${(await res.text()).slice(0, 500)}`);
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const parsed = extractJson(text);
+    if (!isValidResult(parsed)) throw new Error('Model response failed JSON contract validation.');
+    return parsed;
+  }
+
+  try {
+    return await attempt();
+  } catch {
+    return attempt('Your previous response was not valid JSON matching the required shape. Respond with ONLY the JSON object, no other text.');
+  }
+}
+
 /** Explicit SCORING_PROVIDER wins; otherwise auto-detect from whichever key is actually present.
  *  Falls back to the heuristic estimator if neither is configured — never silently no-ops. */
-function resolveProvider(): 'anthropic' | 'groq' | 'heuristic' {
+function resolveProvider(): 'anthropic' | 'groq' | 'gemini' | 'heuristic' {
   const configured = process.env.SCORING_PROVIDER?.toLowerCase();
-  if (configured === 'anthropic' || configured === 'groq' || configured === 'heuristic') return configured;
+  if (configured === 'anthropic' || configured === 'groq' || configured === 'gemini' || configured === 'heuristic') return configured;
   if (process.env.GROQ_API_KEY) return 'groq';
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
   return 'heuristic';
 }
 
@@ -125,8 +159,20 @@ export async function scoreApplication(applicationId: string): Promise<{ usedMod
 
   if (provider === 'groq') {
     const userPrompt = buildUserPrompt(app);
-    result = await callGroq(userPrompt);
-    modelLabel = `groq/${GROQ_MODEL}`;
+    try {
+      result = await callGroq(userPrompt);
+      modelLabel = `groq/${GROQ_MODEL}`;
+    } catch (err) {
+      // Groq's free tier hits its daily/per-minute token cap often — if Gemini is configured,
+      // fall back to it automatically rather than dropping straight to the heuristic estimator.
+      if (!process.env.GEMINI_API_KEY) throw err;
+      result = await callGemini(userPrompt);
+      modelLabel = `gemini/${GEMINI_MODEL} (groq fallback)`;
+    }
+  } else if (provider === 'gemini') {
+    const userPrompt = buildUserPrompt(app);
+    result = await callGemini(userPrompt);
+    modelLabel = `gemini/${GEMINI_MODEL}`;
   } else if (provider === 'anthropic') {
     const userPrompt = buildUserPrompt(app);
     result = await callClaude(userPrompt);
