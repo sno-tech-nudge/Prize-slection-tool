@@ -13,6 +13,8 @@ import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { ReviewSidePanel } from '@/components/ReviewSidePanel';
 import { PersonalNotes } from '@/components/PersonalNotes';
 import { CommentThread } from '@/components/CommentThread';
+import { JurySidePanel } from '@/components/JurySidePanel';
+import { CompositeBadge } from '@/components/StatusBadges';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
@@ -144,7 +146,9 @@ export default async function ApplicationDetailPage({
   const eligibilityScreen = evaluateEligibility(app);
   const embed = driveEmbedUrl(app.pitchDeckUrl);
   const isAdmin = user?.role === 'ADMIN';
+  const isJury = user?.role === 'JURY';
   const myReview = app.humanReviews.find((r) => r.reviewerId === user?.id);
+  const myJuryScore = app.juryScores.find((s) => s.jurorId === user?.id);
 
   return (
     <div>
@@ -156,7 +160,7 @@ export default async function ApplicationDetailPage({
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
-            {user && (
+            {user && !isJury && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}
             <DownloadPdfButton filename={slugify(app.orgName)} />
@@ -666,69 +670,123 @@ export default async function ApplicationDetailPage({
         </div>
 
         <div data-pdf-exclude="true">
-          {isAdmin && (
-            <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
-              <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} />
-            </Card>
-          )}
+          {isJury ? (
+            <JurySidePanel applicationId={app.id} myScore={myJuryScore} juryScores={app.juryScores} isAdmin={isAdmin} />
+          ) : (
+            <>
+              {isAdmin && (
+                <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
+                  <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} />
+                </Card>
+              )}
 
-          {isAdmin && (
-            <Card style={{ marginBottom: 'var(--space-6)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>decision status</h2>
-              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
-                only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
-              </p>
-              <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} />
-            </Card>
-          )}
+              {isAdmin && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>decision status</h2>
+                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
+                    only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
+                  </p>
+                  <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} />
+                </Card>
+              )}
 
-          {user && (
-            <Card style={{ marginBottom: 'var(--space-6)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>personal notes</h2>
-              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
-                private to you. not visible to anyone else on the team.
-              </p>
-              <PersonalNotes applicationId={app.id} initialBody={app.notes[0]?.body ?? ''} />
-            </Card>
-          )}
-
-          <Card style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>discussion</h2>
-            <CommentThread applicationId={app.id} comments={app.comments} users={allUsers.map((u) => ({ id: u.id, name: u.name }))} />
-          </Card>
-
-          <Card style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>transition history</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {app.stageTransitions.map((t) => (
-                <div key={t.id} style={{ fontSize: 'var(--fs-small)' }}>
-                  <div>
-                    <strong>{STAGE_STATUS_LABEL[t.fromStatus as StageStatusValue] ?? t.fromStatus}</strong> →{' '}
-                    <strong style={{ color: 'var(--delta-red)' }}>{STAGE_STATUS_LABEL[t.toStatus as StageStatusValue] ?? t.toStatus}</strong>
+              {isAdmin && app.juryScores.length > 0 && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>juror scores &amp; comments</h2>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
+                          {['juror', 'bench', 'score', 'comment'].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                padding: 'var(--space-2) var(--space-3)',
+                                fontSize: 'var(--fs-caption)',
+                                textTransform: 'uppercase',
+                                letterSpacing: 'var(--ls-wide)',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {app.juryScores.map((s) => (
+                          <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                            <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+                              {s.juror.name}
+                            </td>
+                            <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+                              {s.juror.bench?.name ?? '—'}
+                            </td>
+                            <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                <CompositeBadge score={s.composite} />
+                                <Badge tone="outline">{s.verdict.toLowerCase()}</Badge>
+                              </div>
+                            </td>
+                            <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+                              {s.comment || '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>
-                    {new Date(t.createdAt).toLocaleDateString('en-GB')} {t.actor ? `· ${t.actor.name}` : ''}
-                  </div>
-                  {t.reason && <div style={{ color: 'var(--text-secondary)' }}>{t.reason}</div>}
+                </Card>
+              )}
+
+              {user && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>personal notes</h2>
+                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
+                    private to you. not visible to anyone else on the team.
+                  </p>
+                  <PersonalNotes applicationId={app.id} initialBody={app.notes[0]?.body ?? ''} />
+                </Card>
+              )}
+
+              <Card style={{ marginBottom: 'var(--space-6)' }}>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>discussion</h2>
+                <CommentThread applicationId={app.id} comments={app.comments} users={allUsers.map((u) => ({ id: u.id, name: u.name }))} />
+              </Card>
+
+              <Card style={{ marginBottom: 'var(--space-6)' }}>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>transition history</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  {app.stageTransitions.map((t) => (
+                    <div key={t.id} style={{ fontSize: 'var(--fs-small)' }}>
+                      <div>
+                        <strong>{STAGE_STATUS_LABEL[t.fromStatus as StageStatusValue] ?? t.fromStatus}</strong> →{' '}
+                        <strong style={{ color: 'var(--delta-red)' }}>{STAGE_STATUS_LABEL[t.toStatus as StageStatusValue] ?? t.toStatus}</strong>
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>
+                        {new Date(t.createdAt).toLocaleDateString('en-GB')} {t.actor ? `· ${t.actor.name}` : ''}
+                      </div>
+                      {t.reason && <div style={{ color: 'var(--text-secondary)' }}>{t.reason}</div>}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Card>
+              </Card>
 
-          {app.outboxEmails.length > 0 && (
-            <Card style={{ marginBottom: 'var(--space-6)' }}>
-              <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>outreach history</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {app.outboxEmails.map((e) => (
-                  <Link key={e.id} href="/outreach" style={{ fontSize: 'var(--fs-small)', textDecoration: 'none', color: 'var(--text-primary)' }}>
-                    <Badge tone={e.status === 'SENT' ? 'red' : 'neutral'}>{e.status.toLowerCase()}</Badge> {e.subject}
-                  </Link>
-                ))}
-              </div>
-            </Card>
+              {app.outboxEmails.length > 0 && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>outreach history</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    {app.outboxEmails.map((e) => (
+                      <Link key={e.id} href="/outreach" style={{ fontSize: 'var(--fs-small)', textDecoration: 'none', color: 'var(--text-primary)' }}>
+                        <Badge tone={e.status === 'SENT' ? 'red' : 'neutral'}>{e.status.toLowerCase()}</Badge> {e.subject}
+                      </Link>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </>
           )}
-
         </div>
       </div>
     </div>

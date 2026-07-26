@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, Gavel, type LucideIcon } from 'lucide-react';
 import type { User } from '@prisma/client';
 import { ROLE_LABEL, type UserRoleValue as UserRole } from '@/lib/constants';
 import { Logo, Badge } from '@/design-system';
@@ -20,21 +20,23 @@ interface NavItem {
 // the 4 core modules — the whole day-to-day workflow
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
-  { href: '/applications', label: 'applications', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
+  { href: '/applications', label: 'applications', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER', 'JURY'] },
   { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
 ];
 
+// internal oversight — every bench, every juror's individual score, for the team running the
+// jury process. distinct from what a jury member sees on /applications (their own bench only,
+// trimmed columns, blind until they submit).
+const JURY_OVERSIGHT_ITEM: NavItem = { href: '/jury', label: 'jury', icon: Gavel, roles: ['ADMIN'] };
+
 // reachable, but not counted among the 4 modules — admin-only configuration
 const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] };
-
-// review, jury and analytics are deliberately off the nav for now — jury is getting its own
-// dedicated view later; until then these routes still exist, just aren't linked here.
 
 export function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const navItems = [...PRIMARY_NAV_ITEMS, SETTINGS_ITEM].filter((it) => !user || it.roles.includes(user.role as UserRole));
+  const navItems = [...PRIMARY_NAV_ITEMS, JURY_OVERSIGHT_ITEM, SETTINGS_ITEM].filter((it) => !user || it.roles.includes(user.role as UserRole));
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

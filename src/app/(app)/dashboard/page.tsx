@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { FileText, ClipboardCheck, CheckCircle2, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
+import { getCurrentUser } from '@/lib/auth/session';
 import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
 import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
 import {
@@ -82,6 +84,12 @@ function PartHeader({ title }: { title: string }) {
 }
 
 export default async function DashboardPage() {
+  // jury only ever needs the applications page — the admin/reviewer pipeline metrics here
+  // aren't part of their workflow, so a jury user hitting this route directly (e.g. an old
+  // bookmark) is sent to their real landing page instead.
+  const user = await getCurrentUser();
+  if (user?.role === 'JURY') redirect('/applications');
+
   const [
     kpis,
     funnel,

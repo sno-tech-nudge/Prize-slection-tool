@@ -192,6 +192,21 @@ export async function listJuryQueue() {
   });
 }
 
+/** Trimmed list for the jury applications table — scoped to the viewer's own bench via
+ *  visibleApplicationWhere, with just enough included (bench name, latest AI composite, the
+ *  juror's own score) to render the few columns jury are meant to see. */
+export async function listJuryApplications(user: User | null) {
+  return prisma.application.findMany({
+    where: { ...visibleApplicationWhere(user), isDuplicateOf: null },
+    orderBy: { orgName: 'asc' },
+    include: {
+      bench: true,
+      aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },
+      juryScores: user ? { where: { jurorId: user.id } } : false,
+    },
+  });
+}
+
 /** Prev/next neighbours of an application in the same order as the applications list (most
  *  recently submitted first), respecting the viewer's role-based visibility — a reviewer
  *  stepping through their assigned applications never lands on one they can't see. */
@@ -247,7 +262,7 @@ export async function getApplicationDetail(id: string, userId?: string) {
       reportLinks: true,
       aiEvaluations: { orderBy: { createdAt: 'desc' } },
       humanReviews: { include: { reviewer: true }, orderBy: { submittedAt: 'desc' } },
-      juryScores: { include: { juror: true }, orderBy: { submittedAt: 'desc' } },
+      juryScores: { include: { juror: { include: { bench: true } } }, orderBy: { submittedAt: 'desc' } },
       stageTransitions: { include: { actor: true }, orderBy: { createdAt: 'asc' } },
       reviewAssignments: { include: { reviewer: true } },
       targetMatch: true,

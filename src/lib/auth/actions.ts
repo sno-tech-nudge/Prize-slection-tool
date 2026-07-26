@@ -29,7 +29,9 @@ export async function loginAction(formData: FormData): Promise<{ error: string }
     maxAge: THIRTY_DAYS,
   });
 
-  redirect('/dashboard');
+  // jury's whole workflow lives on /applications — there's no reason to route them through the
+  // admin/reviewer dashboard first.
+  redirect(user.role === 'JURY' ? '/applications' : '/dashboard');
 }
 
 export async function logoutAction() {

@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, Select, Input, Button, Badge } from '@/design-system';
 import { setUserRoleAction, addUserAction } from '@/lib/auth/actions';
@@ -58,8 +59,10 @@ export function UserRoleManager({ users }: { users: ManagedUser[] }) {
         <Badge tone="outline">{users.length} people</Badge>
       </div>
       <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' }}>
-        assign who&apos;s admin, reviewer, jury or observer. this drives the dev role switcher in the header — there&apos;s no
-        real login yet, so anyone with this link can pick any role. add real auth before sharing outside the team.
+        assign who&apos;s admin, reviewer, jury or observer. adding a person here only creates their profile — real
+        login credentials (username/password) still need to be provisioned separately, except for jury members, which
+        the <Link href="/settings/benches" style={{ color: 'var(--delta-red)' }}>bench settings</Link> page can create
+        with a real login in one step.
       </p>
 
       <div>

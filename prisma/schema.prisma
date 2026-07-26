@@ -46,12 +46,29 @@ model User {
   passwordHash String?
   createdAt    DateTime @default(now())
 
+  // which jury bench/panel this person sits on — null means unassigned (sees nothing on
+  // /applications as a JURY-role user until an admin places them on a bench).
+  benchId String?
+  bench   Bench?  @relation(fields: [benchId], references: [id], onDelete: SetNull)
+
   humanReviews     HumanReview[]
   juryScores       JuryScore[]
   stageTransitions StageTransition[]
   assignments      ReviewAssignment[]
   comments         Comment[]
   notes            Note[]
+}
+
+// A jury panel — a small group of jurors reviewing the same subset of shortlisted applications.
+// Jurors only ever see the applications on their own bench (see visibleApplicationWhere in
+// src/lib/auth/guard.ts).
+model Bench {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  jurors       User[]
+  applications Application[]
 }
 
 model Founder {
@@ -245,6 +262,10 @@ model Application {
   // admin-only gate, independent of stageStatus — only applications marked "YES" here
   // are visible to jury (see visibleApplicationWhere / listJuryQueue). null = undecided.
   internalDecision String?
+  // which jury bench this application is assigned to for jury review — null means it hasn't
+  // been placed on a bench yet, so no juror sees it even if internalDecision is YES.
+  benchId String?
+  bench   Bench?  @relation(fields: [benchId], references: [id], onDelete: SetNull)
   source        String  @default("SEED")
   externalId    String? @unique
   isDuplicateOf String?
