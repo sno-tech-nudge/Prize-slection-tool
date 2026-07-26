@@ -11,8 +11,11 @@ const SECTIONS = [
 
 /** Quick-jump nav mirroring the real application form's own step names (organisation profile /
  *  model / tech and tools / experience & impact) — everything stays visible on one page (this is
- *  the "very detailed view", nothing hidden), these buttons just scroll to the right spot. */
-export function SectionJumpNav() {
+ *  the "very detailed view", nothing hidden), these buttons just scroll to the right spot.
+ *  `excludeIds` drops entries whose target section isn't rendered for the current viewer (jury
+ *  don't get scoring & evaluation / scraper data, so those jump buttons would go nowhere). */
+export function SectionJumpNav({ excludeIds }: { excludeIds?: string[] } = {}) {
+  const sections = excludeIds ? SECTIONS.filter((s) => !excludeIds.includes(s.id)) : SECTIONS;
   return (
     <div
       style={{
@@ -28,7 +31,7 @@ export function SectionJumpNav() {
         paddingBottom: 'var(--space-3)',
       }}
     >
-      {SECTIONS.map((s) => (
+      {sections.map((s) => (
         <button
           key={s.id}
           type="button"
