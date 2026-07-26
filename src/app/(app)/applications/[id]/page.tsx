@@ -629,7 +629,7 @@ export default async function ApplicationDetailPage({
             </>
           )}
 
-          {app.humanReviews.length > 0 && (
+          {!isJury && app.humanReviews.length > 0 && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
                 <h2 style={{ fontSize: 'var(--fs-h3)' }}>score</h2>
@@ -655,7 +655,7 @@ export default async function ApplicationDetailPage({
             </Card>
           )}
 
-          {app.juryScores.length > 0 && (
+          {!isJury && app.juryScores.length > 0 && (
             <Card style={{ marginBottom: 'var(--space-6)' }}>
               <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>jury scores</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -675,7 +675,7 @@ export default async function ApplicationDetailPage({
 
         <div data-pdf-exclude="true">
           {isJury ? (
-            <JurySidePanel applicationId={app.id} myScore={myJuryScore} juryScores={app.juryScores} isAdmin={isAdmin} />
+            <JurySidePanel applicationId={app.id} myScore={myJuryScore} />
           ) : (
             <>
               {isAdmin && (
