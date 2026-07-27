@@ -1,9 +1,9 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, Badge, Button, Checkbox } from '@/design-system';
+import { Card, Badge, Button, Checkbox, Select, Dialog } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
-import { bulkQueueOutreachAction } from '@/lib/mail/actions';
+import { bulkQueueOutreachAction, previewOutreachEmailAction, sendIndividualOutreachAction } from '@/lib/mail/actions';
 
 export interface OutreachApplicationRow {
   id: string;
@@ -104,7 +104,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
                 <Checkbox checked={allSelected} onChange={toggleAll} aria-label="select all" />
               </th>
             )}
-            {['organisation', 'poc contact', 'decision', 'outreach status'].map((h) => (
+            {['organisation', 'poc contact', 'decision', 'outreach status', canSend ? 'send individually' : ''].filter(Boolean).map((h) => (
               <th
                 key={h}
                 style={{
@@ -122,34 +122,17 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
         </thead>
         <tbody>
           {applications.map((app) => (
-            <tr key={app.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-              {canSend && (
-                <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                  <Checkbox checked={selected.has(app.id)} onChange={() => toggle(app.id)} aria-label={`select ${app.orgName}`} />
-                </td>
-              )}
-              <td style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
-                <OrgTitle>{app.orgName}</OrgTitle>
-              </td>
-              <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-                <div>
-                  {app.pocFirstName} {app.pocLastName}
-                </div>
-                <div style={{ fontSize: 'var(--fs-caption)' }}>{app.email}</div>
-              </td>
-              <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                <Badge tone={app.internalDecision ? (DECISION_TONE[app.internalDecision] ?? 'outline') : 'outline'}>
-                  {app.internalDecision ? `decision: ${app.internalDecision.toLowerCase()}` : 'undecided'}
-                </Badge>
-              </td>
-              <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-                {outreachStatus(app)}
-              </td>
-            </tr>
+            <OutreachApplicationTableRow
+              key={app.id}
+              app={app}
+              canSend={canSend}
+              selected={selected.has(app.id)}
+              onToggle={() => toggle(app.id)}
+            />
           ))}
           {applications.length === 0 && (
             <tr>
-              <td colSpan={5} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <td colSpan={canSend ? 6 : 4} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 no applications match this filter.
               </td>
             </tr>
@@ -157,5 +140,108 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
         </tbody>
       </table>
     </Card>
+  );
+}
+
+function OutreachApplicationTableRow({
+  app,
+  canSend,
+  selected,
+  onToggle,
+}: {
+  app: OutreachApplicationRow;
+  canSend: boolean;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const router = useRouter();
+  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(app.internalDecision === 'YES' ? 'acceptance' : 'rejection');
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  const [previewLoading, setPreviewLoading] = React.useState(false);
+  const [preview, setPreview] = React.useState<{ subject: string; body: string } | null>(null);
+  const [sending, setSending] = React.useState(false);
+
+  async function openPreview() {
+    setPreview(null);
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set('applicationId', app.id);
+      formData.set('kind', kind);
+      const result = await previewOutreachEmailAction(formData);
+      setPreview(result);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  async function sendNow() {
+    const confirmed = window.confirm(`send a ${kind} email to ${app.pocFirstName} ${app.pocLastName} (${app.email}) right now?`);
+    if (!confirmed) return;
+
+    setSending(true);
+    try {
+      const formData = new FormData();
+      formData.set('applicationId', app.id);
+      formData.set('kind', kind);
+      await sendIndividualOutreachAction(formData);
+      router.refresh();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+        {canSend && (
+          <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+            <Checkbox checked={selected} onChange={onToggle} aria-label={`select ${app.orgName}`} />
+          </td>
+        )}
+        <td style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+          <OrgTitle>{app.orgName}</OrgTitle>
+        </td>
+        <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+          <div>
+            {app.pocFirstName} {app.pocLastName}
+          </div>
+          <div style={{ fontSize: 'var(--fs-caption)' }}>{app.email}</div>
+        </td>
+        <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+          <Badge tone={app.internalDecision ? (DECISION_TONE[app.internalDecision] ?? 'outline') : 'outline'}>
+            {app.internalDecision ? `decision: ${app.internalDecision.toLowerCase()}` : 'undecided'}
+          </Badge>
+        </td>
+        <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+          {outreachStatus(app)}
+        </td>
+        {canSend && (
+          <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+              <Select aria-label={`template for ${app.orgName}`} value={kind} onChange={(e) => setKind(e.target.value as 'acceptance' | 'rejection')}>
+                <option value="acceptance">acceptance</option>
+                <option value="rejection">rejection</option>
+              </Select>
+              <Button variant="secondary" size="sm" onClick={openPreview}>
+                preview
+              </Button>
+              <Button variant="cta" size="sm" disabled={sending} onClick={sendNow}>
+                {sending ? 'sending…' : 'send'}
+              </Button>
+            </div>
+          </td>
+        )}
+      </tr>
+
+      <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} title={preview?.subject ?? 'preview'} width={680}>
+        {previewLoading || !preview ? (
+          <p style={{ color: 'var(--text-secondary)' }}>loading preview…</p>
+        ) : (
+          <iframe title="email preview" srcDoc={preview.body} style={{ width: '100%', height: 420, border: '1px solid var(--border-subtle)' }} />
+        )}
+      </Dialog>
+    </>
   );
 }

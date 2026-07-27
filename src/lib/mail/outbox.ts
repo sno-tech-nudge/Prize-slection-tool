@@ -31,18 +31,25 @@ export async function enqueueStageEmail(applicationId: string, template: StageEm
 /** @deprecated use enqueueStageEmail — kept so existing call sites keep working */
 export const enqueueRejectionEmail = enqueueStageEmail;
 
+/** Renders what enqueueCustomOutreachEmail would produce, without persisting anything — lets an
+ *  admin see the exact subject/body for one application before deciding to queue or send it. */
+export async function previewCustomOutreachEmail(applicationId: string, kind: 'acceptance' | 'rejection') {
+  const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
+  const settings = await getSettings();
+  const template = kind === 'acceptance' ? settings.emailTemplateAcceptance : settings.emailTemplateRejection;
+  return renderCustomTemplate(template, {
+    pocFirstName: app.pocFirstName,
+    orgName: app.orgName,
+    challengeName: CHALLENGE_NAME,
+  });
+}
+
 /** Queues an outreach email from the admin-customised acceptance/rejection templates (see
  *  Settings). Always lands as QUEUED — bulk outreach never auto-approves or sends, it only adds
  *  to the same review queue every other outbox email goes through. */
 export async function enqueueCustomOutreachEmail(applicationId: string, kind: 'acceptance' | 'rejection') {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
-  const settings = await getSettings();
-  const template = kind === 'acceptance' ? settings.emailTemplateAcceptance : settings.emailTemplateRejection;
-  const { subject, body } = renderCustomTemplate(template, {
-    pocFirstName: app.pocFirstName,
-    orgName: app.orgName,
-    challengeName: CHALLENGE_NAME,
-  });
+  const { subject, body } = await previewCustomOutreachEmail(applicationId, kind);
 
   return prisma.outboxEmail.create({
     data: {

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertRole, CAN_SEND_MAIL, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
-import { approveAndSendOutboxEmail, enqueueCustomOutreachEmail } from '@/lib/mail/outbox';
+import { approveAndSendOutboxEmail, enqueueCustomOutreachEmail, previewCustomOutreachEmail } from '@/lib/mail/outbox';
 import { getSettings, updateSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 
@@ -83,6 +83,41 @@ export async function bulkQueueOutreachAction(formData: FormData) {
 
   revalidatePath('/outreach');
   return { queued };
+}
+
+/** Renders the acceptance/rejection template for a single application without queuing or sending
+ *  anything — lets an admin see exactly what would go out before committing to it. */
+export async function previewOutreachEmailAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_SEND_MAIL);
+
+  const applicationId = String(formData.get('applicationId'));
+  const kind = formData.get('kind') === 'acceptance' ? 'acceptance' : 'rejection';
+  return previewCustomOutreachEmail(applicationId, kind);
+}
+
+/** One-click send for a single application, directly from the applications table — queues the
+ *  email if it isn't already queued, then immediately approves and sends it. A shortcut around
+ *  the bulk-select → queue → separately-approve flow for when you only want to handle one
+ *  applicant right now. */
+export async function sendIndividualOutreachAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_SEND_MAIL);
+
+  const applicationId = String(formData.get('applicationId'));
+  const kind = formData.get('kind') === 'acceptance' ? 'acceptance' : 'rejection';
+  const template = kind === 'acceptance' ? 'bulk_acceptance' : 'bulk_rejection';
+
+  let email = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
+  if (!email) {
+    email = await enqueueCustomOutreachEmail(applicationId, kind);
+  }
+  if (email.status === 'QUEUED') {
+    email = await approveAndSendOutboxEmail(email.id);
+  }
+
+  revalidatePath('/outreach');
+  return { status: email.status };
 }
 
 /** Saves the admin-editable acceptance/rejection email templates used by bulk outreach. */
