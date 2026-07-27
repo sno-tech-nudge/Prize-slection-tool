@@ -68,6 +68,13 @@
   /* Focus */
   --focus-ring:       var(--delta-charcoal);
 
+  /* Status (red/orange/green — a true traffic-light scale for section-level score reads.
+     Distinct from the chart palette below: this is the only non-chart use of green/orange in
+     the system, reserved for "how strong is this section" indicators.) */
+  --status-good:      #3f9142;   /* green */
+  --status-warn:      #d9722e;   /* orange */
+  --status-bad:       var(--delta-red); /* red */
+
   /* ---- Chart-only palette ----
      The brand palette (red/charcoal/grey/yellow) doesn't have enough distinct hues to tell
      apart 10-12 pie slices at a glance. These are used exclusively by chart components

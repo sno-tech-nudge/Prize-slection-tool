@@ -7,6 +7,9 @@ import { LEGAL_REGISTRATION_TYPE_LABEL, type LegalRegistrationTypeValue } from '
 
 type ExportRow = ApplicationExportRow;
 
+// explicit getters for columns that need formatting, joining a relation, or combining fields —
+// anything not listed here falls back to a plain scalar read of the same-named Application
+// field (see `genericCell` below), which covers the bulk of the "every form field" full dump.
 const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   organisation: (app) => app.orgName,
   registrationType: (app) =>
@@ -14,17 +17,20 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
       ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType)
       : '',
   pocName: (app) => `${app.pocFirstName} ${app.pocLastName}`,
-  email: (app) => app.email,
-  phone: (app) => app.phone ?? '',
-  website: (app) => app.website ?? '',
   linkedin: (app) => app.linkedinUrl ?? '',
   founders: (app) => app.founders.map((f) => f.fullName).join('; '),
+  founderEmails: (app) => app.founders.map((f) => f.email).filter(Boolean).join('; '),
+  founderLinkedins: (app) => app.founders.map((f) => f.linkedin).filter(Boolean).join('; '),
+  funders: (app) => app.funders.map((f) => f.name).join('; '),
+  techUseCases: (app) => app.techUseCases.map((t) => t.description).join('; '),
+  reportLinks: (app) => app.reportLinks.map((r) => r.url).join('; '),
+  bench: (app) => app.bench?.name ?? '',
+  targetMatch: (app) => app.targetMatch?.name ?? '',
   reviewStatus: (app) => (app.humanReviews.length > 0 ? 'reviewed' : 'not reviewed'),
   decisionStatus: (app) => (app.internalDecision === 'YES' ? 'yes' : app.internalDecision === 'NO' ? 'no' : 'undecided'),
   operatingModel: (app) => app.operatingModelArchetype ?? app.solutionCategory ?? '',
   states: (app) => app.statesOperating ?? '',
   annualBudget: (app) => app.annualOperatingBudget ?? '',
-  yearsExperience: (app) => app.yearsExperience ?? '',
   eligibility: (app) => (evaluateEligibility(app).eligible ? 'eligible' : 'ineligible'),
   eligibilityIssues: (app) => evaluateEligibility(app).failedReasons.join('; '),
   humanComposite: (app) =>
@@ -36,6 +42,17 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   submittedAt: (app) => app.submittedAt.toISOString(),
   comments: (app) => app.comments.map((c) => `${c.author.name}: ${c.body}`).join(' | '),
 };
+
+// plain-scalar fallback for every "every form field" full-dump column — reads the Application
+// field of the same name and formats dates/booleans/null sensibly, so adding a new scalar to
+// exportColumns.ts doesn't also require a hand-written getter here.
+function genericCell(app: ExportRow, field: string): unknown {
+  const value = (app as unknown as Record<string, unknown>)[field];
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toLocaleDateString('en-GB');
+  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  return value;
+}
 
 function csvCell(value: unknown): string {
   const s = value === null || value === undefined ? '' : String(value);
@@ -56,14 +73,15 @@ export async function GET(request: NextRequest) {
     true,
   );
 
+  const knownIds = new Set(EXPORT_COLUMNS.map((c) => c.id));
   const requestedFields = params.get('fields');
   const fieldIds = requestedFields
-    ? requestedFields.split(',').filter((id) => id in CELL_GETTERS)
+    ? requestedFields.split(',').filter((id) => knownIds.has(id))
     : EXPORT_COLUMNS.filter((c) => c.defaultOn).map((c) => c.id);
   const columns = fieldIds.length > 0 ? fieldIds : EXPORT_COLUMNS.filter((c) => c.defaultOn).map((c) => c.id);
   const headers = columns.map((id) => EXPORT_COLUMNS.find((c) => c.id === id)?.label ?? id);
 
-  const rows = applications.map((app) => columns.map((id) => CELL_GETTERS[id](app)));
+  const rows = applications.map((app) => columns.map((id) => (CELL_GETTERS[id] ? CELL_GETTERS[id](app) : genericCell(app, id))));
 
   const csv = [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
 

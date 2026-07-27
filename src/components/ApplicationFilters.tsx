@@ -17,13 +17,22 @@ const REVIEW_TOGGLE_OPTIONS = [
   { value: 'NO', label: 'not reviewed' },
 ];
 
+// shared height for every filter control (search box, pill toggles, selects, multiselects) so
+// the whole bar reads as one consistent row instead of a mix of box heights — MultiSelect.tsx
+// hardcodes this same value on its own trigger button, since it doesn't take a style prop.
+export const FILTER_CONTROL_HEIGHT = 38;
+
 function pillStyle(active: boolean): React.CSSProperties {
   return {
+    height: FILTER_CONTROL_HEIGHT,
+    boxSizing: 'border-box',
+    display: 'inline-flex',
+    alignItems: 'center',
     fontSize: 'var(--fs-caption)',
     textTransform: 'lowercase',
-    padding: 'var(--space-1) var(--space-2)',
+    padding: '0 var(--space-3)',
     border: `1px solid ${active ? 'var(--delta-red)' : 'var(--border-strong)'}`,
-    background: active ? 'var(--delta-red)' : 'transparent',
+    background: active ? 'var(--delta-red)' : 'var(--surface-card)',
     color: active ? 'var(--text-inverse)' : 'var(--text-primary)',
     cursor: 'pointer',
     fontFamily: 'var(--font-sans)',
@@ -31,15 +40,18 @@ function pillStyle(active: boolean): React.CSSProperties {
   };
 }
 
-// compact overrides on top of the design-system Input/Select defaults, so the whole filter
-// bar fits on one line instead of wrapping into a ragged multi-row block
+// compact overrides on top of the design-system Input/Select defaults — same height and border
+// weight as the pill buttons and MultiSelect triggers, so every control in the bar matches.
 const compactFieldStyle: React.CSSProperties = {
+  height: FILTER_CONTROL_HEIGHT,
+  boxSizing: 'border-box',
   fontSize: 'var(--fs-caption)',
-  padding: 'var(--space-2)',
+  padding: '0 var(--space-3)',
+  border: '1px solid var(--border-strong)',
 };
 const compactSelectStyle: React.CSSProperties = {
   ...compactFieldStyle,
-  padding: 'var(--space-2) var(--space-6) var(--space-2) var(--space-2)',
+  padding: '0 var(--space-6) 0 var(--space-3)',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -76,12 +88,12 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
   const currentAssignedToMe = searchParams.get('assignedToMe') === '1';
 
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: 'var(--space-6)', alignItems: 'center', paddingBottom: 'var(--space-1)' }}>
+    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', rowGap: 'var(--space-2)', marginBottom: 'var(--space-6)', alignItems: 'center' }}>
       <Input
         placeholder="search by organisation name"
         defaultValue={searchParams.get('q') ?? ''}
         onChange={(e) => setParam('q', e.target.value)}
-        containerStyle={fixedWidth(160)}
+        containerStyle={fixedWidth(180)}
         style={compactFieldStyle}
       />
       <button
@@ -100,7 +112,7 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
       </div>
       <MultiSelect
         label="solution category"
-        width={150}
+        width={160}
         selected={getMultiParam('category')}
         onChange={(v) => setMultiParam('category', v)}
         options={SOLUTION_CATEGORIES.map((c) => ({ value: c, label: SOLUTION_CATEGORY_LABEL[c] }))}
@@ -109,7 +121,7 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
         aria-label="filter by decision status"
         defaultValue={searchParams.get('internal') ?? ''}
         onChange={(e) => setParam('internal', e.target.value)}
-        containerStyle={fixedWidth(130)}
+        containerStyle={fixedWidth(150)}
         style={compactSelectStyle}
       >
         <option value="">decision status: all</option>
@@ -119,21 +131,21 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
       </Select>
       <MultiSelect
         label="registration type"
-        width={140}
+        width={150}
         selected={getMultiParam('registrationType')}
         onChange={(v) => setMultiParam('registrationType', v)}
         options={options.registrationTypes.map((t) => ({ value: t, label: t }))}
       />
       <MultiSelect
         label="operating model"
-        width={150}
+        width={160}
         selected={getMultiParam('operatingModel')}
         onChange={(v) => setMultiParam('operatingModel', v)}
         options={options.operatingModels.map((m) => ({ value: m, label: m }))}
       />
       <MultiSelect
         label="state"
-        width={110}
+        width={130}
         selected={getMultiParam('state')}
         onChange={(v) => setMultiParam('state', v)}
         options={options.states.map((s) => ({ value: s, label: s }))}
@@ -142,7 +154,7 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
         aria-label="filter by eligibility"
         defaultValue={searchParams.get('eligible') ?? ''}
         onChange={(e) => setParam('eligible', e.target.value)}
-        containerStyle={fixedWidth(120)}
+        containerStyle={fixedWidth(140)}
         style={compactSelectStyle}
       >
         <option value="">eligibility: all</option>

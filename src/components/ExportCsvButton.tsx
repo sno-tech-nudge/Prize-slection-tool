@@ -3,11 +3,12 @@ import React from 'react';
 import { Button, Dialog, Checkbox } from '@/design-system';
 import { EXPORT_COLUMNS } from '@/lib/applications/exportColumns';
 
+const DEFAULT_IDS = EXPORT_COLUMNS.filter((c) => c.defaultOn).map((c) => c.id);
+const ALL_IDS = EXPORT_COLUMNS.map((c) => c.id);
+
 export function ExportCsvButton({ searchParams }: { searchParams: Record<string, string | undefined> }) {
   const [open, setOpen] = React.useState(false);
-  const [selected, setSelected] = React.useState<Set<string>>(
-    new Set(EXPORT_COLUMNS.filter((c) => c.defaultOn).map((c) => c.id)),
-  );
+  const [selected, setSelected] = React.useState<Set<string>>(new Set(DEFAULT_IDS));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -49,7 +50,22 @@ export function ExportCsvButton({ searchParams }: { searchParams: Record<string,
           </div>
         }
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+          the default set below covers the fields most teams need — check &ldquo;select all fields&rdquo; for a full record dump
+          (every field on the application, like an export from Zoho).
+        </p>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+          <Button variant="secondary" size="sm" onClick={() => setSelected(new Set(ALL_IDS))}>
+            select all fields
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setSelected(new Set(DEFAULT_IDS))}>
+            reset to default
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setSelected(new Set())}>
+            clear all
+          </Button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', maxHeight: 420, overflowY: 'auto' }}>
           {EXPORT_COLUMNS.map((c) => (
             <Checkbox key={c.id} label={c.label} checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
           ))}

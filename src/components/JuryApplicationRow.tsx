@@ -19,10 +19,12 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
   const router = useRouter();
   const myScore = app.juryScores[0];
   const intScore = app.aiEvaluations[0]?.composite;
+  const href = `/applications/${app.id}${queryString}`;
 
   return (
     <tr
-      onDoubleClick={() => router.push(`/applications/${app.id}${queryString}`)}
+      onMouseEnter={() => router.prefetch(href)}
+      onDoubleClick={() => router.push(href)}
       style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}
       title="double-click to open"
     >

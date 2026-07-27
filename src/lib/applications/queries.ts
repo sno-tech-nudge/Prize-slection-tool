@@ -67,6 +67,10 @@ const EXPORT_INCLUDE = {
   ...BASE_INCLUDE,
   aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },
   comments: { include: { author: true }, orderBy: { createdAt: 'asc' as const } },
+  funders: true,
+  techUseCases: true,
+  reportLinks: true,
+  bench: true,
 } satisfies Prisma.ApplicationInclude;
 
 export type ApplicationExportRow = Prisma.ApplicationGetPayload<{ include: typeof EXPORT_INCLUDE }>;

@@ -65,9 +65,13 @@ export function MultiSelect({
         onClick={() => (open ? close(draft) : openPanel())}
         aria-label={label}
         style={{
+          // 38 matches FILTER_CONTROL_HEIGHT in ApplicationFilters.tsx — this button doesn't take
+          // a style prop, so the shared height is duplicated here rather than imported.
+          height: 38,
+          boxSizing: 'border-box',
           width: '100%',
           fontSize: 'var(--fs-caption)',
-          padding: 'var(--space-2)',
+          padding: '0 var(--space-3)',
           border: `1px solid ${selected.length ? 'var(--delta-red)' : 'var(--border-strong)'}`,
           background: 'var(--surface-card)',
           color: selected.length ? 'var(--delta-red)' : 'var(--text-primary)',
