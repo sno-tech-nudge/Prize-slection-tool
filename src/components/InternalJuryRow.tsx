@@ -15,9 +15,12 @@ export interface InternalJuryRowData {
 
 /** Same trimmed table + double-click-to-open pattern as the jury member's own applications
  *  list — the internal team's jury dashboard is deliberately the same view, just across every
- *  bench. Kept to 5 columns; the per-juror breakdown lives on the detail page's jury score card
- *  instead of cluttering this list. */
-export function InternalJuryRow({ app }: { app: InternalJuryRowData }) {
+ *  bench, with one column per juror (j1, j2, …) so progress is visible without opening each
+ *  application; the full per-criterion breakdown still lives on the detail page's jury score card.
+ *  `jurorColumnCount` is the max juror count across the whole filtered list, computed by the
+ *  parent, so every row renders the same number of columns even if this application has fewer
+ *  scores in so far. */
+export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRowData; jurorColumnCount: number }) {
   const router = useRouter();
   const href = `/jury/${app.id}`;
   const intScore = app.aiEvaluations[0]?.composite;
@@ -40,6 +43,15 @@ export function InternalJuryRow({ app }: { app: InternalJuryRowData }) {
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         {intScore !== undefined ? <CompositeBadge score={intScore} /> : <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>}
       </td>
+      {Array.from({ length: jurorColumnCount }, (_, i) => (
+        <td key={i} style={{ padding: 'var(--space-3) var(--space-4)' }}>
+          {app.juryScores[i] !== undefined ? (
+            <CompositeBadge score={app.juryScores[i].composite} />
+          ) : (
+            <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>
+          )}
+        </td>
+      ))}
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         {avgJuryScore !== null ? <CompositeBadge score={avgJuryScore} /> : <Badge tone="yellow">no scores yet</Badge>}
       </td>

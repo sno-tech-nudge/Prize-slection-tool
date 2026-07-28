@@ -1,21 +1,14 @@
 'use client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Input, Select } from '@/design-system';
+import { SCORE_BUCKETS } from '@/lib/benches/queries';
 
 const HEIGHT = 38;
 const fieldStyle = { height: HEIGHT, boxSizing: 'border-box' as const, fontSize: 'var(--fs-caption)', padding: '0 var(--space-3)', border: '1px solid var(--border-strong)' };
 
-/** The deliberately small filter set for the internal jury oversight list — name, bench, state,
- *  operating model. */
-export function JuryListFilters({
-  states,
-  operatingModels,
-  benches,
-}: {
-  states: string[];
-  operatingModels: string[];
-  benches: { id: string; name: string }[];
-}) {
+/** The deliberately small filter set for the internal jury oversight list — name, bench, and
+ *  average jury score bucket. */
+export function JuryListFilters({ benches }: { benches: { id: string; name: string }[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -51,30 +44,16 @@ export function JuryListFilters({
         ))}
       </Select>
       <Select
-        aria-label="filter by state"
-        defaultValue={searchParams.get('state') ?? ''}
-        onChange={(e) => setParam('state', e.target.value)}
+        aria-label="filter by average jury score"
+        defaultValue={searchParams.get('score') ?? ''}
+        onChange={(e) => setParam('score', e.target.value)}
         containerStyle={{ width: 160, minWidth: 0, flexShrink: 0 }}
         style={{ ...fieldStyle, padding: '0 var(--space-6) 0 var(--space-3)' }}
       >
-        <option value="">state: all</option>
-        {states.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </Select>
-      <Select
-        aria-label="filter by operating model"
-        defaultValue={searchParams.get('operatingModel') ?? ''}
-        onChange={(e) => setParam('operatingModel', e.target.value)}
-        containerStyle={{ width: 200, minWidth: 0, flexShrink: 0 }}
-        style={{ ...fieldStyle, padding: '0 var(--space-6) 0 var(--space-3)' }}
-      >
-        <option value="">operating model: all</option>
-        {operatingModels.map((m) => (
-          <option key={m} value={m}>
-            {m}
+        <option value="">score: all</option>
+        {SCORE_BUCKETS.map((b) => (
+          <option key={b} value={b}>
+            score: {b}
           </option>
         ))}
       </Select>

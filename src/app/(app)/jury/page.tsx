@@ -5,22 +5,24 @@ import { InternalJuryRow } from '@/components/InternalJuryRow';
 import { JuryListFilters } from '@/components/JuryListFilters';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listJuryOversight, listBenches } from '@/lib/benches/queries';
-import { getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
-
-const HEADERS = ['organisation', 'bench', 'state', 'int score', 'avg jury score'];
+import type { ApplicationListFilters } from '@/lib/applications/queries';
 
 /** Internal team's jury dashboard — deliberately the same trimmed table + double-click-to-open
  *  view a jury member sees on their own applications list, just scoped to every bench instead of
- *  one, alphabetical, and kept to 5 columns — the per-juror breakdown lives on the detail page. */
+ *  one, alphabetical — plus one column per juror (j1, j2, …) so progress is visible without
+ *  opening each application. */
 export default async function JuryOversightPage({ searchParams }: { searchParams: ApplicationListFilters }) {
   const user = await getCurrentUser();
   if (user?.role === 'JURY') redirect('/applications');
 
-  const [applications, filterOptions, benches] = await Promise.all([
-    listJuryOversight({ q: searchParams.q, state: searchParams.state, operatingModel: searchParams.operatingModel, bench: searchParams.bench }),
-    getApplicationFilterOptions(),
+  const [applications, benches] = await Promise.all([
+    listJuryOversight({ q: searchParams.q, bench: searchParams.bench, score: searchParams.score }),
     listBenches(),
   ]);
+
+  const jurorColumnCount = applications.reduce((max, a) => Math.max(max, a.juryScores.length), 0);
+  const jurorHeaders = Array.from({ length: jurorColumnCount }, (_, i) => `j${i + 1}`);
+  const headers = ['organisation', 'bench', 'state', 'int score', ...jurorHeaders, 'avg jury score'];
 
   return (
     <div>
@@ -31,18 +33,14 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
         <Suspense>
-          <JuryListFilters
-            states={filterOptions.states}
-            operatingModels={filterOptions.operatingModels}
-            benches={benches.map((b) => ({ id: b.id, name: b.name }))}
-          />
+          <JuryListFilters benches={benches.map((b) => ({ id: b.id, name: b.name }))} />
         </Suspense>
 
         <Card padding="0" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
-                {HEADERS.map((h) => (
+                {headers.map((h) => (
                   <th
                     key={h}
                     style={{
@@ -60,11 +58,11 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
             </thead>
             <tbody>
               {applications.map((app) => (
-                <InternalJuryRow key={app.id} app={app} />
+                <InternalJuryRow key={app.id} app={app} jurorColumnCount={jurorColumnCount} />
               ))}
               {applications.length === 0 && (
                 <tr>
-                  <td colSpan={HEADERS.length} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <td colSpan={headers.length} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
                     no applications marked &ldquo;decision: yes&rdquo; yet.
                   </td>
                 </tr>

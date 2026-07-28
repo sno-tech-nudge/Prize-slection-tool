@@ -1,21 +1,21 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
-/** Shared, deliberately small filter set for both jury listings (a jury member's own bench and
- *  the internal oversight list) — the jury round only ever needs to narrow by name, state, or
- *  operating model, not the full applications-table filter bar. */
+/** Filter set for the internal jury oversight list — name, bench, and average jury score
+ *  bucket. */
 export interface JuryListFilters {
   q?: string;
-  state?: string;
-  operatingModel?: string;
   bench?: string;
+  score?: string;
 }
+
+/** Score filter buckets, inclusive on both ends — e.g. "51-75" matches an average jury score of
+ *  51 through 75. */
+export const SCORE_BUCKETS = ['0-25', '26-50', '51-75', '76-100'] as const;
 
 function buildJuryFilterWhere(filters: JuryListFilters): Prisma.ApplicationWhereInput {
   const where: Prisma.ApplicationWhereInput = {};
   if (filters.q) where.orgName = { contains: filters.q };
-  if (filters.state) where.statesOperating = { contains: filters.state };
-  if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
   if (filters.bench) where.benchId = filters.bench;
   return where;
 }
@@ -54,7 +54,7 @@ export async function listJuryEligibleApplications() {
  *  at a glance. This is distinct from what a jury member sees on /applications (their own bench
  *  only, no other jurors' names until they've submitted their own score). */
 export async function listJuryOversight(filters: JuryListFilters = {}) {
-  return prisma.application.findMany({
+  const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null, internalDecision: 'YES', ...buildJuryFilterWhere(filters) },
     orderBy: { orgName: 'asc' },
     include: {
@@ -62,5 +62,15 @@ export async function listJuryOversight(filters: JuryListFilters = {}) {
       aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },
       juryScores: { include: { juror: true }, orderBy: { juror: { name: 'asc' } } },
     },
+  });
+
+  // average jury score is an aggregate across a variable number of juryScores rows, not a stored
+  // column, so the bucket filter is applied in-memory rather than pushed into the Prisma where.
+  if (!filters.score) return apps;
+  const [min, max] = filters.score.split('-').map(Number);
+  return apps.filter((a) => {
+    if (a.juryScores.length === 0) return false;
+    const avg = a.juryScores.reduce((sum, s) => sum + s.composite, 0) / a.juryScores.length;
+    return avg >= min && avg <= max;
   });
 }
