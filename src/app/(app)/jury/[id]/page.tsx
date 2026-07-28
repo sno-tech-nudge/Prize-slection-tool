@@ -25,7 +25,7 @@ export default async function JuryDashboardDetailPage({ params }: { params: { id
         action={app.targetMatch ? <Badge tone="red">target wishlist match</Badge> : undefined}
       />
 
-      <div data-pdf-grid="true" style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-8)' }}>
+      <div data-pdf-grid="true" style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
         <ApplicationMainContent app={app} isJury={true} user={user} />
         <div data-pdf-exclude="true">
           <JuryScoresTable juryScores={app.juryScores} />
