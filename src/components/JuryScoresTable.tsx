@@ -141,7 +141,7 @@ export function JuryScoresTable({ juryScores }: { juryScores: JuryScoresTableRow
               <tr>
                 <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, verticalAlign: 'top' }}>comment</td>
                 {scoresByJuror.map(({ score }) => (
-                  <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', textAlign: 'right', verticalAlign: 'top' }}>
+                  <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', whiteSpace: 'pre-wrap' }}>
                     {score.comment || '—'}
                   </td>
                 ))}

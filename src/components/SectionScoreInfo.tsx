@@ -56,7 +56,7 @@ export function SectionScoreInfo({
                   </span>
                 </div>
                 {score?.rationale && (
-                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: score.evidence ? 'var(--space-2)' : 0 }}>
+                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: score.evidence ? 'var(--space-2)' : 0, whiteSpace: 'pre-wrap' }}>
                     {score.rationale}
                   </p>
                 )}

@@ -89,7 +89,7 @@ export function CommentThread({
               <strong style={{ color: 'var(--text-primary)' }}>{c.author.name}</strong>
               <span>{new Date(c.createdAt).toLocaleString('en-GB')}</span>
             </div>
-            <p style={{ fontSize: 'var(--fs-small)', margin: 'var(--space-1) 0 0' }}>{renderBody(c.body, users)}</p>
+            <p style={{ fontSize: 'var(--fs-small)', margin: 'var(--space-1) 0 0', whiteSpace: 'pre-wrap' }}>{renderBody(c.body, users)}</p>
           </div>
         ))}
       </div>

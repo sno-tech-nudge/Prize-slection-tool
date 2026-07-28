@@ -64,7 +64,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
       <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
         {label}
       </div>
-      <div style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)' }}>{value ?? '—'}</div>
+      <div style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{value ?? '—'}</div>
     </div>
   );
 }
@@ -177,7 +177,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
                     {f.worksWithGovernment !== null && (
                       <span style={{ color: 'var(--text-muted)' }}> · works with government: {f.worksWithGovernment ? 'yes' : 'no'}</span>
                     )}
-                    {f.fundingNature && <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0' }}>{f.fundingNature}</p>}
+                    {f.fundingNature && <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0', whiteSpace: 'pre-wrap' }}>{f.fundingNature}</p>}
                   </div>
                 ))}
               </div>
@@ -325,7 +325,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>public-data enrichment</h2>
             <Badge tone="outline">{app.enrichmentSource === 'website+search' ? 'website + search' : 'website'}</Badge>
           </div>
-          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)' }}>{app.enrichmentSummary}</p>
+          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{app.enrichmentSummary}</p>
           <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
             fetched from {app.website}. this is supporting context for AI scoring, not a substitute for the application itself.
           </p>
@@ -360,7 +360,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
                 {user && <RescoreButton applicationId={app.id} />}
               </div>
 
-              {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)' }}>{latestEval.summary}</p>}
+              {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)', whiteSpace: 'pre-wrap' }}>{latestEval.summary}</p>}
 
               {redFlags.length > 0 && (
                 <div style={{ marginBottom: 'var(--space-4)' }}>
@@ -400,7 +400,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
               </div>
 
               {eligibility && (
-                <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+                <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
                   eligibility notes: {eligibility.fit_notes}
                 </p>
               )}
@@ -486,7 +486,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
                       <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
                       <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
                     </div>
-                    {check.summary && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>{check.summary}</p>}
+                    {check.summary && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap' }}>{check.summary}</p>}
                     {check.raw && (
                       <details style={{ marginTop: 'var(--space-2)' }}>
                         <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
@@ -523,7 +523,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
                   <strong>{r.reviewer.name}</strong>
                   <Tag selected={r.recommendation === 'ADVANCE'}>{r.recommendation.toLowerCase()}</Tag>
                 </div>
-                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{r.comment}</p>
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
               </div>
             ))}
           </div>
