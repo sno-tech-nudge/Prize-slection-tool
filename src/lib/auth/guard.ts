@@ -15,17 +15,16 @@ export function assertRole(user: User | null, allowed: UserRole[]): asserts user
 }
 
 /** Reviewers only see applications assigned to them; jury only sees applications an admin has
- *  explicitly marked internalDecision: YES (the internal go/no-go gate) AND placed on that
- *  juror's own bench — a juror not yet assigned to a bench sees nothing rather than everything;
- *  admin/observer see all. */
+ *  explicitly marked internalDecision: YES (the internal go/no-go gate) AND placed on one of
+ *  that juror's benches — a juror can sit on more than one bench, and one not yet assigned to
+ *  any bench sees nothing rather than everything; admin/observer see all. */
 export function visibleApplicationWhere(user: User | null): Prisma.ApplicationWhereInput {
   if (!user) return { id: 'none' };
   if (user.role === 'REVIEWER') {
     return { reviewAssignments: { some: { reviewerId: user.id } } };
   }
   if (user.role === 'JURY') {
-    if (!user.benchId) return { id: 'none' };
-    return { internalDecision: 'YES', benchId: user.benchId };
+    return { internalDecision: 'YES', bench: { jurors: { some: { id: user.id } } } };
   }
   return {};
 }

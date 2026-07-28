@@ -50,6 +50,14 @@ export default async function ApplicationDetailPage({
   return (
     <div>
       <ApplicationPagerKeys prevId={adjacent.prevId} nextId={adjacent.nextId} queryString={pagerQueryString} />
+      {isJury && (
+        <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <Link href={`/applications${pagerQueryString}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+            <ChevronLeft size={16} strokeLinejoin="miter" strokeLinecap="square" />
+            back to applications
+          </Link>
+        </div>
+      )}
       <AngularBanner
         eyebrow={app.historicallyShortlisted ? 'historically shortlisted · agwater 2024 cohort' : 'rapid re.gen challenge applicant'}
         title={app.orgName}

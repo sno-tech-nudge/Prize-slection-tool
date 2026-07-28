@@ -1,14 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
-import { AngularBanner, Badge } from '@/design-system';
-import { ApplicationMainContent } from '@/components/ApplicationMainContent';
-import { JuryScoresTable } from '@/components/JuryScoresTable';
+import Link from 'next/link';
+import { AngularBanner, Badge, Button } from '@/design-system';
+import { CompositeBadge } from '@/components/StatusBadges';
+import { JuryScoreCard } from '@/components/JuryScoreCard';
 import { getApplicationDetail } from '@/lib/applications/queries';
 import { getCurrentUser } from '@/lib/auth/session';
 
-/** The internal team's jury-dashboard detail page — deliberately the same simplified view a
- *  jury member sees (no admin sidebar, no AI evaluation, no scraper data, no eligibility
- *  banners), except the right panel shows every juror's score and comment in a table instead of
- *  a single scoring form, since the internal team is here to oversee jury progress, not score. */
+/** The internal team's jury-dashboard detail page — a single full-width jury score card, no
+ *  application content and no admin sidebar. Section 1 (this banner): org name, its AI/int
+ *  score, and a link out to the full application record. Section 2+3 (JuryScoreCard): avg score,
+ *  then every juror's per-criterion breakdown side by side. */
 export default async function JuryDashboardDetailPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
   if (user?.role === 'JURY') redirect(`/applications/${params.id}`);
@@ -16,20 +17,27 @@ export default async function JuryDashboardDetailPage({ params }: { params: { id
   const app = await getApplicationDetail(params.id);
   if (!app) notFound();
 
+  const intScore = app.aiEvaluations[0]?.composite;
+
   return (
     <div>
       <AngularBanner
         eyebrow="jury oversight · rapid re.gen challenge"
         title={app.orgName}
         subtitle={`${app.pocFirstName} ${app.pocLastName}${app.designation ? `, ${app.designation}` : ''}`}
-        action={app.targetMatch ? <Badge tone="red">target wishlist match</Badge> : undefined}
+        action={
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+            {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
+            {intScore !== undefined && <CompositeBadge score={intScore} />}
+            <Link href={`/applications/${app.id}`}>
+              <Button variant="secondary">view application</Button>
+            </Link>
+          </div>
+        }
       />
 
-      <div data-pdf-grid="true" style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
-        <ApplicationMainContent app={app} isJury={true} user={user} />
-        <div data-pdf-exclude="true">
-          <JuryScoresTable juryScores={app.juryScores} />
-        </div>
+      <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+        <JuryScoreCard juryScores={app.juryScores} />
       </div>
     </div>
   );

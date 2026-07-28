@@ -55,7 +55,12 @@ export function MultiSelect({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, draft]);
 
-  const buttonLabel = selected.length === 0 ? label : selected.length === 1 ? selected[0] : `${label} (${selected.length})`;
+  const buttonLabel =
+    selected.length === 0
+      ? label
+      : selected.length === 1
+        ? (options.find((o) => o.value === selected[0])?.label ?? selected[0])
+        : `${label} (${selected.length})`;
 
   return (
     <div style={{ position: 'relative', width, minWidth: 0, flexShrink: 0 }}>

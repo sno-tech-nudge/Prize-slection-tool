@@ -3,6 +3,7 @@ import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
 import { JuryApplicationRow } from '@/components/JuryApplicationRow';
+import { JuryListFilters } from '@/components/JuryListFilters';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -21,9 +22,9 @@ const HEADERS = [
 ];
 
 // jury only ever sees their own bench's shortlisted applications, and only needs to know the
-// company, which bench it's on, the internal/AI read, and their own verdict — not the full
-// admin operating picture.
-const JURY_HEADERS = ['organisation', 'bench', 'int score', 'your score'];
+// company, which bench it's on, where it operates, the internal/AI read, and their own verdict
+// — not the full admin operating picture. Kept to 5 columns on purpose.
+const JURY_HEADERS = ['organisation', 'bench', 'state', 'int score', 'your score'];
 
 export default async function ApplicationsPage({
   searchParams,
@@ -39,15 +40,22 @@ export default async function ApplicationsPage({
   const rowQueryString = rowParams.toString() ? `?${rowParams.toString()}` : '';
 
   if (user?.role === 'JURY') {
-    const juryApplications = await listJuryApplications(user);
+    const [juryApplications, filterOptions] = await Promise.all([
+      listJuryApplications(user, { q: searchParams.q, state: searchParams.state, operatingModel: searchParams.operatingModel }),
+      getApplicationFilterOptions(),
+    ]);
     return (
       <div>
         <AngularBanner
           eyebrow="jury review · rapid re.gen challenge"
           title="applications"
-          subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench — double-click a row to open it`}
+          subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench, alphabetical — double-click a row to open it`}
         />
         <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <Suspense>
+            <JuryListFilters states={filterOptions.states} operatingModels={filterOptions.operatingModels} />
+          </Suspense>
+
           <Card padding="0" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>

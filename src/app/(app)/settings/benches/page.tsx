@@ -23,7 +23,7 @@ export default async function BenchesSettingsPage() {
         </Link>
         <BenchManager
           benches={benches.map((b) => ({ id: b.id, name: b.name, jurorCount: b.jurors.length, applicationCount: b._count.applications }))}
-          juryUsers={juryUsers.map((j) => ({ id: j.id, name: j.name, email: j.email, benchId: j.benchId }))}
+          juryUsers={juryUsers.map((j) => ({ id: j.id, name: j.name, email: j.email, benchIds: j.benches.map((b) => b.id) }))}
           eligibleApplications={eligibleApplications.map((a) => ({ id: a.id, orgName: a.orgName, benchId: a.benchId }))}
         />
       </div>

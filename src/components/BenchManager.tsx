@@ -2,7 +2,8 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Select, Input, Button, Badge } from '@/design-system';
-import { createBenchAction, deleteBenchAction, assignJurorBenchAction, assignApplicationBenchAction, addJuryMemberAction } from '@/lib/benches/actions';
+import { MultiSelect } from '@/components/MultiSelect';
+import { createBenchAction, deleteBenchAction, setJurorBenchesAction, assignApplicationBenchAction, addJuryMemberAction } from '@/lib/benches/actions';
 import { updateUserAction, deleteUserAction } from '@/lib/auth/actions';
 
 export interface BenchOption {
@@ -16,7 +17,7 @@ export interface JuryUserRow {
   id: string;
   name: string;
   email: string;
-  benchId: string | null;
+  benchIds: string[];
 }
 
 export interface JuryEligibleAppRow {
@@ -70,7 +71,7 @@ function JurorRow({
 }: {
   juror: JuryUserRow;
   benches: BenchOption[];
-  onReassign: (userId: string, benchId: string) => Promise<void>;
+  onReassign: (userId: string, benchIds: string[]) => Promise<void>;
 }) {
   const router = useRouter();
   const [editing, setEditing] = React.useState(false);
@@ -130,7 +131,13 @@ function JurorRow({
           <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{juror.name}</div>
           <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>{juror.email}</div>
         </div>
-        <BenchSelect ariaLabel={`bench for ${juror.name}`} value={juror.benchId} benches={benches} onSelect={(benchId) => onReassign(juror.id, benchId)} />
+        <MultiSelect
+          label="benches"
+          width={200}
+          selected={juror.benchIds}
+          onChange={(benchIds) => onReassign(juror.id, benchIds)}
+          options={benches.map((b) => ({ value: b.id, label: b.name }))}
+        />
         <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
           edit
         </Button>
@@ -158,11 +165,11 @@ export function BenchManager({
   const [showJurorForm, setShowJurorForm] = React.useState(false);
   const [appFilter, setAppFilter] = React.useState('');
 
-  async function reassignJuror(userId: string, benchId: string) {
+  async function reassignJuror(userId: string, benchIds: string[]) {
     const formData = new FormData();
     formData.set('userId', userId);
-    formData.set('benchId', benchId);
-    await assignJurorBenchAction(formData);
+    benchIds.forEach((id) => formData.append('benchId', id));
+    await setJurorBenchesAction(formData);
     router.refresh();
   }
 
@@ -249,7 +256,7 @@ export function BenchManager({
           <Badge tone="outline">{juryUsers.length} jurors</Badge>
         </div>
         <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' }}>
-          which bench each juror sits on. jurors not on a bench see nothing on the applications page.
+          which bench(es) each juror sits on — a juror can be on more than one bench at once. jurors not on any bench see nothing on the applications page.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 'var(--space-5)' }}>

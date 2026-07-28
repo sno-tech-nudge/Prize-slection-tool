@@ -1,4 +1,22 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
+
+/** Shared, deliberately small filter set for both jury listings (a jury member's own bench and
+ *  the internal oversight list) — the jury round only ever needs to narrow by name, state, or
+ *  operating model, not the full applications-table filter bar. */
+export interface JuryListFilters {
+  q?: string;
+  state?: string;
+  operatingModel?: string;
+}
+
+function buildJuryFilterWhere(filters: JuryListFilters): Prisma.ApplicationWhereInput {
+  const where: Prisma.ApplicationWhereInput = {};
+  if (filters.q) where.orgName = { contains: filters.q };
+  if (filters.state) where.statesOperating = { contains: filters.state };
+  if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
+  return where;
+}
 
 export async function listBenches() {
   const benches = await prisma.bench.findMany({
@@ -15,7 +33,7 @@ export async function listJuryUsers() {
   return prisma.user.findMany({
     where: { role: 'JURY' },
     orderBy: { name: 'asc' },
-    include: { bench: true },
+    include: { benches: true },
   });
 }
 
@@ -33,10 +51,10 @@ export async function listJuryEligibleApplications() {
  *  individual score on that bench, so an admin/reviewer can see jury progress across all benches
  *  at a glance. This is distinct from what a jury member sees on /applications (their own bench
  *  only, no other jurors' names until they've submitted their own score). */
-export async function listJuryOversight() {
+export async function listJuryOversight(filters: JuryListFilters = {}) {
   return prisma.application.findMany({
-    where: { isDuplicateOf: null, internalDecision: 'YES' },
-    orderBy: [{ bench: { name: 'asc' } }, { orgName: 'asc' }],
+    where: { isDuplicateOf: null, internalDecision: 'YES', ...buildJuryFilterWhere(filters) },
+    orderBy: { orgName: 'asc' },
     include: {
       bench: true,
       aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },

@@ -11,7 +11,7 @@ export interface JuryScoresTableRow {
   verdict: string;
   comment: string | null;
   criteria: string;
-  juror: { name: string; bench: { name: string } | null };
+  juror: { name: string; benches: { name: string }[] };
 }
 
 /** Every juror's score on this application — a short overview row per juror (who, which bench,
@@ -42,7 +42,7 @@ export function JuryScoresTable({ juryScores }: { juryScores: JuryScoresTableRow
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
-              {['juror', 'bench', 'score'].map((h) => (
+              {['juror', 'benches', 'score'].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -65,7 +65,7 @@ export function JuryScoresTable({ juryScores }: { juryScores: JuryScoresTableRow
                   {s.juror.name}
                 </td>
                 <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-                  {s.juror.bench?.name ?? '—'}
+                  {s.juror.benches.length > 0 ? s.juror.benches.map((b) => b.name).join(', ') : '—'}
                 </td>
                 <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>

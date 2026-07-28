@@ -198,10 +198,16 @@ export async function listJuryQueue() {
 
 /** Trimmed list for the jury applications table — scoped to the viewer's own bench via
  *  visibleApplicationWhere, with just enough included (bench name, latest AI composite, the
- *  juror's own score) to render the few columns jury are meant to see. */
-export async function listJuryApplications(user: User | null) {
+ *  juror's own score) to render the few columns jury are meant to see. Accepts the same small
+ *  filter set (name/state/operating model) as the internal jury oversight list. */
+export async function listJuryApplications(user: User | null, filters: { q?: string; state?: string; operatingModel?: string } = {}) {
+  const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
+  if (filters.q) where.orgName = { contains: filters.q };
+  if (filters.state) where.statesOperating = { contains: filters.state };
+  if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
+
   return prisma.application.findMany({
-    where: { ...visibleApplicationWhere(user), isDuplicateOf: null },
+    where,
     orderBy: { orgName: 'asc' },
     include: {
       bench: true,
@@ -266,7 +272,7 @@ export async function getApplicationDetail(id: string, userId?: string) {
       reportLinks: true,
       aiEvaluations: { orderBy: { createdAt: 'desc' } },
       humanReviews: { include: { reviewer: true }, orderBy: { submittedAt: 'desc' } },
-      juryScores: { include: { juror: { include: { bench: true } } }, orderBy: { submittedAt: 'desc' } },
+      juryScores: { include: { juror: { include: { benches: true } } }, orderBy: { submittedAt: 'desc' } },
       stageTransitions: { include: { actor: true }, orderBy: { createdAt: 'asc' } },
       reviewAssignments: { include: { reviewer: true } },
       targetMatch: true,

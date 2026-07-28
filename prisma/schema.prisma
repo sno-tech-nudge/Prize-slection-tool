@@ -46,10 +46,10 @@ model User {
   passwordHash String?
   createdAt    DateTime @default(now())
 
-  // which jury bench/panel this person sits on — null means unassigned (sees nothing on
-  // /applications as a JURY-role user until an admin places them on a bench).
-  benchId String?
-  bench   Bench?  @relation(fields: [benchId], references: [id], onDelete: SetNull)
+  // which jury bench(es)/panel(s) this person sits on — a juror can be on more than one bench
+  // at once. Empty means unassigned (sees nothing on /applications as a JURY-role user until an
+  // admin places them on at least one bench).
+  benches Bench[]
 
   humanReviews     HumanReview[]
   juryScores       JuryScore[]
