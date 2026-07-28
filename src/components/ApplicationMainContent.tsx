@@ -3,6 +3,7 @@ import { Card, Badge, Tag } from '@/design-system';
 import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { RescoreButton } from '@/components/RescoreButton';
 import { ValidateOrgButton } from '@/components/ValidateOrgButton';
+import { SectionScoreInfo } from '@/components/SectionScoreInfo';
 import type { getApplicationDetail } from '@/lib/applications/queries';
 import type { User } from '@prisma/client';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
@@ -385,7 +386,10 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
                       key={section.key}
                       style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
                     >
-                      <strong style={{ textTransform: 'lowercase', flexShrink: 0 }}>{section.label}</strong>
+                      <strong style={{ textTransform: 'lowercase', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        {section.label}
+                        <SectionScoreInfo sectionLabel={section.label} sectionKey={section.key} criteria={criteria} />
+                      </strong>
                       <div style={{ flex: 1, height: 6, background: 'var(--border-subtle)', position: 'relative' }}>
                         <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${Math.max(pct, 4)}%`, background: tone.color }} />
                       </div>

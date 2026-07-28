@@ -3,6 +3,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Select, Input, Button, Badge } from '@/design-system';
 import { createBenchAction, deleteBenchAction, assignJurorBenchAction, assignApplicationBenchAction, addJuryMemberAction } from '@/lib/benches/actions';
+import { updateUserAction, deleteUserAction } from '@/lib/auth/actions';
 
 export interface BenchOption {
   id: string;
@@ -59,6 +60,86 @@ function BenchSelect({
         </option>
       ))}
     </Select>
+  );
+}
+
+function JurorRow({
+  juror,
+  benches,
+  onReassign,
+}: {
+  juror: JuryUserRow;
+  benches: BenchOption[];
+  onReassign: (userId: string, benchId: string) => Promise<void>;
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [removing, setRemoving] = React.useState(false);
+  const [removeError, setRemoveError] = React.useState<string | null>(null);
+
+  async function remove() {
+    const confirmed = window.confirm(`remove ${juror.name} (${juror.email}) from the team entirely? this can't be undone.`);
+    if (!confirmed) return;
+
+    setRemoving(true);
+    setRemoveError(null);
+    try {
+      const formData = new FormData();
+      formData.set('userId', juror.id);
+      const result = await deleteUserAction(formData);
+      if (result.error) setRemoveError(result.error);
+      else router.refresh();
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <form
+        action={async (formData) => {
+          setSaving(true);
+          formData.set('userId', juror.id);
+          try {
+            await updateUserAction(formData);
+            router.refresh();
+            setEditing(false);
+          } finally {
+            setSaving(false);
+          }
+        }}
+        style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}
+      >
+        <Input name="name" label="name" defaultValue={juror.name} required containerStyle={{ minWidth: 160, flex: 1 }} />
+        <Input name="email" type="email" label="email" defaultValue={juror.email} required containerStyle={{ minWidth: 200, flex: 1 }} />
+        <Button type="submit" variant="cta" size="sm" disabled={saving}>
+          {saving ? 'saving…' : 'save'}
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
+          cancel
+        </Button>
+      </form>
+    );
+  }
+
+  return (
+    <div style={{ padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto auto', alignItems: 'center', gap: 'var(--space-4)' }}>
+        <div>
+          <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{juror.name}</div>
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>{juror.email}</div>
+        </div>
+        <BenchSelect ariaLabel={`bench for ${juror.name}`} value={juror.benchId} benches={benches} onSelect={(benchId) => onReassign(juror.id, benchId)} />
+        <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+          edit
+        </Button>
+        <Button variant="secondary" size="sm" disabled={removing} onClick={remove}>
+          {removing ? 'removing…' : 'remove'}
+        </Button>
+      </div>
+      {removeError && <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--delta-red)', marginTop: 'var(--space-2)' }}>{removeError}</p>}
+    </div>
   );
 }
 
@@ -173,28 +254,7 @@ export function BenchManager({
 
         <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 'var(--space-5)' }}>
           {juryUsers.map((j) => (
-            <div
-              key={j.id}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr',
-                alignItems: 'center',
-                gap: 'var(--space-4)',
-                padding: 'var(--space-3) 0',
-                borderBottom: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{j.name}</div>
-                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>{j.email}</div>
-              </div>
-              <BenchSelect
-                ariaLabel={`bench for ${j.name}`}
-                value={j.benchId}
-                benches={benches}
-                onSelect={(benchId) => reassignJuror(j.id, benchId)}
-              />
-            </div>
+            <JurorRow key={j.id} juror={j} benches={benches} onReassign={reassignJuror} />
           ))}
           {juryUsers.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no jury members yet — add one below.</p>}
         </div>
