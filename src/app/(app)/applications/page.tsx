@@ -3,7 +3,6 @@ import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
 import { JuryApplicationRow } from '@/components/JuryApplicationRow';
-import { JuryListFilters } from '@/components/JuryListFilters';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -40,10 +39,7 @@ export default async function ApplicationsPage({
   const rowQueryString = rowParams.toString() ? `?${rowParams.toString()}` : '';
 
   if (user?.role === 'JURY') {
-    const [juryApplications, filterOptions] = await Promise.all([
-      listJuryApplications(user, { q: searchParams.q, state: searchParams.state, operatingModel: searchParams.operatingModel }),
-      getApplicationFilterOptions(),
-    ]);
+    const juryApplications = await listJuryApplications(user);
     return (
       <div>
         <AngularBanner
@@ -52,10 +48,6 @@ export default async function ApplicationsPage({
           subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench, alphabetical — double-click a row to open it`}
         />
         <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
-          <Suspense>
-            <JuryListFilters states={filterOptions.states} operatingModels={filterOptions.operatingModels} />
-          </Suspense>
-
           <Card padding="0" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
