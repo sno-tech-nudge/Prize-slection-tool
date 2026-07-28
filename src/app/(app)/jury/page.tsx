@@ -4,7 +4,7 @@ import { AngularBanner, Card } from '@/design-system';
 import { InternalJuryRow } from '@/components/InternalJuryRow';
 import { JuryListFilters } from '@/components/JuryListFilters';
 import { getCurrentUser } from '@/lib/auth/session';
-import { listJuryOversight } from '@/lib/benches/queries';
+import { listJuryOversight, listBenches } from '@/lib/benches/queries';
 import { getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
 
 const HEADERS = ['organisation', 'bench', 'state', 'int score', 'avg jury score'];
@@ -16,9 +16,10 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
   const user = await getCurrentUser();
   if (user?.role === 'JURY') redirect('/applications');
 
-  const [applications, filterOptions] = await Promise.all([
-    listJuryOversight({ q: searchParams.q, state: searchParams.state, operatingModel: searchParams.operatingModel }),
+  const [applications, filterOptions, benches] = await Promise.all([
+    listJuryOversight({ q: searchParams.q, state: searchParams.state, operatingModel: searchParams.operatingModel, bench: searchParams.bench }),
     getApplicationFilterOptions(),
+    listBenches(),
   ]);
 
   return (
@@ -30,7 +31,11 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
         <Suspense>
-          <JuryListFilters states={filterOptions.states} operatingModels={filterOptions.operatingModels} />
+          <JuryListFilters
+            states={filterOptions.states}
+            operatingModels={filterOptions.operatingModels}
+            benches={benches.map((b) => ({ id: b.id, name: b.name }))}
+          />
         </Suspense>
 
         <Card padding="0" style={{ overflowX: 'auto' }}>

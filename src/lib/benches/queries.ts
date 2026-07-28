@@ -8,6 +8,7 @@ export interface JuryListFilters {
   q?: string;
   state?: string;
   operatingModel?: string;
+  bench?: string;
 }
 
 function buildJuryFilterWhere(filters: JuryListFilters): Prisma.ApplicationWhereInput {
@@ -15,6 +16,7 @@ function buildJuryFilterWhere(filters: JuryListFilters): Prisma.ApplicationWhere
   if (filters.q) where.orgName = { contains: filters.q };
   if (filters.state) where.statesOperating = { contains: filters.state };
   if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
+  if (filters.bench) where.benchId = filters.bench;
   return where;
 }
 

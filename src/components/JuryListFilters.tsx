@@ -5,9 +5,17 @@ import { Input, Select } from '@/design-system';
 const HEIGHT = 38;
 const fieldStyle = { height: HEIGHT, boxSizing: 'border-box' as const, fontSize: 'var(--fs-caption)', padding: '0 var(--space-3)', border: '1px solid var(--border-strong)' };
 
-/** The deliberately small filter set for jury round listings — name, state, operating model —
- *  shared between a jury member's own applications list and the internal oversight list. */
-export function JuryListFilters({ states, operatingModels }: { states: string[]; operatingModels: string[] }) {
+/** The deliberately small filter set for the internal jury oversight list — name, bench, state,
+ *  operating model. */
+export function JuryListFilters({
+  states,
+  operatingModels,
+  benches,
+}: {
+  states: string[];
+  operatingModels: string[];
+  benches: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -28,6 +36,20 @@ export function JuryListFilters({ states, operatingModels }: { states: string[];
         containerStyle={{ width: 220, minWidth: 0, flexShrink: 0 }}
         style={fieldStyle}
       />
+      <Select
+        aria-label="filter by bench"
+        defaultValue={searchParams.get('bench') ?? ''}
+        onChange={(e) => setParam('bench', e.target.value)}
+        containerStyle={{ width: 160, minWidth: 0, flexShrink: 0 }}
+        style={{ ...fieldStyle, padding: '0 var(--space-6) 0 var(--space-3)' }}
+      >
+        <option value="">bench: all</option>
+        {benches.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
+        ))}
+      </Select>
       <Select
         aria-label="filter by state"
         defaultValue={searchParams.get('state') ?? ''}
