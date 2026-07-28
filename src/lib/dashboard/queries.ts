@@ -2,7 +2,6 @@ import { prisma } from '@/lib/db';
 import { computeConsensus } from '@/lib/applications/consensus';
 import { parseRedFlags } from '@/lib/scoring/parse';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
-import { ROTATION_EXCLUDED_EMAILS } from '@/lib/applications/assignment';
 
 /** Surfaces applications that need attention before they slip through the pipeline unnoticed:
  *  either the AI evaluation raised red flags, or the Level 1 eligibility screen (see
@@ -90,24 +89,27 @@ export async function getReviewDecisionFunnel() {
   ];
 }
 
-/** One row per user (admins review too, so this isn't reviewer-role-only) showing how many of
- *  their assigned applications they've submitted a HumanReview for vs. still owe. */
+/** One row per person who actually has at least one review assignment — built from the
+ *  assignment data itself rather than "every user minus an exclusion list", so an account that
+ *  was never assigned anything (a new admin, the jury account, etc.) never shows up as a
+ *  permanent 0/0 row, and an admin who genuinely was hand-assigned a review still shows
+ *  correctly without needing to be added to any allow-list. */
 export async function getReviewerStats() {
-  const [allUsers, assignments, reviews] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true, email: true } }),
+  const [users, assignments, reviews] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, name: true } }),
     prisma.reviewAssignment.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
     prisma.humanReview.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
   ]);
-  // Tanush and Anurag aren't in the review rotation (see assignment.ts) — leaving them in this
-  // list would just show two permanent 0/0 rows.
-  const users = allUsers.filter((u) => !ROTATION_EXCLUDED_EMAILS.includes(u.email));
+  const namesById = new Map(users.map((u) => [u.id, u.name]));
   const reviewedSet = new Set(reviews.map((r) => `${r.reviewerId}:${r.applicationId}`));
-  const byUser = new Map(users.map((u) => [u.id, { name: u.name, assigned: 0, reviewed: 0 }]));
+  const byUser = new Map<string, { name: string; assigned: number; reviewed: number }>();
   for (const a of assignments) {
-    const entry = byUser.get(a.reviewerId);
-    if (!entry) continue;
+    const name = namesById.get(a.reviewerId);
+    if (!name) continue;
+    const entry = byUser.get(a.reviewerId) ?? { name, assigned: 0, reviewed: 0 };
     entry.assigned++;
     if (reviewedSet.has(`${a.reviewerId}:${a.applicationId}`)) entry.reviewed++;
+    byUser.set(a.reviewerId, entry);
   }
   return [...byUser.values()]
     .map((e) => ({ name: e.name, reviewed: e.reviewed, yetToReview: e.assigned - e.reviewed }))
