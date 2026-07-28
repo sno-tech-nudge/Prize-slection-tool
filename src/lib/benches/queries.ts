@@ -58,7 +58,7 @@ export async function listJuryOversight(filters: JuryListFilters = {}) {
     where: { isDuplicateOf: null, internalDecision: 'YES', ...buildJuryFilterWhere(filters) },
     orderBy: { orgName: 'asc' },
     include: {
-      bench: true,
+      bench: { include: { jurors: { orderBy: { name: 'asc' } } } },
       aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },
       juryScores: { include: { juror: true }, orderBy: { juror: { name: 'asc' } } },
     },

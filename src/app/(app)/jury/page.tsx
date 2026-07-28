@@ -20,9 +20,11 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
     listBenches(),
   ]);
 
-  const jurorColumnCount = applications.reduce((max, a) => Math.max(max, a.juryScores.length), 0);
+  // one column per juror seat on the largest bench, not per submitted score — so J2/J3 still show
+  // as empty until that juror scores, instead of the columns only appearing once someone has.
+  const jurorColumnCount = applications.reduce((max, a) => Math.max(max, a.bench?.jurors.length ?? 0), 0);
   const jurorHeaders = Array.from({ length: jurorColumnCount }, (_, i) => `j${i + 1}`);
-  const headers = ['organisation', 'bench', 'state', 'int score', ...jurorHeaders, 'avg jury score'];
+  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score'];
 
   return (
     <div>
