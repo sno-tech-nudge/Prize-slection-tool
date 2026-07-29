@@ -1,193 +1,275 @@
-# the^delta prize — application platform (prototype)
+# the^delta prize — rapid re.gen challenge — internal admin tool
 
-An end-to-end prize-challenge selection platform for **the^delta prize**, a the/nudge institute
-initiative. This build targets the regenerative agriculture / AgWater challenge, sponsored by
-DCM Shriram — application ingestion, AI-assisted scoring, human review, jury, rejection-email
-automation, target-startup matching and analytics, seeded from the historical 134-applicant
-workbook (78 shortlisted).
+This is the **live, real internal tool** the^delta prize team uses to run the "rapid re.gen
+challenge" — an application-selection pipeline for a regenerative-agriculture prize challenge.
+It is **not a demo or a prototype** — it has a real production Postgres database, real team
+logins, real applicant data, and is deployed and in active use.
 
-This is a prototype: optimised for a fully clickable end-to-end flow, real AI scoring on seeded
-data, and cleanly stubbed external integrations — not a production launch.
+This document is written as a full handoff: everything a new developer, a new Claude Code
+account, or a new hosting owner needs to pick this project up with zero prior context. See also
+`CLAUDE.md` in the repo root — that file is auto-loaded by Claude Code at the start of every
+session in this repo and covers the same ground in more implementation-level detail.
 
-**This is a team tool, not an applicant-facing site.** `/` redirects straight to `/dashboard` —
-the internal platform is the front door. The public marketing/apply/status pages still exist
-(they demonstrate the ingestion schema and are the future home of a swap to Zoho/Google Form
-webhooks) but live at `/challenge`, `/apply`, `/status` and are not linked from primary nav.
+---
 
-## Beyond the original brief
+## 1. What this app does, end to end
 
-A few things were added on top of the phased build above, in response to later feedback:
+1. Applicants submit through a **Zoho Creator form** (external, not part of this codebase).
+2. Zoho writes each submission into a **Supabase Postgres table** (the "live source" — see
+   §4, Database & hosting).
+3. This app **syncs** that source table into its own database (`/settings` → "sync from
+   supabase" button, or automatically for anything newly created).
+4. Every new application is queued for **AI scoring** against an 8-criterion rubric (Groq/
+   Anthropic/Gemini, or a heuristic fallback with no API key) and **public-data enrichment**
+   (a website scrape for corroborating context).
+5. Applications are **auto-assigned** round-robin to a fixed rotation of real human reviewers.
+6. An admin marks each application's **internal decision** (yes/no) — only "yes" applications
+   proceed to jury.
+7. "Yes" applications get placed on a **jury bench** (a small panel of 1+ jurors — a juror can
+   sit on more than one bench). Jurors score independently; admins see a cross-bench oversight
+   view.
+8. Stage transitions (shortlist / reject / finalist / winner) queue an **outbound email** to the
+   applicant — reviewed and approved by an admin before sending, never sent automatically.
+9. A dashboard, analytics pages, and a target-organisation "wishlist" board with reverse-matching
+   round out the internal-team tooling.
 
-- **Kanban board** (`/applications/board`) — drag-and-drop pipeline view. Illegal drops (skipping
-  a stage) are rejected client-side before any server call, with a toast explaining why.
-- **Confirmation emails on every advance** — not just rejection. Shortlist/finalist/winner
-  transitions now queue a congratulatory email the same way rejections do (see
-  `STAGE_EMAIL_TEMPLATE` in `src/lib/applications/actions.ts`).
-- **Explicit AI-score override** — an admin can directly correct an `AiEvaluation`'s composite
-  and disposition with a recorded reason (`src/components/AiOverridePanel.tsx`), distinct from a
-  reviewer's independent `HumanReview`. The override propagates everywhere the score is shown,
-  including the AI-calibration backtest on `/analytics`.
-- **Rubric versioning** — every `AiEvaluation` snapshots the rubric weights and a version number
-  in effect when it ran, so changing weights in `/settings` later never silently reinterprets
-  old scores.
-- **Async job queue** (`src/lib/jobs/queue.ts`) — a `Job` table replaces the old inline
-  synchronous calls. Ingestion (apply form, `/api/ingest` webhook) and the automation panel's
-  bulk actions enqueue jobs and return immediately; a client-side ticker
-  (`src/components/JobQueueTicker.tsx`) polls `/api/jobs/tick` every 3.5s to drain them, visible
-  as a "processing N jobs" badge in the header. Swap point for production: point
-  `processPendingJobs` at a real queue consumer (SQS/BullMQ/pg-boss) instead of polling.
-- **Public-data enrichment** (`src/lib/enrichment/`) — a real, working website scraper (no API
-  key needed): fetches the applicant's own site server-side and extracts title/description/an
-  excerpt, which then feeds into the AI scoring prompt as corroborating (not authoritative)
-  evidence. Search-based enrichment (news mentions, funding rounds) is a documented stub behind
-  `SEARCH_API_KEY` — wire in Google Custom Search, Gemini grounding, or SerpAPI there.
+## 2. Tech stack
 
-## Run it
+- **Next.js 14** (App Router), **TypeScript** (strict), **React 18**.
+- **Prisma ORM** against a **real hosted PostgreSQL** database (Supabase). There is no SQLite
+  anywhere in this app's current form — an earlier prototype version used SQLite, but that
+  version has been fully replaced.
+- **Real authentication** — `scryptSync`-hashed passwords, HMAC-signed session cookies. No
+  "dev-only role switcher" exists; every login is a real person's real credential.
+- **AI scoring**: `@anthropic-ai/sdk`, Groq, and Gemini are all wired as interchangeable
+  providers, auto-detected from whichever API key is present (Groq is what's actually configured
+  as of the last working session), with a heuristic fallback needing zero API keys.
+- **`@supabase/supabase-js`** — a second, separate, read-only integration pulling the live
+  Zoho-fed applications table (see §4).
+- **No external queue/Redis** — async work (scoring, enrichment, matching) is a `Job` table in
+  Postgres, drained by a client-side polling ticker in the browser.
+- **Custom design system** (`design-system/` + `src/design-system/`) — sharp corners, no
+  border-radius, lowercase UI copy, brand red accent, enforced by a custom lint pass
+  (`npm run lint`).
+
+## 3. Running it locally
 
 ```
 npm install
-npm run db:reset      # (re)creates prisma/dev.db from schema.prisma
-npm run db:seed       # imports the AgWater workbook, seeds users/targets/reviews/outbox
+```
+
+Copy `.env.example` to `.env` and fill in real values — **get these from whoever currently owns
+the Supabase project and Vercel deployment**, not from anywhere in this repo (no real secrets are
+committed anywhere):
+
+- `DATABASE_URL` / `DIRECT_URL` — this app's own Postgres connection strings (Supabase dashboard
+  → Project Settings → Database → Connection string). Both need `schema=delta_admin` appended.
+- `AUTH_SECRET` — random string signing session cookies (`openssl rand -base64 32` if you're
+  rotating it — note this logs every current session out).
+- At least one of `GROQ_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` for real AI scoring
+  (optional — falls back to a heuristic scorer otherwise).
+- `SUPABASE_URL` / `SUPABASE_ANON_KEY` — read-only client credentials for the live source table.
+- `EMAIL_PROVIDER` and its associated credentials, if you need to test outbound mail.
+
+Then:
+
+```
+npx prisma generate
 npm run dev
 ```
 
-No live external credentials are required to run the full demo. Set `ANTHROPIC_API_KEY` in
-`.env` for real Claude scoring — without it, `npm run score:all` and the seed's scoring step
-fall back to a transparent, clearly-labelled heuristic scorer (`model: heuristic-fallback-v1`).
+Log in at `/login` with a real account's email + password (ask the team, or see §7 for the
+password scheme used for the original roster). **There is no seed/demo login and no role
+switcher** — you need a real account in the real database to see anything past the login page.
 
-Switch identity with the role dropdown in the header (dev-only role switcher — see
-[Assumptions](#assumptions-flagged-for-correction)). Ten users are seeded: 2 admins (Nisha
-Chawla, Sravya Jandhyala), 4 reviewers, 3 jurors, 1 observer.
+### Commands
 
-## Assumptions (flagged for correction)
+```
+npm run dev          start the dev server (localhost:3000)
+npm run lint         oxlint + design-system adherence checker + tsc --noEmit — must pass clean
+npm run db:push      push prisma/schema.prisma to the live database (see §4 before running this)
+npm run score:all    batch AI-score every application that doesn't have one yet
+```
 
-- **Stack**: Next.js 14 (App Router) + Prisma + SQLite, chosen for a zero-setup local prototype.
-  SQLite has no native Prisma enum support, so every enum-like column is a `String`; the
-  canonical value lists live as TS union types in `src/lib/constants.ts` (see the comment block
-  at the top of `prisma/schema.prisma`).
-- **Auth**: a dev-only role switcher (httpOnly cookie), not real sign-in. Every read/write path
-  already goes through `getCurrentUser()` (`src/lib/auth/session.ts`) and role guards
-  (`src/lib/auth/guard.ts`), so swapping in Supabase Auth / Clerk is mechanical — replace
-  `session.ts`, keep the guard call sites.
-- **Email**: an in-app `OutboxEmail` table + preview UI, never a live send. See
-  [Rejection email swap](#rejection-email-swap) below.
-- **This year's applications**: not live yet (they'll arrive via Zoho CRM). The prototype is
-  seeded entirely from `data/Copy_of_Applicants_details_-_DCM_Shriram_AgWater_Challenge.xlsx`.
-- **AI scoring model**: `claude-sonnet-4-6` via `@anthropic-ai/sdk`, gated behind
-  `ANTHROPIC_API_KEY`. Composite is a weighted average of eight rubric criteria
-  (`src/lib/scoring/rubric.ts`), recomputed server-side from admin-tunable weights
-  (`/settings`) even when the model returns its own composite estimate.
-- **Target wishlist**: `data/target_startups.sample.csv` mixes ~22 real applicant org names
-  (so the matcher has something to find) with ~78 plausible placeholder names. Replace via
-  CSV upload on `/targets` (admin only).
-- **oxlint version**: pinned to `0.18.1` (not the latest 1.x line) for Node 18 compatibility in
-  this environment. See [Adherence linting](#adherence-linting) for why a companion script
-  exists alongside it.
+**`npm run db:reset`** exists in `package.json` but should essentially never be run — it force-
+resets the connected database, and the connected database is the real production one (see §4).
 
-## Swap points (production path)
+### A quirk you will hit
 
-### Application source — Zoho CRM
-`src/lib/sources/` defines one `ApplicationSource` interface with three implementations:
-- `SeedSource` — reads the AgWater workbook. Used today (`APPLICATION_SOURCE=seed`).
-- `ZohoCrmSource` — stub. `pull()` returns an empty array and logs a warning; `toApplication()`
-  is already wired to a field-mapping table (see the comment block in
-  `src/lib/sources/zoho-crm-source.ts`) so the real swap is: implement OAuth token refresh +
-  a COQL/records fetch in `pull()`, confirm the Zoho field API names with the CRM admin, done.
-- `GoogleFormSource` — stub for a Google Apps Script `onFormSubmit` → `POST /api/ingest` webhook
-  (shared secret via `GOOGLE_INGEST_SECRET`). Route already exists at
-  `src/app/api/ingest/route.ts`.
+After any `prisma generate`/`prisma db push`, an already-running `next dev` process keeps its old
+in-memory Prisma client and throws stale errors referencing dropped/changed columns. Kill
+whatever's on port 3000 (`lsof -ti:3000 | xargs -r kill`, add `-9` if needed) and restart — don't
+wait for hot-reload to fix it, it won't.
 
-Switch via the `APPLICATION_SOURCE` env var / the "active application source" field on
-`/settings` (the setting is stored; wiring a scheduled Zoho poll to read it is the remaining
-step).
+## 4. Database & hosting — the single most important section to understand
 
-### Rejection email swap
-`src/lib/mail/mailer.ts` defines a `Mailer` interface:
-- `StubMailer` (default) — never touches the network; the Outbox row itself is the audit trail.
-- `ResendMailer` — behind `EMAIL_PROVIDER=resend`. Even when enabled, it **refuses to send**
-  unless `TEST_EMAIL_OVERRIDE` is set, and always sends there instead of the real recipient —
-  a real founder's inbox cannot be reached by flipping one flag alone, on purpose.
+**There are two different Supabase-hosted pieces, and they are easy to confuse:**
 
-To go live: get a Resend API key, set `EMAIL_PROVIDER=resend` + `RESEND_API_KEY`, and when
-ready to actually reach founders, remove the `TEST_EMAIL_OVERRIDE` guard in `ResendMailer.send()`.
+| | This app's own database | The live Zoho-fed source |
+|---|---|---|
+| What it is | Where Prisma writes everything: users, synced applications, reviews, jury scores, comments, notifications, outbox emails, jobs | The real table the Zoho Creator form writes into automatically, outside this codebase |
+| Access | Full read/write, via `DATABASE_URL`/`DIRECT_URL` | **Read-only**, via `SUPABASE_URL`/`SUPABASE_ANON_KEY` (anon key, RLS-scoped) |
+| Schema | Dedicated `delta_admin` schema on the same Supabase Postgres project (project ref `ysasmuxvusflvcetravz`, region `ap-south-1`) | A different table entirely |
+| How data gets from one to the other | — | Synced in via `src/lib/sources/supabase-source.ts`, keyed by `externalId`, triggered from `/settings` |
 
-### Auth swap
-Replace `src/lib/auth/session.ts`'s `getCurrentUser()` with a real session lookup. Every
-call site already expects a `User | null` and funnels through `assertRole()` /
-`visibleApplicationWhere()` in `src/lib/auth/guard.ts`, so RLS-equivalent scoping (reviewers see
-only assigned applications, jury see only shortlisted+) carries over unchanged.
+**Any `prisma db push` is a live schema change against the real, currently-in-use production
+database.** There is no separate staging environment. As of the last working session this
+database holds **~125 real applicant records** and **10 real team-member logins** — no seed or
+demo data of any kind remains in it.
 
-### Database swap
-Change `DATASOURCE_URL` and `provider` in `prisma/schema.prisma` from `sqlite` to `postgresql`
-and re-run `npx prisma db push`. All queries are ORM-level (no raw SQL), so this is a
-datasource-only change — except that Postgres *does* support native enums, so the
-`String`-typed enum columns could be upgraded to real `enum` types if desired (optional).
+Before a schema change that could drop a column with real data in it: write a tiny one-off script
+that reads the affected rows to a JSON file first, run the push, then restore via the new shape if
+needed. Delete the one-off script afterward. This exact playbook was used to convert a one-juror-
+per-bench relation into a many-to-many one with zero data loss — see the git log around "Allow
+jurors to sit on multiple benches" for a worked example if you need it again.
 
-## Design system adherence
+### Hosting
 
-The provided `design-system/` folder is copied in verbatim and its global stylesheet is loaded
-once from the root layout (`src/styles/globals.css` → `design-system/styles.css`). All UI is
-built from the ported component barrel at `src/design-system/` (typed re-exports of the
-provided Button, Card, Badge, Input, etc.) — no hand-rolled buttons/inputs/cards.
+- **Vercel project**: `the-delta-prize-v3` — production URL `the-delta-prize-v3.vercel.app`.
+  `.vercel/project.json` already has the project linked. Deploy with `git push origin main`
+  (there's a Vercel Git integration) or `vercel --prod` from the CLI. After pushing, poll
+  `vercel ls the-delta-prize-v3` until the newest deployment shows `● Ready` (builds take
+  roughly 40 seconds).
+- **GitHub repo**: `tanushhh21/the-delta-prize`, branch `main` — the single source of truth for
+  deployed code.
+- Every variable in `.env.example` needs to be set in the Vercel project's Environment Variables
+  for the deployed app to actually work.
+- `postinstall` runs `prisma generate` automatically on every Vercel build.
 
-### Adherence linting
-`design-system/_adherence.oxlintrc.json` ships with custom ESLint-style `no-restricted-syntax`
-AST-selector rules (raw hex, raw px, off-contract props). The oxlint version pinned here
-(`0.18.1`, chosen for Node 18 compatibility) **does not execute custom selector rules** — it
-runs clean even against a raw-hex test file. Real oxlint's rule engine doesn't yet support that
-ESLint feature at this version.
+## 5. Auth & roles
 
-To actually enforce the brand law rather than just declare it, `scripts/check-adherence.mjs` is
-a small companion script that re-implements the same checks via regex over `src/` (raw hex,
-raw px string literals, non-system fonts), with two deliberate, documented exceptions:
-- Border-width shorthand (`'1px solid ...'`) and CSS grid track sizing (`minmax()`/`repeat()`)
-  — structural values with no spacing-token equivalent; the shipped DS components use the same
-  pattern.
-- `src/lib/mail/templates.ts` — transactional HTML email can't use `var(--token)` (mail clients
-  strip custom properties), so its literal hex/px values are copied straight from
-  `tokens/colors.css` and exempted by name.
+Real login at `/login` (email + password). Passwords are one-way `scryptSync` hashes
+(`src/lib/auth/password.ts`) — **plaintext passwords must never be committed to git**. If you
+need a one-off script to set someone's password, write it, run it once (`npx tsx
+scripts/whatever.ts`), and delete it immediately, before staging anything.
 
-`npm run lint` runs oxlint (for standard correctness rules) + the adherence script + `tsc
---noEmit`, in that order. CI should treat all three as build blockers.
+Four roles: **ADMIN**, **REVIEWER**, **JURY**, **OBSERVER** (`src/lib/constants.ts`
+`USER_ROLES`). The role-scoping logic lives in `src/lib/auth/guard.ts`:
 
-## Deploying to Vercel
+- Reviewers see the **entire** applications list (same as admin/observer) — their assignment
+  only determines what they're expected to review, not what they're allowed to browse.
+- Jury only sees applications marked `internalDecision: YES` **and** placed on one of their
+  bench(es) — a juror can sit on more than one bench simultaneously.
+- Only ADMIN can manage settings, transition an application's formal stage, or send email.
 
-The database is Postgres (a dedicated `delta_admin` schema on the Supabase project's Postgres
-instance — deliberately separate from the `applications` source table so Prisma migrations never
-touch externally-owned data). Steps:
+### Reviewer auto-assignment is an email allow-list, not a role filter
 
-1. **Get connection strings** — Supabase dashboard → Project Settings → Database → Connection
-   string. You need both:
-   - `DATABASE_URL` — the pooled connection, port `6543`, with `?pgbouncer=true` appended
-   - `DIRECT_URL` — the direct connection, port `5432`
-   - Append `&schema=delta_admin` (or `?schema=delta_admin` if it's the first param) to both.
-2. **Push the schema once** against the real database: `DATABASE_URL=... DIRECT_URL=... npx prisma db push`
-   (creates the `delta_admin` schema and all tables — safe to re-run).
-3. **Seed or sync**: either `npm run db:seed` for demo data, or set `APPLICATION_SOURCE=supabase`
-   and trigger a sync from `/settings` once deployed to pull the real applications.
-4. **Push to git + connect on Vercel** (or `vercel --prod` from the CLI) and set every variable
-   from `.env.example` in the Vercel project's Environment Variables — most importantly
-   `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`.
-5. `postinstall` runs `prisma generate` automatically on every Vercel build, so no manual step
-   is needed there.
+Most real reviewers actually hold the `ADMIN` role in the database (that's their genuine platform
+permission level). `src/lib/applications/assignment.ts`'s `ROTATION_EMAILS` is therefore a fixed
+list of specific email addresses — only those people ever get a new application auto-assigned,
+round-robin, continuing wherever the rotation last left off. If you ever change who should be in
+the rotation, edit that list directly. (History note: this was once tried as a `role ===
+'REVIEWER'` filter instead, which silently broke assignment for every new application because no
+real reviewer account actually had that role value — caught only after 10 applications went
+unassigned. Don't repeat that mistake.)
 
-**Known gap**: the dev-only role switcher (`src/lib/auth/session.ts`, `src/lib/auth/actions.ts`)
-has no real authentication — anyone with the URL can switch to ADMIN via the header dropdown.
-Fine for an internal prototype behind a private URL; add real auth (NextAuth, Clerk, etc.) before
-sharing the link outside a trusted circle.
+## 6. Jury round
 
-## Repository notes
+A **bench** is a small jury panel. `User` ↔ `Bench` is a genuine many-to-many relation — a juror
+can sit on more than one bench, and a bench holds multiple jurors. Managed at
+`/settings/benches`.
 
-- `prisma/seed.ts` is idempotent — it clears all tables before reseeding, so `npm run db:seed`
-  can be re-run any time (e.g. after changing the matcher or scoring logic).
-- `npm run score:all` scores every application that doesn't yet have an `AiEvaluation` (or
-  re-scores everything if run after clearing evaluations) — uses Claude if `ANTHROPIC_API_KEY`
-  is set, the heuristic fallback otherwise.
-- The target matcher (`src/lib/matching/matcher.ts`) is idempotent per-application, and
-  intentionally never lets a later, weaker coincidental match downgrade an already-confirmed
-  higher-confidence link on the same `Target` row (first-write-wins-if-better).
-- The dashboard's **automation** panel (`src/components/AutomationPanel.tsx`) exposes "score all
-  unscored" and "re-run target matcher" as one-click buttons backed by
-  `src/lib/automation/actions.ts` — the same operations `score:all` runs from the CLI, but
-  reachable without a terminal. Bulk scoring is capped at 40 applications per click (click again
-  to pick up the rest) to keep the request responsive.
+Two different jury-facing views:
+- **`/jury`** (admin-only oversight) — every shortlisted application across every bench, with
+  filters for name / bench / an average-jury-score bucket, and one score column per juror seat
+  on that bench (so an unscored juror shows an empty dash rather than not appearing at all).
+- **`/applications`** when signed in as a JURY-role user — that juror's own bench only, trimmed
+  columns, no filters (a juror's own list is small enough that filtering isn't useful, and
+  showing the internal oversight filters there was a bug that's since been fixed).
+
+## 7. Team & credentials
+
+As of the last working session: 8 ADMIN accounts, 1 REVIEWER (KC — deliberately excluded from
+new-application auto-assignment, though their account and any in-progress reviews remain intact),
+1 JURY test account (used to verify jury features — don't delete the bench structure it's
+attached to without checking first).
+
+The original team roster's passwords follow the scheme `{firstname_lowercase}_{ddmmyyyy date of
+joining}` (login username is always the person's email, not their first name) — see
+`scripts/seed-logins.ts` if it's still present. Accounts added later had passwords set ad hoc by
+whoever onboarded them; ask them directly rather than guessing or resetting a real person's
+password without checking first.
+
+**Never put a real password in this file, in a commit, or in any doc.** Get current credentials
+directly from a team member with access.
+
+## 8. AI scoring
+
+One 8-criterion rubric (`src/lib/scoring/rubric.ts`), used identically by the AI scorer and every
+human/jury scoring form — verified aligned in code, no divergence between what a machine grades
+and what a person grades. A weighted composite + disposition (STRONG_ADVANCE / ADVANCE / HOLD /
+REJECT) is computed server-side from admin-tunable per-criterion weights (`/settings`), with an
+admin-override path that propagates everywhere the score is shown. Section-level reads render as
+a red/orange/green horizontal bar with a "why" info button surfacing the model's actual rationale
+per criterion — not just a bare percentage.
+
+Scoring provider resolution: explicit `SCORING_PROVIDER` env var, or auto-detected from whichever
+API key is set (Groq → Anthropic → Gemini → heuristic fallback, in that order).
+
+## 9. Email
+
+Outbound mail is never sent automatically — every stage-change email is written to an `Outbox`
+table first and needs an admin to review and approve/send it from `/outreach`. **The intent going
+forward is that all outbound email is sent from one dedicated account** ("Prize Applications",
+`applications@thedelta.org.in`) rather than any individual team member's inbox. Gmail SMTP for
+that account (`GMAIL_USER`/`GMAIL_APP_PASSWORD`/`EMAIL_PROVIDER=gmail`) was discussed but not
+fully wired up as of the last working session — it needs a real Google App Password from that
+account's owner (requires 2-Step Verification enabled first) set in Vercel's environment
+variables.
+
+## 10. Design system & lint
+
+All UI is built from the shared component barrel at `src/design-system/` — no hand-rolled
+buttons/inputs/cards. Conventions: lowercase UI copy, no em dashes in user-facing strings, no
+border-radius or circular elements (aside from lucide `CircleAlert` icon glyphs). `npm run lint`
+chains `oxlint`, a custom regex-based adherence checker (`scripts/check-adherence.mjs` — catches
+raw hex colors / raw px strings / off-brand fonts in `src/`), and `tsc --noEmit`. It must show
+"Found 0 warnings and 0 errors" and a clean adherence pass before any change is considered done.
+
+## 11. Directory map
+
+```
+src/app/
+  (public)/                challenge, apply, apply/thank-you, status — public-facing pages
+  login/                    real email+password sign-in
+  (app)/                     internal tool, behind AppShell nav + real auth
+    dashboard/, applications/, jury/, outreach/, targets/, analytics/, settings/ (incl. settings/benches)
+  api/
+    applications/export/     CSV export
+    notifications/           unread-count + recent-list feed for the notification bell
+    ingest/, jobs/tick/, score/
+
+src/components/           ApplicationRow, ApplicationFilters, ApplicationMainContent,
+                          StageActionBar, ReviewScoringForm, JuryScoreCard, JuryScoresTable,
+                          JuryListFilters, InternalJuryRow, JuryApplicationRow, JurySidePanel,
+                          BenchManager, MultiSelect, NotificationBell, CommentThread,
+                          PersonalNotes, DecisionStatusButtons, ExportCsvButton, UserRoleManager,
+                          AppShell
+
+src/design-system/        shared UI primitives, re-exported from index.ts
+
+src/lib/
+  applications/            queries, actions, apply-action, assignment (reviewer rotation),
+                            exportColumns, consensus
+  auth/                     session, guard, actions, password, session-token
+  benches/                  queries, actions — bench CRUD + juror multi-bench assignment
+  notifications/            queries, actions — @mention parsing + read/unread
+  automation/, analytics/, dashboard/, enrichment/, jobs/, mail/, matching/, scoring/, sources/,
+  stages/, targets/, constants.ts, db.ts, settings.ts
+
+prisma/schema.prisma        the real production schema — see §4 before changing it
+scripts/                    check-adherence.mjs (part of lint), score-all.ts, and a scratch space
+                            for one-off DB scripts — write, run once, delete immediately,
+                            especially anything touching passwords or real user data
+```
+
+## 12. Open items as of the last working session
+
+- Gmail SMTP for the "Prize Applications" sending account is not fully wired up (see §9) — needs
+  a real Google App Password.
+- No other explicitly pending feature requests as of the last message in the previous session.
+
+---
+
+For deeper implementation-level notes (exact bug patterns to avoid, the full history of recent
+feature work, precise file-by-file responsibilities), see **`CLAUDE.md`** in the repo root.
