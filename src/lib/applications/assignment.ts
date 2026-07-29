@@ -1,13 +1,22 @@
 import { prisma } from '@/lib/db';
 
-/** Fixed round-robin order for auto-assignment — only accounts with role === 'REVIEWER' are ever
- *  candidates, ordered by name. Today that's exactly: KC, Nisha Chawla, Paromita Sen, Saba Ahmed,
- *  Sravya Jandhyala. New applications cycle through this list one at a time; once it reaches the
- *  end it wraps back to position 1. Admins and jury never enter the rotation regardless of how
- *  many admin/jury accounts exist — an admin can always hand-assign a specific application from
- *  its detail page if genuinely needed. */
+/** The five people who actually review applications day to day — all still hold the ADMIN role
+ *  (that's their real platform permission level, e.g. dashboard/settings access), so the rotation
+ *  can't be scoped by role. It's a fixed allow-list by email instead: only these five ever enter
+ *  the rotation, no matter how many other ADMIN/JURY accounts exist (new admins, the "Prize
+ *  Applications" sender account, or Tanush's own login never get auto-assigned an application). */
+const ROTATION_EMAILS = [
+  'kc@thedelta.org.in',
+  'nisha.chawla@thedelta.org.in',
+  'paromita.sen@thedelta.org.in',
+  'saba.ahmed@thenudge.org',
+  'sravya.jandhyala@thedelta.org.in',
+];
+
+/** Fixed round-robin order for auto-assignment, ordered by name. New applications cycle through
+ *  this list one at a time; once it reaches the end it wraps back to position 1. */
 async function getRotationOrder() {
-  return prisma.user.findMany({ where: { role: 'REVIEWER' }, orderBy: { name: 'asc' } });
+  return prisma.user.findMany({ where: { email: { in: ROTATION_EMAILS } }, orderBy: { name: 'asc' } });
 }
 
 /** Assigns exactly one person to a newly-created application, continuing the rotation from
