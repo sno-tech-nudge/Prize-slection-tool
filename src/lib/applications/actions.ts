@@ -10,6 +10,7 @@ import { getSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import type { StageStatusValue, InternalDecisionValue } from '@/lib/constants';
 import { RUBRIC_CRITERIA, computeComposite, dispositionFromComposite } from '@/lib/scoring/rubric';
+import { notifyMentionedUsers } from '@/lib/notifications/actions';
 
 /** Stages that trigger an automated email — rejection or a congratulatory confirmation. Stages
  *  not listed here (SCREENING, UNDER_REVIEW, JURY_REVIEW, WITHDRAWN) are internal-only moves. */
@@ -146,6 +147,11 @@ export async function postCommentAction(formData: FormData) {
   await prisma.comment.create({
     data: { applicationId, authorId: user.id, body },
   });
+
+  const application = await prisma.application.findUnique({ where: { id: applicationId }, select: { orgName: true } });
+  if (application) {
+    await notifyMentionedUsers({ applicationId, orgName: application.orgName, authorId: user.id, authorName: user.name, body });
+  }
 
   revalidatePath('/applications');
   revalidatePath(`/applications/${applicationId}`);

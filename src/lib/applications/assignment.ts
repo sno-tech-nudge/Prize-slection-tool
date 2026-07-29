@@ -1,17 +1,12 @@
 import { prisma } from '@/lib/db';
 
-/** The five people who actually review applications day to day — all still hold the ADMIN role
+/** The people who actually review applications day to day — most still hold the ADMIN role
  *  (that's their real platform permission level, e.g. dashboard/settings access), so the rotation
- *  can't be scoped by role. It's a fixed allow-list by email instead: only these five ever enter
- *  the rotation, no matter how many other ADMIN/JURY accounts exist (new admins, the "Prize
- *  Applications" sender account, or Tanush's own login never get auto-assigned an application). */
-const ROTATION_EMAILS = [
-  'kc@thedelta.org.in',
-  'nisha.chawla@thedelta.org.in',
-  'paromita.sen@thedelta.org.in',
-  'saba.ahmed@thenudge.org',
-  'sravya.jandhyala@thedelta.org.in',
-];
+ *  can't be scoped by role. It's a fixed allow-list by email instead: only these ever enter the
+ *  rotation, no matter how many other ADMIN/JURY accounts exist (new admins, the "Prize
+ *  Applications" sender account, or Tanush's own login never get auto-assigned an application).
+ *  KC is deliberately excluded — no new applications should be routed to them. */
+const ROTATION_EMAILS = ['nisha.chawla@thedelta.org.in', 'paromita.sen@thedelta.org.in', 'saba.ahmed@thenudge.org', 'sravya.jandhyala@thedelta.org.in'];
 
 /** Fixed round-robin order for auto-assignment, ordered by name. New applications cycle through
  *  this list one at a time; once it reaches the end it wraps back to position 1. */

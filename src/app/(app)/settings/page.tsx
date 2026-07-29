@@ -5,7 +5,10 @@ import { SupabaseSyncPanel } from '@/components/SupabaseSyncPanel';
 import { UserRoleManager } from '@/components/UserRoleManager';
 
 export default async function SettingsPage() {
-  const users = await listUsers();
+  const allUsers = await listUsers();
+  // jury members are managed on the benches page, not here — showing them in both places invited
+  // editing the same person's login from two different forms.
+  const users = allUsers.filter((u) => u.role !== 'JURY');
   const supabaseConfigured = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_ANON_KEY;
 
   return (

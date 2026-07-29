@@ -9,6 +9,7 @@ import { Logo, Badge } from '@/design-system';
 import { logoutAction } from '@/lib/auth/actions';
 import { JobQueueTicker } from '@/components/JobQueueTicker';
 import { SupabaseSyncTicker } from '@/components/SupabaseSyncTicker';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface NavItem {
   href: string;
@@ -91,6 +92,7 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <SupabaseSyncTicker />
           <JobQueueTicker />
+          {user && <NotificationBell />}
           {user && (
             <>
               <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{user.name}</span>

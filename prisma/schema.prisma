@@ -57,6 +57,7 @@ model User {
   assignments      ReviewAssignment[]
   comments         Comment[]
   notes            Note[]
+  notifications    Notification[]
 }
 
 // A jury panel — a small group of jurors reviewing the same subset of shortlisted applications.
@@ -289,6 +290,7 @@ model Application {
   outboxEmails      OutboxEmail[]
   comments          Comment[]
   notes             Note[]
+  notifications     Notification[]
 }
 
 // internal team discussion thread on an application — separate from the formal HumanReview /
@@ -301,6 +303,22 @@ model Comment {
   author        User        @relation(fields: [authorId], references: [id])
   body          String
   createdAt     DateTime    @default(now())
+}
+
+// one row per person @mentioned in a Comment — powers the notification bell in the top nav.
+// applicationId/orgName are denormalized off the comment so a notification still reads sensibly
+// even if the comment or its author is later removed.
+model Notification {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  message       String
+  read          Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  @@index([userId, read])
 }
 
 // a reviewer's own private scratchpad on an application — one per (application, author), never
