@@ -27,7 +27,7 @@ function pillStyle(active: boolean): React.CSSProperties {
 function ReviewStageToggle({ applicationId, currentStage }: { applicationId: string; currentStage: StageStatusValue }) {
   const [pending, setPending] = React.useState(false);
   const reviewed = currentStage === 'UNDER_REVIEW';
-  const rejectOrWithdraw = LEGAL_TRANSITIONS[currentStage].filter((s) => s === 'REJECTED' || s === 'WITHDRAWN');
+  const rejectOptions = LEGAL_TRANSITIONS[currentStage].filter((s) => s === 'REJECTED');
 
   async function setReviewed(value: boolean) {
     setPending(true);
@@ -51,7 +51,7 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
           reviewed
         </button>
       </div>
-      {rejectOrWithdraw.length > 0 && (
+      {rejectOptions.length > 0 && (
         <form
           action={async (formData) => {
             setPending(true);
@@ -64,7 +64,7 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
           style={{ display: 'flex', gap: 'var(--space-3)' }}
         >
           <input type="hidden" name="applicationId" value={applicationId} />
-          {rejectOrWithdraw.map((s) => (
+          {rejectOptions.map((s) => (
             <button
               key={s}
               type="submit"
@@ -73,7 +73,7 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
               disabled={pending}
               style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
             >
-              {s === 'REJECTED' ? 'reject application' : 'withdraw application'}
+              reject application
             </button>
           ))}
         </form>
@@ -90,9 +90,11 @@ export function StageActionBar({ applicationId, currentStage }: { applicationId:
 }
 
 /** Full validated stage dropdown for applications already past the early-review zone —
- *  shortlist/jury/finalist/winner/reject/withdraw progression. */
+ *  shortlist/jury/finalist/winner/reject progression. Withdrawal isn't offered as an admin-side
+ *  action here — WITHDRAWN remains a legal stage (e.g. for data already in that state) but no UI
+ *  on the individual application initiates it. */
 function LegalTransitionForm({ applicationId, currentStage }: { applicationId: string; currentStage: StageStatusValue }) {
-  const options = LEGAL_TRANSITIONS[currentStage] ?? [];
+  const options = (LEGAL_TRANSITIONS[currentStage] ?? []).filter((s) => s !== 'WITHDRAWN');
   const [toStatus, setToStatus] = React.useState<string>(options[0] ?? '');
   const [pending, setPending] = React.useState(false);
 
