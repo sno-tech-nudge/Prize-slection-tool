@@ -96,20 +96,23 @@ export async function getReviewDecisionFunnel() {
  *  permanent 0/0 row, and an admin who genuinely was hand-assigned a review still shows
  *  correctly without needing to be added to any allow-list. */
 export async function getReviewerStats() {
-  const [users, assignments, reviews] = await Promise.all([
+  const [users, assignments] = await Promise.all([
     prisma.user.findMany({ select: { id: true, name: true } }),
-    prisma.reviewAssignment.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
-    prisma.humanReview.findMany({ where: { application: { isDuplicateOf: null } }, select: { reviewerId: true, applicationId: true } }),
+    prisma.reviewAssignment.findMany({
+      where: { application: { isDuplicateOf: null } },
+      select: { reviewerId: true, application: { select: { stageStatus: true } } },
+    }),
   ]);
   const namesById = new Map(users.map((u) => [u.id, u.name]));
-  const reviewedSet = new Set(reviews.map((r) => `${r.reviewerId}:${r.applicationId}`));
   const byUser = new Map<string, { name: string; assigned: number; reviewed: number }>();
   for (const a of assignments) {
     const name = namesById.get(a.reviewerId);
     if (!name) continue;
     const entry = byUser.get(a.reviewerId) ?? { name, assigned: 0, reviewed: 0 };
     entry.assigned++;
-    if (reviewedSet.has(`${a.reviewerId}:${a.applicationId}`)) entry.reviewed++;
+    // same reviewed definition as everywhere else (reviewStatus.ts) — the application's stage,
+    // not whether this particular reviewer submitted a score.
+    if (isReviewed(a.application)) entry.reviewed++;
     byUser.set(a.reviewerId, entry);
   }
   return [...byUser.values()]
