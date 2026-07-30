@@ -112,7 +112,7 @@ export default async function DashboardPage() {
     getReviewDecisionFunnel(),
     listRecentMatches(4),
     getTargetStats(),
-    getRecentActivity(),
+    getRecentActivity(30),
     getOperatingModelMix(),
     getOperatingBudgetMix(),
     getStateApplicationMix(),
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
 
           <Card>
             <SectionHeader title="recent activity" />
-            <div>
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
               {activity.map((t) => (
                 <div
                   key={t.id}

@@ -16,6 +16,13 @@ export interface OutboxTableRowData {
   sentAt: string | null;
 }
 
+// date + time of day, not just the date — so it's actually possible to tell when an email went
+// out, not just which day.
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
 const TONE_FOR_STATUS: Record<string, 'neutral' | 'red' | 'ink' | 'yellow' | 'outline'> = {
   QUEUED: 'yellow',
   APPROVED: 'outline',
@@ -159,9 +166,9 @@ function OutboxTableRow({
           {template.replace(/_/g, ' ')}
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-          {new Date(createdAt).toLocaleDateString('en-GB')}
+          {formatDateTime(createdAt)}
           {sentAt ? (
-            <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>sent {new Date(sentAt).toLocaleDateString('en-GB')}</div>
+            <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>sent {formatDateTime(sentAt)}</div>
           ) : null}
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
