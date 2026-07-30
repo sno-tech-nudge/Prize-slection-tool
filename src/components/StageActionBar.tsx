@@ -22,11 +22,9 @@ function pillStyle(active: boolean, disabled: boolean): React.CSSProperties {
 }
 
 /** Early-pipeline applications (not yet shortlisted) get a plain two-state pipeline-stage toggle
- *  instead of the full stage dropdown. This only moves `stageStatus` between SUBMITTED and
- *  UNDER_REVIEW — it is NOT the same signal as "reviewed" elsewhere in the app (that's derived
- *  purely from whether a HumanReview exists, see ReviewStatusDropdown / visibleApplicationWhere).
- *  Labels intentionally say "submitted"/"under review", not "reviewed"/"not reviewed", so this
- *  control can't be mistaken for the thing that drives the dashboard KPI and applications filter.
+ *  instead of the full stage dropdown. This moves `stageStatus` between SUBMITTED and
+ *  UNDER_REVIEW — labeled "not reviewed"/"reviewed", which IS the same reviewed signal used
+ *  everywhere else in the app (dashboard KPI, applications filter/badge — see reviewStatus.ts).
  *  Applications that have already progressed to shortlist or beyond fall through to the full
  *  stage dropdown below, since that real progression (jury / finalist / winner / reject) still
  *  needs the validated stage machine.
@@ -65,10 +63,10 @@ function ReviewStageToggle({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
         <button type="button" disabled={disabled} onClick={() => setStage(false)} style={pillStyle(!underReview, disabled)}>
-          {STAGE_STATUS_LABEL.SUBMITTED}
+          not reviewed
         </button>
         <button type="button" disabled={disabled} onClick={() => setStage(true)} style={pillStyle(underReview, disabled)}>
-          {STAGE_STATUS_LABEL.UNDER_REVIEW}
+          reviewed
         </button>
       </div>
       {canManage && rejectOptions.length > 0 && (
