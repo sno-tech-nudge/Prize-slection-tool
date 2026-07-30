@@ -161,6 +161,7 @@ export default async function ApplicationsPage({
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <RubricSidePanel />
             <ExportCsvButton searchParams={searchParams} />
+            <ExportCsvButton searchParams={searchParams} mine />
           </div>
         }
       />

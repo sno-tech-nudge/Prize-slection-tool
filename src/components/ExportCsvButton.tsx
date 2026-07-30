@@ -6,7 +6,10 @@ import { EXPORT_COLUMNS } from '@/lib/applications/exportColumns';
 const DEFAULT_IDS = EXPORT_COLUMNS.filter((c) => c.defaultOn).map((c) => c.id);
 const ALL_IDS = EXPORT_COLUMNS.map((c) => c.id);
 
-export function ExportCsvButton({ searchParams }: { searchParams: Record<string, string | undefined> }) {
+/** `mine` scopes the export to applications assigned to the signed-in user (same `assignedToMe`
+ *  filter the applications list itself already supports server-side) — everything else about the
+ *  dialog and download flow is identical to the "all applications" export. */
+export function ExportCsvButton({ searchParams, mine = false }: { searchParams: Record<string, string | undefined>; mine?: boolean }) {
   const [open, setOpen] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set(DEFAULT_IDS));
 
@@ -24,6 +27,7 @@ export function ExportCsvButton({ searchParams }: { searchParams: Record<string,
     for (const [key, value] of Object.entries(searchParams)) {
       if (value) params.set(key, value);
     }
+    if (mine) params.set('assignedToMe', '1');
     params.set('fields', [...selected].join(','));
     window.location.href = `/api/applications/export?${params.toString()}`;
     setOpen(false);
@@ -32,13 +36,13 @@ export function ExportCsvButton({ searchParams }: { searchParams: Record<string,
   return (
     <>
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        export CSV
+        export {mine ? 'my' : 'all'} applications
       </Button>
 
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="choose columns to export"
+        title={mine ? 'choose columns to export — my applications' : 'choose columns to export'}
         footer={
           <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
             <Button variant="ghost" onClick={() => setOpen(false)}>

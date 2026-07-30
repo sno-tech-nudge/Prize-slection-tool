@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
       category: params.get('category') ?? undefined,
       q: params.get('q') ?? undefined,
       internal: params.get('internal') ?? undefined,
+      assignedToMe: params.get('assignedToMe') ?? undefined,
     },
     user,
     true,
