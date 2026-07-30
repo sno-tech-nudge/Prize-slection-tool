@@ -7,6 +7,7 @@ const SECTIONS = [
   { id: 'section-experience-impact', label: 'experience & impact' },
   { id: 'section-scoring', label: 'scoring & evaluation' },
   { id: 'section-scraper', label: 'scraper data' },
+  { id: 'section-additional-information', label: 'additional information' },
 ];
 
 /** Quick-jump nav mirroring the real application form's own step names (organisation profile /

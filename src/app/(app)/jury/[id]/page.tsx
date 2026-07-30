@@ -7,9 +7,9 @@ import { getApplicationDetail } from '@/lib/applications/queries';
 import { getCurrentUser } from '@/lib/auth/session';
 
 /** The internal team's jury-dashboard detail page — a single full-width jury score card, no
- *  application content and no admin sidebar. Section 1 (this banner): org name, its AI/int
- *  score, and a link out to the full application record. Section 2+3 (JuryScoreCard): avg score,
- *  then every juror's per-criterion breakdown side by side. */
+ *  application content and no admin sidebar. Section 1 (this banner): org name, its int (human
+ *  review team) score, and a link out to the full application record. Section 2+3
+ *  (JuryScoreCard): avg score, then every juror's per-criterion breakdown side by side. */
 export default async function JuryDashboardDetailPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
   if (user?.role === 'JURY') redirect(`/applications/${params.id}`);
@@ -17,7 +17,12 @@ export default async function JuryDashboardDetailPage({ params }: { params: { id
   const app = await getApplicationDetail(params.id);
   if (!app) notFound();
 
-  const intScore = app.aiEvaluations[0]?.composite;
+  // the internal (human) review team's own score — not the automatic AI read — null until
+  // someone on the review team has actually scored it.
+  const internalScore =
+    app.humanReviews.length > 0
+      ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
+      : undefined;
 
   return (
     <div>
@@ -28,7 +33,7 @@ export default async function JuryDashboardDetailPage({ params }: { params: { id
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
-            {intScore !== undefined && <CompositeBadge score={intScore} />}
+            {internalScore !== undefined && <CompositeBadge score={internalScore} />}
             <Link href={`/applications/${app.id}`}>
               <Button variant="secondary">view application</Button>
             </Link>

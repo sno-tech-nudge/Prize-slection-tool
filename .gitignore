@@ -11,3 +11,6 @@ prisma/dev.db-journal
 
 # Local Netlify folder
 .netlify
+
+.vercel
+.env*

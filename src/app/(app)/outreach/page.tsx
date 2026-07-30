@@ -28,7 +28,11 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
         <EmailTemplateEditor
-          templates={{ acceptance: settings.emailTemplateAcceptance, rejection: settings.emailTemplateRejection }}
+          templates={{
+            acceptance: settings.emailTemplateAcceptance,
+            rejection: settings.emailTemplateRejection,
+            query: settings.emailTemplateQuery,
+          }}
           canManage={canSend}
         />
 

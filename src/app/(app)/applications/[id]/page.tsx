@@ -15,6 +15,7 @@ import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
+import { canScoreApplication } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { slugify } from '@/lib/sources/normalize';
 import { STAGE_STATUS_LABEL, type StageStatusValue } from '@/lib/constants';
@@ -44,17 +45,25 @@ export default async function ApplicationDetailPage({
   const eligibilityScreen = evaluateEligibility(app);
   const isAdmin = user?.role === 'ADMIN';
   const isJury = user?.role === 'JURY';
+  const isObserver = user?.role === 'OBSERVER';
+  // observers get the same "first four sections only, no AI evaluation / scraper checks / paper
+  // score" treatment jury already gets — reusing the exact same gating rather than duplicating
+  // it, since the two roles are meant to see an identical slice of the application record.
+  const hideInternalSections = isJury || isObserver;
   const myReview = app.humanReviews.find((r) => r.reviewerId === user?.id);
   const myJuryScore = app.juryScores.find((s) => s.jurorId === user?.id);
+  // a reviewer not assigned to this application shouldn't see a scoring entry point that would
+  // just be rejected on submit — admin can always score anything, matching every other override.
+  const canScore = canScoreApplication(user, app.reviewAssignments);
 
   return (
     <div>
       <ApplicationPagerKeys prevId={adjacent.prevId} nextId={adjacent.nextId} queryString={pagerQueryString} />
-      {isJury && (
+      {user && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <Link href={`/applications${pagerQueryString}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
             <ChevronLeft size={16} strokeLinejoin="miter" strokeLinecap="square" />
-            back to applications
+            go back to applications dashboard
           </Link>
         </div>
       )}
@@ -65,10 +74,10 @@ export default async function ApplicationDetailPage({
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
-            {user && !isJury && (
+            {user && !hideInternalSections && canScore && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}
-            <DownloadPdfButton filename={slugify(app.orgName)} />
+            {!isObserver && <DownloadPdfButton filename={slugify(app.orgName)} />}
           </div>
         }
       />
@@ -88,7 +97,7 @@ export default async function ApplicationDetailPage({
         </div>
       )}
 
-      {!eligibilityScreen.eligible && (
+      {!isObserver && !eligibilityScreen.eligible && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <div style={{ background: 'var(--delta-red)', color: 'var(--text-inverse)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
             <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
@@ -104,7 +113,7 @@ export default async function ApplicationDetailPage({
         </div>
       )}
 
-      {!isJury && eligibilityScreen.eligible && eligibilityScreen.identityGaps.length > 0 && (
+      {!isJury && !isObserver && eligibilityScreen.eligible && eligibilityScreen.identityGaps.length > 0 && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <div style={{ background: 'var(--delta-yellow)', color: 'var(--delta-charcoal)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
             <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
@@ -150,28 +159,39 @@ export default async function ApplicationDetailPage({
         )}
       </div>
 
-      <div data-pdf-grid="true" style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-8)' }}>
-        <ApplicationMainContent app={app} isJury={isJury} user={user} />
+      <div
+        data-pdf-grid="true"
+        style={{
+          padding: 'var(--space-10)',
+          maxWidth: 'var(--container-xl)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: isObserver ? '1fr' : '2fr 1fr',
+          gap: 'var(--space-8)',
+        }}
+      >
+        <ApplicationMainContent app={app} isJury={hideInternalSections} isObserver={isObserver} user={user} />
 
+        {!isObserver && (
         <div data-pdf-exclude="true">
           {isJury ? (
             <JurySidePanel applicationId={app.id} myScore={myJuryScore} />
           ) : (
             <>
-              {isAdmin && (
+              {(isAdmin || user?.role === 'REVIEWER') && (
                 <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
                   <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
-                  <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} />
+                  <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} canManage={isAdmin} />
                 </Card>
               )}
 
-              {isAdmin && (
+              {(isAdmin || user?.role === 'REVIEWER') && (
                 <Card style={{ marginBottom: 'var(--space-6)' }}>
                   <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>decision status</h2>
                   <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
                     only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
                   </p>
-                  <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} />
+                  <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} canManage={isAdmin} />
                 </Card>
               )}
 
@@ -225,6 +245,7 @@ export default async function ApplicationDetailPage({
             </>
           )}
         </div>
+        )}
       </div>
     </div>
   );

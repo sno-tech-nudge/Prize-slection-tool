@@ -35,7 +35,7 @@ function walk(dir) {
     if (st.isDirectory()) {
       if (entry === 'design-system') continue; // the DS port itself defines the tokens
       walk(full);
-    } else if (EXT.has(extname(entry)) && !EXEMPT_FILES.some((f) => full.endsWith(f))) {
+    } else if (EXT.has(extname(entry)) && !EXEMPT_FILES.some((f) => full.split(/[\\/]/).join('/').endsWith(f))) {
       checkFile(full);
     }
   }

@@ -8,7 +8,7 @@ export interface InternalJuryRowData {
   id: string;
   orgName: string;
   bench: { name: string; jurors: { id: string; name: string }[] } | null;
-  aiEvaluations: { composite: number }[];
+  humanReviews: { composite: number }[];
   juryScores: { jurorId: string; composite: number }[];
 }
 
@@ -24,7 +24,10 @@ export interface InternalJuryRowData {
 export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRowData; jurorColumnCount: number }) {
   const router = useRouter();
   const href = `/jury/${app.id}`;
-  const intScore = app.aiEvaluations[0]?.composite;
+  // the internal (human) review team's own score — not the automatic AI read — null until
+  // someone on the review team has actually scored it.
+  const internalScore =
+    app.humanReviews.length > 0 ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length) : null;
   const avgJuryScore =
     app.juryScores.length > 0 ? Math.round(app.juryScores.reduce((sum, s) => sum + s.composite, 0) / app.juryScores.length) : null;
   const scoresByJurorId = new Map(app.juryScores.map((s) => [s.jurorId, s.composite]));
@@ -41,7 +44,7 @@ export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRo
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{app.bench?.name ?? '—'}</td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        {intScore !== undefined ? <CompositeBadge score={intScore} /> : <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>}
+        {internalScore !== null ? <CompositeBadge score={internalScore} /> : <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>}
       </td>
       {Array.from({ length: jurorColumnCount }, (_, i) => {
         const juror = app.bench?.jurors[i];

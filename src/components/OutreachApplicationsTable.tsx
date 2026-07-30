@@ -1,9 +1,9 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, Badge, Button, Checkbox, Select, Dialog } from '@/design-system';
+import { Card, Badge, Button, Checkbox, Select, Dialog, Input, useToast } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
-import { bulkQueueOutreachAction, previewOutreachEmailAction, sendIndividualOutreachAction } from '@/lib/mail/actions';
+import { bulkSendOutreachAction, previewOutreachEmailAction, sendIndividualOutreachAction } from '@/lib/mail/actions';
 
 export interface OutreachApplicationRow {
   id: string;
@@ -20,19 +20,37 @@ const DECISION_TONE: Record<string, 'red' | 'neutral' | 'outline'> = {
   NO: 'neutral',
 };
 
+const BULK_TEMPLATE_KIND: Record<string, string> = {
+  bulk_acceptance: 'acceptance',
+  bulk_rejection: 'rejection',
+  bulk_query: 'query',
+};
+
 function outreachStatus(row: OutreachApplicationRow): string {
-  const bulk = row.outboxEmails.find((e) => e.template === 'bulk_acceptance' || e.template === 'bulk_rejection');
+  const bulk = row.outboxEmails.find((e) => e.template in BULK_TEMPLATE_KIND);
   if (!bulk) return 'not contacted';
-  const kind = bulk.template === 'bulk_acceptance' ? 'acceptance' : 'rejection';
-  return `${kind} ${bulk.status.toLowerCase()}`;
+  return `${BULK_TEMPLATE_KIND[bulk.template]} ${bulk.status.toLowerCase()}`;
 }
 
 export function OutreachApplicationsTable({ applications, canSend }: { applications: OutreachApplicationRow[]; canSend: boolean }) {
   const router = useRouter();
+  const { push } = useToast();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
-  const [pending, setPending] = React.useState<'acceptance' | 'rejection' | null>(null);
+  const [pending, setPending] = React.useState<'acceptance' | 'rejection' | 'query' | null>(null);
+  const [query, setQuery] = React.useState('');
 
-  const allSelected = applications.length > 0 && selected.size === applications.length;
+  const filteredApplications = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return applications;
+    return applications.filter(
+      (a) =>
+        a.orgName.toLowerCase().includes(q) ||
+        `${a.pocFirstName} ${a.pocLastName}`.toLowerCase().includes(q) ||
+        a.email.toLowerCase().includes(q),
+    );
+  }, [applications, query]);
+
+  const allSelected = filteredApplications.length > 0 && filteredApplications.every((a) => selected.has(a.id));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -44,29 +62,53 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
   }
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(applications.map((a) => a.id)));
+    setSelected((prev) => {
+      if (allSelected) {
+        const next = new Set(prev);
+        filteredApplications.forEach((a) => next.delete(a.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filteredApplications.forEach((a) => next.add(a.id));
+      return next;
+    });
   }
 
-  async function runBulk(kind: 'acceptance' | 'rejection') {
-    if (selected.size === 0) return;
-    const verb = kind === 'acceptance' ? 'queue an acceptance email' : 'queue a rejection email';
-    const confirmed = window.confirm(
-      `${verb} for ${selected.size} application${selected.size === 1 ? '' : 's'}? this only adds them to the review queue below — nothing is sent until you approve it there.`,
-    );
-    if (!confirmed) return;
+  // an in-app Dialog instead of window.confirm() — see the matching note on the per-row send
+  // confirmation below; native confirm() is silently swallowed by CDP-automated browsers
+  // (including the Claude Code preview pane), which made bulk actions look like dead buttons
+  // when tested there.
+  const [confirmKind, setConfirmKind] = React.useState<'acceptance' | 'rejection' | 'query' | null>(null);
 
+  async function runBulk(kind: 'acceptance' | 'rejection' | 'query') {
+    setConfirmKind(null);
     setPending(kind);
     try {
       const formData = new FormData();
       selected.forEach((id) => formData.append('applicationId', id));
       formData.set('kind', kind);
-      await bulkQueueOutreachAction(formData);
+      const result = await bulkSendOutreachAction(formData);
       setSelected(new Set());
+      const parts = [`${result.sent} sent`];
+      if (result.failed) parts.push(`${result.failed} failed`);
+      if (result.skipped) parts.push(`${result.skipped} already contacted, skipped`);
+      push(
+        result.failed ? 'sent with errors' : 'sent',
+        result.errors.length ? `${parts.join(', ')}. ${result.errors.join(' ')}` : parts.join(', '),
+        result.failed ? 'error' : 'success',
+      );
       router.refresh();
     } finally {
       setPending(null);
     }
   }
+
+  const bulkVerb =
+    confirmKind === 'acceptance'
+      ? 'send an acceptance email'
+      : confirmKind === 'rejection'
+        ? 'send a rejection email'
+        : 'send a query email';
 
   return (
     <Card padding="0" style={{ overflowX: 'auto' }}>
@@ -83,18 +125,47 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
           }}
         >
           <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-            {selected.size} selected — bulk actions queue emails for review below, they are never sent automatically.
+            {selected.size} selected — bulk actions send immediately once you confirm, straight to each applicant.
           </span>
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => runBulk('acceptance')}>
-              {pending === 'acceptance' ? 'queuing…' : 'bulk send (acceptance)'}
+          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Input
+              placeholder="search by name or email"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              containerStyle={{ width: 220, minWidth: 0 }}
+              style={{ height: 34, boxSizing: 'border-box', fontSize: 'var(--fs-caption)', padding: '0 var(--space-3)' }}
+            />
+            <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => setConfirmKind('acceptance')}>
+              {pending === 'acceptance' ? 'sending…' : 'bulk send (acceptance)'}
             </Button>
-            <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => runBulk('rejection')}>
-              {pending === 'rejection' ? 'queuing…' : 'bulk reject'}
+            <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => setConfirmKind('rejection')}>
+              {pending === 'rejection' ? 'sending…' : 'bulk reject'}
+            </Button>
+            <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => setConfirmKind('query')}>
+              {pending === 'query' ? 'sending…' : 'bulk send (query)'}
             </Button>
           </div>
         </div>
       )}
+
+      <Dialog
+        open={confirmKind !== null}
+        onClose={() => setConfirmKind(null)}
+        title="confirm bulk action"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmKind(null)}>
+              cancel
+            </Button>
+            <Button variant="cta" size="sm" onClick={() => confirmKind && runBulk(confirmKind)}>
+              confirm
+            </Button>
+          </>
+        }
+      >
+        {bulkVerb} for {selected.size} application{selected.size === 1 ? '' : 's'}? this sends right away — applications already
+        contacted with this template are skipped.
+      </Dialog>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
@@ -121,7 +192,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
           </tr>
         </thead>
         <tbody>
-          {applications.map((app) => (
+          {filteredApplications.map((app) => (
             <OutreachApplicationTableRow
               key={app.id}
               app={app}
@@ -130,7 +201,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
               onToggle={() => toggle(app.id)}
             />
           ))}
-          {applications.length === 0 && (
+          {filteredApplications.length === 0 && (
             <tr>
               <td colSpan={canSend ? 6 : 4} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 no applications match this filter.
@@ -155,11 +226,18 @@ function OutreachApplicationTableRow({
   onToggle: () => void;
 }) {
   const router = useRouter();
-  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(app.internalDecision === 'YES' ? 'acceptance' : 'rejection');
+  const { push } = useToast();
+  const [kind, setKind] = React.useState<'acceptance' | 'rejection' | 'query'>(app.internalDecision === 'YES' ? 'acceptance' : 'rejection');
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [preview, setPreview] = React.useState<{ subject: string; body: string } | null>(null);
   const [sending, setSending] = React.useState(false);
+  // an in-app Dialog instead of window.confirm() — native confirm() dialogs are invisible to
+  // (and silently auto-dismissed by) any CDP-automated browser, including the Claude Code
+  // preview pane, which made this button look like it did nothing at all when tested there. A
+  // real in-DOM dialog needs the same explicit click to proceed either way, so the "no email
+  // sends without a human approving it" guarantee is unchanged.
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
 
   async function openPreview() {
     setPreview(null);
@@ -177,15 +255,15 @@ function OutreachApplicationTableRow({
   }
 
   async function sendNow() {
-    const confirmed = window.confirm(`send a ${kind} email to ${app.pocFirstName} ${app.pocLastName} (${app.email}) right now?`);
-    if (!confirmed) return;
-
+    setConfirmOpen(false);
     setSending(true);
     try {
       const formData = new FormData();
       formData.set('applicationId', app.id);
       formData.set('kind', kind);
-      await sendIndividualOutreachAction(formData);
+      const result = await sendIndividualOutreachAction(formData);
+      if (result.status === 'SENT') push('sent', `${kind} email to ${app.orgName} sent.`, 'success');
+      else push('send failed', result.error ?? `${kind} email to ${app.orgName} could not be sent.`, 'error');
       router.refresh();
     } finally {
       setSending(false);
@@ -220,14 +298,15 @@ function OutreachApplicationTableRow({
         {canSend && (
           <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <Select aria-label={`template for ${app.orgName}`} value={kind} onChange={(e) => setKind(e.target.value as 'acceptance' | 'rejection')}>
+              <Select aria-label={`template for ${app.orgName}`} value={kind} onChange={(e) => setKind(e.target.value as 'acceptance' | 'rejection' | 'query')}>
                 <option value="acceptance">acceptance</option>
                 <option value="rejection">rejection</option>
+                <option value="query">query</option>
               </Select>
               <Button variant="secondary" size="sm" onClick={openPreview}>
                 preview
               </Button>
-              <Button variant="cta" size="sm" disabled={sending} onClick={sendNow}>
+              <Button variant="cta" size="sm" disabled={sending} onClick={() => setConfirmOpen(true)}>
                 {sending ? 'sending…' : 'send'}
               </Button>
             </div>
@@ -241,6 +320,24 @@ function OutreachApplicationTableRow({
         ) : (
           <iframe title="email preview" srcDoc={preview.body} style={{ width: '100%', height: 420, border: '1px solid var(--border-subtle)' }} />
         )}
+      </Dialog>
+
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="send this email?"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(false)}>
+              cancel
+            </Button>
+            <Button variant="cta" size="sm" onClick={sendNow}>
+              send now
+            </Button>
+          </>
+        }
+      >
+        send a {kind} email to {app.pocFirstName} {app.pocLastName} ({app.email}) right now?
       </Dialog>
     </>
   );

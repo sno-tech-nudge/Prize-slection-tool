@@ -23,13 +23,13 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
   { href: '/applications', label: 'applications', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER', 'JURY'] },
   { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
-  { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
+  { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER'] },
 ];
 
 // internal oversight — every bench, every juror's individual score, for the team running the
 // jury process. distinct from what a jury member sees on /applications (their own bench only,
-// trimmed columns, blind until they submit).
-const JURY_OVERSIGHT_ITEM: NavItem = { href: '/jury', label: 'jury', icon: Gavel, roles: ['ADMIN'] };
+// trimmed columns, blind until they submit). Reviewers get the identical full view admins do.
+const JURY_OVERSIGHT_ITEM: NavItem = { href: '/jury', label: 'jury', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
 
 // reachable, but not counted among the 4 modules — admin-only configuration
 const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] };
@@ -92,7 +92,7 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <SupabaseSyncTicker />
           <JobQueueTicker />
-          {user && <NotificationBell />}
+          {user && user.role !== 'OBSERVER' && <NotificationBell />}
           {user && (
             <>
               <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{user.name}</span>

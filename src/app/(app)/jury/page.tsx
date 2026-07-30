@@ -16,7 +16,13 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
   if (user?.role === 'JURY') redirect('/applications');
 
   const [applications, benches] = await Promise.all([
-    listJuryOversight({ q: searchParams.q, bench: searchParams.bench, score: searchParams.score }),
+    listJuryOversight({
+      q: searchParams.q,
+      bench: searchParams.bench,
+      intScore: searchParams.intScore,
+      score: searchParams.score,
+      sort: searchParams.sort,
+    }),
     listBenches(),
   ]);
 

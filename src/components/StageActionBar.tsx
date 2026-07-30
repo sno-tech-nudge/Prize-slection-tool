@@ -82,7 +82,26 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
   );
 }
 
-export function StageActionBar({ applicationId, currentStage }: { applicationId: string; currentStage: StageStatusValue }) {
+/** `canManage` gates the actual controls — stage transitions are an admin-only action
+ *  server-side (CAN_TRANSITION_STAGE), so a viewer without that power (e.g. a reviewer, who can
+ *  see this panel but not act on it) gets a plain read-only stage badge instead of buttons that
+ *  would just fail on click. */
+export function StageActionBar({
+  applicationId,
+  currentStage,
+  canManage,
+}: {
+  applicationId: string;
+  currentStage: StageStatusValue;
+  canManage: boolean;
+}) {
+  if (!canManage) {
+    return (
+      <div style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+        current stage: <strong style={{ color: 'var(--text-primary)' }}>{STAGE_STATUS_LABEL[currentStage]}</strong>
+      </div>
+    );
+  }
   if (EARLY_PIPELINE_STAGES.includes(currentStage)) {
     return <ReviewStageToggle applicationId={applicationId} currentStage={currentStage} />;
   }

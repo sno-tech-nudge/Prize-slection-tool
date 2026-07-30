@@ -15,7 +15,19 @@ function pillStyle(active: boolean, tone: 'red' | 'neutral'): React.CSSPropertie
   };
 }
 
-export function DecisionStatusButtons({ applicationId, current }: { applicationId: string; current: string | null }) {
+/** `canManage` gates the actual buttons — the decision gate is an admin-only action server-side
+ *  (CAN_TRANSITION_STAGE), so a viewer without that power (e.g. a reviewer, who can see this
+ *  panel but not act on it) gets a plain read-only badge instead of buttons that would just fail
+ *  on click. */
+export function DecisionStatusButtons({
+  applicationId,
+  current,
+  canManage,
+}: {
+  applicationId: string;
+  current: string | null;
+  canManage: boolean;
+}) {
   const [pending, setPending] = React.useState(false);
 
   async function decide(decision: 'YES' | 'NO' | 'CLEAR') {
@@ -28,6 +40,11 @@ export function DecisionStatusButtons({ applicationId, current }: { applicationI
     } finally {
       setPending(false);
     }
+  }
+
+  if (!canManage) {
+    const label = current === 'YES' ? 'decision: yes' : current === 'NO' ? 'decision: no' : 'undecided';
+    return <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{label}</span>;
   }
 
   return (

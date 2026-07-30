@@ -70,6 +70,11 @@ export class ResendMailer implements Mailer {
  * ResendMailer does — the admin already reviews and can edit every email in the outbox before
  * clicking send, which is the human-in-the-loop gate for this path.
  */
+// the only account outbound mail is ever allowed to send through — never a teammate's personal
+// inbox. Enforced here, at the one choke point every send (individual or bulk) passes through,
+// rather than trusting whichever GMAIL_USER happens to be configured in the environment.
+const REQUIRED_SENDER = 'applications@thedelta.org.in';
+
 export class GmailSmtpMailer implements Mailer {
   provider = 'gmail';
 
@@ -78,6 +83,9 @@ export class GmailSmtpMailer implements Mailer {
     const appPassword = process.env.GMAIL_APP_PASSWORD;
     if (!user || !appPassword) {
       return { status: 'FAILED', error: 'GMAIL_USER / GMAIL_APP_PASSWORD not set' };
+    }
+    if (user.toLowerCase() !== REQUIRED_SENDER) {
+      return { status: 'FAILED', error: 'mail cannot be sent through a personal ID' };
     }
 
     const to = process.env.TEST_EMAIL_OVERRIDE || email.to;
@@ -88,17 +96,43 @@ export class GmailSmtpMailer implements Mailer {
         service: 'gmail',
         auth: { user, pass: appPassword },
       });
-      await transporter.sendMail({
+      // an HTML-only message with no plain-text alternative is itself a common spam signal —
+      // most legitimate mail (and every major ESP) sends both parts, so this narrows the gap
+      // versus more heavily-scrutinized HTML-only sends from a script.
+      const info = await transporter.sendMail({
         from: `the^delta prize <${user}>`,
         to,
         subject: email.subject,
         html: email.body,
+        text: htmlToPlainText(email.body),
       });
+      // sendMail() resolving doesn't guarantee the recipient actually accepted the message — for
+      // a single-recipient send it normally throws on an outright rejection, but checking
+      // `accepted` explicitly catches any edge case where it resolves without the recipient in
+      // that list, instead of reporting SENT on a send that didn't really succeed.
+      if (!info.accepted?.some((a) => String(a).toLowerCase().includes(to.toLowerCase()))) {
+        return {
+          status: 'FAILED',
+          error: `recipient not confirmed accepted by SMTP server (response: ${info.response ?? 'no response'})`,
+        };
+      }
       return { status: 'SENT', sentAt: new Date() };
     } catch (err) {
       return { status: 'FAILED', error: err instanceof Error ? err.message : 'unknown error' };
     }
   }
+}
+
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|table)>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function getMailer(): Mailer {

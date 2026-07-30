@@ -14,6 +14,8 @@ export interface StageEmailParams {
   orgName: string;
   challengeName: string;
   personalNote?: string;
+  /** only used by the query-outreach template — the link to the additional-information form. */
+  formLink?: string;
 }
 
 function shell(bodyHtml: string): string {
@@ -162,7 +164,8 @@ export function renderCustomTemplate(template: { subject: string; body: string }
     s
       .replaceAll('{{orgName}}', params.orgName)
       .replaceAll('{{pocFirstName}}', params.pocFirstName)
-      .replaceAll('{{challengeName}}', params.challengeName);
+      .replaceAll('{{challengeName}}', params.challengeName)
+      .replaceAll('{{formLink}}', params.formLink ?? '');
 
   const bodyHtml = replace(template.body)
     .split(/\n{2,}/)

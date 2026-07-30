@@ -243,6 +243,17 @@ export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult
   const rows = (data ?? []) as SupabaseApplicationRow[];
   const result: SupabaseSyncResult = { fetched: rows.length, created: 0, updated: 0, skipped: [] };
 
+  // one batch lookup instead of one findUnique per row — against a remote pooler at ~150-600ms
+  // fixed latency per round trip (same cost noted elsewhere in this codebase), doing this
+  // per-row for every application on every tick was the actual cause of ~20-30s sync ticks
+  // running almost continuously in the background, which was clogging shared DB connections
+  // and stalling unrelated concurrent requests (like an outreach send) behind it.
+  const existingRows = await prisma.application.findMany({
+    where: { externalId: { in: rows.map((r) => r.id) } },
+    select: { id: true, externalId: true, sourceUpdatedAt: true },
+  });
+  const existingByExternalId = new Map(existingRows.map((e) => [e.externalId, e]));
+
   for (const row of rows) {
     const orgName = row.organisation_name?.trim();
     const email = row.email?.trim();
@@ -251,7 +262,7 @@ export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult
       continue;
     }
 
-    const existing = await prisma.application.findUnique({ where: { externalId: row.id } });
+    const existing = existingByExternalId.get(row.id);
 
     // most ticks see no actual change on the source side — skip the update round-trip entirely
     // when the source's own updated_at hasn't moved since our last sync. This is what keeps

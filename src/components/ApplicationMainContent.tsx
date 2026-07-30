@@ -106,9 +106,22 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
 /** The whole "application record" left column — organisation profile through AI evaluation,
  *  scraper checks, human review score, and jury scores. Shared between the regular admin
  *  application page and the internal jury-dashboard page so both render identically; `isJury`
- *  controls whether the AI evaluation / scraper-data sections are shown (jury never sees them,
- *  on either page). */
-export function ApplicationMainContent({ app, isJury, user }: { app: ApplicationDetail; isJury: boolean; user: User | null }) {
+ *  controls whether the AI evaluation / scraper-data sections are shown (jury never sees them, on
+ *  either page) — the application detail page also passes this true for OBSERVER-role viewers,
+ *  since the two roles are meant to see an identical restricted slice there. `isObserver` is a
+ *  separate, narrower flag for the handful of spots where observer diverges from jury (currently
+ *  just the public-data enrichment card, which jury still sees but observer shouldn't). */
+export function ApplicationMainContent({
+  app,
+  isJury,
+  isObserver = false,
+  user,
+}: {
+  app: ApplicationDetail;
+  isJury: boolean;
+  isObserver?: boolean;
+  user: User | null;
+}) {
   const latestEval = app.aiEvaluations[0];
   const criteria = latestEval ? parseCriteria(latestEval.criteria) : [];
   const redFlags = latestEval ? parseRedFlags(latestEval.redFlags) : [];
@@ -319,7 +332,7 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
       )}
       </div>
 
-      {app.enrichmentSummary && (
+      {!isObserver && app.enrichmentSummary && (
         <Card style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>public-data enrichment</h2>
@@ -529,6 +542,26 @@ export function ApplicationMainContent({ app, isJury, user }: { app: Application
           </div>
         </Card>
       )}
+
+      <div id="section-additional-information">
+        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>additional information</h2>
+          {app.additionalInfo ? (
+            <>
+              <p style={{ whiteSpace: 'pre-wrap', lineHeight: 'var(--lh-relaxed)' }}>{app.additionalInfo}</p>
+              {app.additionalInfoAt && (
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
+                  submitted {new Date(app.additionalInfoAt).toLocaleDateString('en-GB')}
+                </p>
+              )}
+            </>
+          ) : (
+            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>
+              no additional information submitted yet — sent via the query template outreach for applications where more detail is needed.
+            </p>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

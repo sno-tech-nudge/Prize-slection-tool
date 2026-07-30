@@ -42,7 +42,7 @@ export interface ApplicationRowData {
 /** Row navigates to the full application record page (/applications/[id]) on click — a real
  *  anchor, so left-click, middle-click, ctrl/cmd-click and right-click "open in new tab" all
  *  behave the way the browser expects, with no JS interception. */
-export function ApplicationRow({ app, canManage, queryString = '' }: { app: ApplicationRowData; canManage: boolean; queryString?: string }) {
+export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowData; queryString?: string }) {
   const humanComposite =
     app.humanReviews.length > 0
       ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
@@ -78,7 +78,7 @@ export function ApplicationRow({ app, canManage, queryString = '' }: { app: Appl
           : '—'}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        <ReviewStatusDropdown applicationId={app.id} stageStatus={app.stageStatus} canManage={canManage} />
+        <ReviewStatusDropdown reviewed={app.humanReviews.length > 0} />
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <DsBadge tone={internalTone}>{internalLabel}</DsBadge>

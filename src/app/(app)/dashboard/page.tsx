@@ -90,6 +90,10 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (user?.role === 'JURY') redirect('/applications');
 
+  if (user?.role === 'OBSERVER') {
+    return <ObserverDashboard />;
+  }
+
   const [
     kpis,
     funnel,
@@ -231,6 +235,67 @@ export default async function DashboardPage() {
               {activity.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)', paddingTop: 'var(--space-3)' }}>no activity yet.</p>}
             </div>
           </Card>
+        </div>
+
+        <PartHeader title="application analytics" />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+          <Card accent>
+            <SectionHeader title="operating model mix" />
+            <PieChart data={categoryMix.map((c) => ({ label: c.category, count: c.count }))} />
+          </Card>
+
+          <Card accent>
+            <SectionHeader title="operating budget mix" />
+            <PieChart data={budgetMix} />
+          </Card>
+        </div>
+
+        <Card accent>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by state</h2>
+            <Badge tone="outline">{kpis.statesRepresented} states represented</Badge>
+          </div>
+          <IndiaStatesMap data={stateMix} />
+        </Card>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+          <Card>
+            <SectionHeader title="organisation size (full-time employees)" />
+            <PieChart data={orgSizeMix} size={160} />
+          </Card>
+
+          <Card>
+            <SectionHeader title="organisation age" />
+            <PieChart data={orgAgeMix} size={160} />
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Observer's dashboard — the same KPI row and application-analytics charts as the admin
+ *  dashboard, minus the pipeline funnel, reviewer stats, target matches, and recent activity
+ *  sections (internal operational detail not meant for an outside observer). */
+async function ObserverDashboard() {
+  const [kpis, categoryMix, budgetMix, stateMix, orgSizeMix, orgAgeMix] = await Promise.all([
+    getDashboardKpis(),
+    getOperatingModelMix(),
+    getOperatingBudgetMix(),
+    getStateApplicationMix(),
+    getOrgSizeMix(),
+    getOrgAgeMix(),
+  ]);
+
+  return (
+    <div>
+      <AngularBanner eyebrow="internal platform" title="dashboard" subtitle="application pipeline status and analytics." />
+      <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
+          <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
+          <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
+          <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
         </div>
 
         <PartHeader title="application analytics" />

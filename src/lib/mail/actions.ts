@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertRole, CAN_SEND_MAIL, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
-import { approveAndSendOutboxEmail, enqueueCustomOutreachEmail, previewCustomOutreachEmail } from '@/lib/mail/outbox';
+import { approveAndSendOutboxEmail, enqueueCustomOutreachEmail, previewCustomOutreachEmail, type CustomOutreachKind } from '@/lib/mail/outbox';
 import { getSettings, updateSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 
@@ -12,14 +12,16 @@ export async function approveAndSendAction(formData: FormData) {
   assertRole(user, CAN_SEND_MAIL);
 
   const outboxId = String(formData.get('outboxId'));
-  await approveAndSendOutboxEmail(outboxId);
+  const email = await approveAndSendOutboxEmail(outboxId);
 
   revalidatePath('/outreach');
+  return { status: email.status, error: email.error };
 }
 
 /** Approves and sends every selected queued email in one action. Silently skips any id that
  *  isn't still QUEUED (e.g. sent by someone else since the page loaded) rather than erroring
- *  the whole batch. */
+ *  the whole batch. Reports how many of the attempted sends actually went out vs failed, so the
+ *  UI can show an accurate result instead of just "done". */
 export async function bulkApproveAndSendAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_SEND_MAIL);
@@ -28,12 +30,20 @@ export async function bulkApproveAndSendAction(formData: FormData) {
   const rows = await prisma.outboxEmail.findMany({ where: { id: { in: outboxIds } } });
   const queuedIds = rows.filter((r) => r.status === 'QUEUED').map((r) => r.id);
 
+  let sent = 0;
+  let failed = 0;
+  const errors = new Set<string>();
   for (const id of queuedIds) {
-    await approveAndSendOutboxEmail(id);
+    const result = await approveAndSendOutboxEmail(id);
+    if (result.status === 'SENT') sent++;
+    else {
+      failed++;
+      if (result.error) errors.add(result.error);
+    }
   }
 
   revalidatePath('/outreach');
-  return { sent: queuedIds.length };
+  return { sent, failed, errors: [...errors] };
 }
 
 /** Lets an admin hand-edit a queued email's recipient, subject and body before approving it —
@@ -60,39 +70,63 @@ export async function updateOutboxEmailAction(formData: FormData) {
   revalidatePath('/outreach');
 }
 
-/** Queues an acceptance or rejection email (from the customisable templates) for every selected
- *  application — always as QUEUED, never sent. Skips an application that already has a
- *  bulk_acceptance/bulk_rejection email queued or sent, so re-selecting the same rows twice
- *  doesn't pile up duplicates. Actually sending still requires the separate approve step below,
- *  same as every other outbox email. */
-export async function bulkQueueOutreachAction(formData: FormData) {
+function parseKind(formData: FormData): CustomOutreachKind {
+  const raw = formData.get('kind');
+  if (raw === 'acceptance' || raw === 'query') return raw;
+  return 'rejection';
+}
+
+function outboxTemplateName(kind: CustomOutreachKind): string {
+  if (kind === 'acceptance') return 'bulk_acceptance';
+  if (kind === 'query') return 'bulk_query';
+  return 'bulk_rejection';
+}
+
+/** Sends an acceptance, rejection, or query email (from the customisable templates) to every
+ *  selected application immediately — the confirm dialog on the button is the human-approval
+ *  gate, so once confirmed there is no separate queue-then-approve step to go find and click
+ *  again. Skips an application that already has a matching bulk email on file (queued, sent, or
+ *  failed), so re-selecting the same rows twice doesn't pile up duplicates or re-send. */
+export async function bulkSendOutreachAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_SEND_MAIL);
 
   const applicationIds = formData.getAll('applicationId').map(String);
-  const kind = formData.get('kind') === 'acceptance' ? 'acceptance' : 'rejection';
-  const template = kind === 'acceptance' ? 'bulk_acceptance' : 'bulk_rejection';
+  const kind = parseKind(formData);
+  const template = outboxTemplateName(kind);
 
-  let queued = 0;
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+  const errors = new Set<string>();
+
   for (const applicationId of applicationIds) {
     const existing = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
-    if (existing) continue;
-    await enqueueCustomOutreachEmail(applicationId, kind);
-    queued++;
+    if (existing) {
+      skipped++;
+      continue;
+    }
+    const email = await enqueueCustomOutreachEmail(applicationId, kind);
+    const result = await approveAndSendOutboxEmail(email.id);
+    if (result.status === 'SENT') sent++;
+    else {
+      failed++;
+      if (result.error) errors.add(result.error);
+    }
   }
 
   revalidatePath('/outreach');
-  return { queued };
+  return { sent, failed, skipped, errors: [...errors] };
 }
 
-/** Renders the acceptance/rejection template for a single application without queuing or sending
- *  anything — lets an admin see exactly what would go out before committing to it. */
+/** Renders the acceptance/rejection/query template for a single application without queuing or
+ *  sending anything — lets an admin see exactly what would go out before committing to it. */
 export async function previewOutreachEmailAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_SEND_MAIL);
 
   const applicationId = String(formData.get('applicationId'));
-  const kind = formData.get('kind') === 'acceptance' ? 'acceptance' : 'rejection';
+  const kind = parseKind(formData);
   return previewCustomOutreachEmail(applicationId, kind);
 }
 
@@ -105,36 +139,46 @@ export async function sendIndividualOutreachAction(formData: FormData) {
   assertRole(user, CAN_SEND_MAIL);
 
   const applicationId = String(formData.get('applicationId'));
-  const kind = formData.get('kind') === 'acceptance' ? 'acceptance' : 'rejection';
-  const template = kind === 'acceptance' ? 'bulk_acceptance' : 'bulk_rejection';
+  const kind = parseKind(formData);
+  const template = outboxTemplateName(kind);
 
   let email = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
   if (!email) {
     email = await enqueueCustomOutreachEmail(applicationId, kind);
   }
+
+  let error: string | undefined;
   if (email.status === 'QUEUED') {
-    email = await approveAndSendOutboxEmail(email.id);
+    const result = await approveAndSendOutboxEmail(email.id);
+    email = result;
+    error = result.error;
   }
 
   revalidatePath('/outreach');
-  return { status: email.status };
+  return { status: email.status, error };
 }
 
-/** Saves the admin-editable acceptance/rejection email templates used by bulk outreach. */
+/** Saves the admin-editable acceptance/rejection/query email templates used by bulk outreach.
+ *  The query template also carries a form link, saved alongside subject/body only for that kind. */
 export async function updateEmailTemplateAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
 
-  const kind = formData.get('kind') === 'acceptance' ? 'acceptance' : 'rejection';
+  const kind = parseKind(formData);
   const subject = String(formData.get('subject') ?? '').trim();
   const body = String(formData.get('body') ?? '');
+  const formLink = String(formData.get('formLink') ?? '').trim();
 
   const settings = await getSettings();
-  await updateSettings({
-    ...(kind === 'acceptance'
-      ? { emailTemplateAcceptance: { subject: subject || settings.emailTemplateAcceptance.subject, body } }
-      : { emailTemplateRejection: { subject: subject || settings.emailTemplateRejection.subject, body } }),
-  });
+  if (kind === 'acceptance') {
+    await updateSettings({ emailTemplateAcceptance: { subject: subject || settings.emailTemplateAcceptance.subject, body } });
+  } else if (kind === 'query') {
+    await updateSettings({
+      emailTemplateQuery: { subject: subject || settings.emailTemplateQuery.subject, body, formLink },
+    });
+  } else {
+    await updateSettings({ emailTemplateRejection: { subject: subject || settings.emailTemplateRejection.subject, body } });
+  }
 
   revalidatePath('/outreach');
 }

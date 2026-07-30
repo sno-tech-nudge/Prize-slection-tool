@@ -26,7 +26,7 @@ function buildApplicationWhere(filters: ApplicationListFilters, user: User | nul
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
   if (filters.reviewed === 'YES') where.humanReviews = { some: {} };
   if (filters.reviewed === 'NO') where.humanReviews = { none: {} };
-  if (filters.q) where.orgName = { contains: filters.q };
+  if (filters.q) where.orgName = { contains: filters.q, mode: 'insensitive' };
   if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.internalDecision = null;
   if (filters.assignedToMe === '1' && user) where.reviewAssignments = { some: { reviewerId: user.id } };
@@ -197,12 +197,13 @@ export async function listJuryQueue() {
 }
 
 /** Trimmed list for the jury applications table — scoped to the viewer's own bench via
- *  visibleApplicationWhere, with just enough included (bench name, latest AI composite, the
- *  juror's own score) to render the few columns jury are meant to see. Accepts the same small
- *  filter set (name/state/operating model) as the internal jury oversight list. */
+ *  visibleApplicationWhere, with just enough included (the juror's own score) to render the few
+ *  columns jury are meant to see (organisation, state, operating model, registration type, their
+ *  own score — no bench name, no AI/int score). Accepts the same small filter set (name/state/
+ *  operating model) as the internal jury oversight list. */
 export async function listJuryApplications(user: User | null, filters: { q?: string; state?: string; operatingModel?: string } = {}) {
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
-  if (filters.q) where.orgName = { contains: filters.q };
+  if (filters.q) where.orgName = { contains: filters.q, mode: 'insensitive' };
   if (filters.state) where.statesOperating = { contains: filters.state };
   if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
 
@@ -210,8 +211,6 @@ export async function listJuryApplications(user: User | null, filters: { q?: str
     where,
     orderBy: { orgName: 'asc' },
     include: {
-      bench: true,
-      aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },
       juryScores: user ? { where: { jurorId: user.id } } : false,
     },
   });

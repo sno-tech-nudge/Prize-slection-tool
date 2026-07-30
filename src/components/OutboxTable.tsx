@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Card, Badge, Button, Dialog, Input, Textarea, Checkbox } from '@/design-system';
+import { Card, Badge, Button, Dialog, Input, Textarea, Checkbox, useToast } from '@/design-system';
 import { approveAndSendAction, updateOutboxEmailAction, bulkApproveAndSendAction } from '@/lib/mail/actions';
 import { OrgTitle } from '@/components/OrgTitle';
 
@@ -25,6 +25,7 @@ const TONE_FOR_STATUS: Record<string, 'neutral' | 'red' | 'ink' | 'yellow' | 'ou
 };
 
 export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[]; canSend: boolean }) {
+  const { push } = useToast();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = React.useState(false);
   const queuedEmails = emails.filter((e) => e.status === 'QUEUED');
@@ -48,8 +49,14 @@ export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[];
     const formData = new FormData();
     selected.forEach((id) => formData.append('outboxId', id));
     try {
-      await bulkApproveAndSendAction(formData);
+      const result = await bulkApproveAndSendAction(formData);
       setSelected(new Set());
+      if (result.failed === 0) {
+        push('sent', `${result.sent} email${result.sent === 1 ? '' : 's'} sent successfully.`, 'success');
+      } else {
+        const detail = result.errors.length ? result.errors.join('; ') : `${result.sent} sent, ${result.failed} failed — check status below.`;
+        push('some emails failed', detail, 'error');
+      }
     } finally {
       setBulkSending(false);
     }
@@ -127,6 +134,7 @@ function OutboxTableRow({
   onToggle: () => void;
 }) {
   const { id, orgName, to, subject, body, template, status, createdAt, sentAt } = email;
+  const { push } = useToast();
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<'preview' | 'edit'>('preview');
   const [pending, setPending] = React.useState(false);
@@ -187,7 +195,9 @@ function OutboxTableRow({
                   action={async (formData) => {
                     setPending(true);
                     try {
-                      await approveAndSendAction(formData);
+                      const result = await approveAndSendAction(formData);
+                      if (result.status === 'SENT') push('sent', `email to ${orgName} sent.`, 'success');
+                      else push('send failed', result.error ?? `email to ${orgName} could not be sent.`, 'error');
                     } finally {
                       setPending(false);
                     }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/session';
-import { assertRole, CAN_TRANSITION_STAGE, CAN_REVIEW, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
+import { assertRole, canScoreApplication, ForbiddenError, CAN_TRANSITION_STAGE, CAN_REVIEW, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { transitionApplication, setReviewStage } from '@/lib/stages/machine';
 import { enqueueStageEmail, approveAndSendOutboxEmail } from '@/lib/mail/outbox';
 import type { StageEmailTemplate } from '@/lib/mail/templates';
@@ -84,6 +84,14 @@ export async function submitHumanReviewAction(formData: FormData) {
 
   const applicationId = String(formData.get('applicationId'));
   const comment = String(formData.get('comment') ?? '');
+
+  // admin can score anything; a reviewer can only score an application they're actually
+  // assigned to — otherwise every admin-role "reviewer" could submit a score on every
+  // application regardless of who was assigned, which is exactly the gap this closes.
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canScoreApplication(user, assignments)) {
+    throw new ForbiddenError('You can only score applications assigned to you.');
+  }
 
   const scoreMap: Record<string, number> = {};
   const criteria = RUBRIC_CRITERIA.map((c) => {

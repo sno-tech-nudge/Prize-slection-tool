@@ -4,6 +4,7 @@ import { AngularBanner, Card, Badge } from '@/design-system';
 import { CompositeBadge, SolutionCategoryTag } from '@/components/StatusBadges';
 import { ReviewScoringForm } from '@/components/ReviewScoringForm';
 import { getCurrentUser } from '@/lib/auth/session';
+import { canScoreApplication } from '@/lib/auth/guard';
 import { getApplicationDetail } from '@/lib/applications/queries';
 import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';
@@ -17,6 +18,7 @@ export default async function ReviewApplicationPage({ params }: { params: { id: 
   const aiCriteria = latestEval ? parseCriteria(latestEval.criteria) : [];
   const myReview = app.humanReviews.find((r) => r.reviewerId === user?.id);
   const otherReviews = app.humanReviews.filter((r) => r.reviewerId !== user?.id);
+  const canScore = canScoreApplication(user, app.reviewAssignments);
   const consensus = computeConsensus({
     aiComposite: latestEval?.composite,
     humanComposites: app.humanReviews.map((r) => r.composite),
@@ -109,11 +111,23 @@ export default async function ReviewApplicationPage({ params }: { params: { id: 
 
         <div>
           <Card accent accentSide="left">
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-1)' }}>{myReview ? 'update your score' : 'score this application'}</h2>
-            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-5)' }}>
-              rate each threshold 0 (not addressed) to 5 (fully credible).
-            </p>
-            <ReviewScoringForm applicationId={app.id} existing={myReview} />
+            {canScore ? (
+              <>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-1)' }}>{myReview ? 'update your score' : 'score this application'}</h2>
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-5)' }}>
+                  rate each threshold 0 (not addressed) to 5 (fully credible).
+                </p>
+                <ReviewScoringForm applicationId={app.id} existing={myReview} />
+              </>
+            ) : (
+              <>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-1)' }}>not assigned to you</h2>
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+                  you can only score applications an admin has assigned to you. ask an admin to add you as a reviewer here if you
+                  need to score it.
+                </p>
+              </>
+            )}
           </Card>
           <div style={{ marginTop: 'var(--space-4)' }}>
             <Link href="/review" style={{ fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none' }}>

@@ -212,6 +212,13 @@ model Application {
   infoAccurateConfirmed     Boolean?
   darpanIdNumber            String? // Supabase darpan_id_number — the actual registration number (darpanRegistered above is just yes/no)
 
+  // additional information gathered via the query-outreach follow-up form (tally.so), for the
+  // subset of applications where the review panel needs more detail than the original
+  // submission gave. Free text for now — populated manually until the tally.so -> Supabase sync
+  // is built; null means nothing has come in yet.
+  additionalInfo   String?
+  additionalInfoAt DateTime?
+
   // public-data enrichment — a real website fetch (no API key needed) plus a documented
   // swap point for search-based enrichment (Google Search / Gemini grounding / SerpAPI).
   enrichmentSummary String?

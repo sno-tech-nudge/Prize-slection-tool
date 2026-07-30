@@ -21,13 +21,51 @@ export function useToast() {
   return ctx;
 }
 
+// held fully visible, then fades out over FADE_MS before actually unmounting — a toast that's
+// just wiped from the array with no transition reads as a glitch, not a "disappearing" popup.
+const VISIBLE_MS = 2400;
+const FADE_MS = 350;
+
+function ToastItem({ entry, onDone }: { entry: ToastEntry; onDone: () => void }) {
+  const [shown, setShown] = React.useState(false);
+
+  React.useEffect(() => {
+    const raf = requestAnimationFrame(() => setShown(true));
+    const hide = setTimeout(() => setShown(false), VISIBLE_MS);
+    const remove = setTimeout(onDone, VISIBLE_MS + FADE_MS);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(hide);
+      clearTimeout(remove);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      style={{
+        opacity: shown ? 1 : 0,
+        transform: shown ? 'translateY(0)' : 'translateY(6px)',
+        transition: `opacity ${FADE_MS}ms var(--ease-out), transform ${FADE_MS}ms var(--ease-out)`,
+      }}
+    >
+      <Toast status={entry.status} title={entry.title} onClose={onDone}>
+        {entry.body}
+      </Toast>
+    </div>
+  );
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<ToastEntry[]>([]);
 
   const push = React.useCallback((title: string, body?: string, status: ToastProps['status'] = 'info') => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, title, body, status }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
+  }, []);
+
+  const remove = React.useCallback((id: number) => {
+    setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
   return (
@@ -45,9 +83,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         {toasts.map((t) => (
-          <Toast key={t.id} status={t.status} title={t.title} onClose={() => setToasts((cur) => cur.filter((x) => x.id !== t.id))}>
-            {t.body}
-          </Toast>
+          <ToastItem key={t.id} entry={t} onDone={() => remove(t.id)} />
         ))}
       </div>
     </ToastContext.Provider>

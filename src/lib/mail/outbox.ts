@@ -31,23 +31,38 @@ export async function enqueueStageEmail(applicationId: string, template: StageEm
 /** @deprecated use enqueueStageEmail — kept so existing call sites keep working */
 export const enqueueRejectionEmail = enqueueStageEmail;
 
+export type CustomOutreachKind = 'acceptance' | 'rejection' | 'query';
+
+function customTemplateFor(kind: CustomOutreachKind, settings: Awaited<ReturnType<typeof getSettings>>) {
+  if (kind === 'acceptance') return settings.emailTemplateAcceptance;
+  if (kind === 'rejection') return settings.emailTemplateRejection;
+  return settings.emailTemplateQuery;
+}
+
+function outboxTemplateFor(kind: CustomOutreachKind): string {
+  if (kind === 'acceptance') return 'bulk_acceptance';
+  if (kind === 'rejection') return 'bulk_rejection';
+  return 'bulk_query';
+}
+
 /** Renders what enqueueCustomOutreachEmail would produce, without persisting anything — lets an
  *  admin see the exact subject/body for one application before deciding to queue or send it. */
-export async function previewCustomOutreachEmail(applicationId: string, kind: 'acceptance' | 'rejection') {
+export async function previewCustomOutreachEmail(applicationId: string, kind: CustomOutreachKind) {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
   const settings = await getSettings();
-  const template = kind === 'acceptance' ? settings.emailTemplateAcceptance : settings.emailTemplateRejection;
+  const template = customTemplateFor(kind, settings);
   return renderCustomTemplate(template, {
     pocFirstName: app.pocFirstName,
     orgName: app.orgName,
     challengeName: CHALLENGE_NAME,
+    formLink: kind === 'query' ? settings.emailTemplateQuery.formLink : undefined,
   });
 }
 
-/** Queues an outreach email from the admin-customised acceptance/rejection templates (see
+/** Queues an outreach email from the admin-customised acceptance/rejection/query templates (see
  *  Settings). Always lands as QUEUED — bulk outreach never auto-approves or sends, it only adds
  *  to the same review queue every other outbox email goes through. */
-export async function enqueueCustomOutreachEmail(applicationId: string, kind: 'acceptance' | 'rejection') {
+export async function enqueueCustomOutreachEmail(applicationId: string, kind: CustomOutreachKind) {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
   const { subject, body } = await previewCustomOutreachEmail(applicationId, kind);
 
@@ -57,20 +72,24 @@ export async function enqueueCustomOutreachEmail(applicationId: string, kind: 'a
       to: app.email,
       subject,
       body,
-      template: kind === 'acceptance' ? 'bulk_acceptance' : 'bulk_rejection',
+      template: outboxTemplateFor(kind),
       status: 'QUEUED',
       provider: getMailer().provider,
     },
   });
 }
 
+/** Returns the updated outbox row plus the mailer's error message (if any) — the error itself
+ *  isn't a stored column, just surfaced transiently so the UI can show why a send failed (e.g.
+ *  the personal-inbox guardrail in GmailSmtpMailer) instead of a bare "failed". */
 export async function approveAndSendOutboxEmail(outboxId: string) {
   const mailer = getMailer();
   await prisma.outboxEmail.update({ where: { id: outboxId }, data: { status: 'APPROVED', approvedAt: new Date() } });
   const email = await prisma.outboxEmail.findUniqueOrThrow({ where: { id: outboxId } });
   const result = await mailer.send({ to: email.to, subject: email.subject, body: email.body });
-  return prisma.outboxEmail.update({
+  const updated = await prisma.outboxEmail.update({
     where: { id: outboxId },
     data: { status: result.status, sentAt: result.sentAt },
   });
+  return { ...updated, error: result.error };
 }
