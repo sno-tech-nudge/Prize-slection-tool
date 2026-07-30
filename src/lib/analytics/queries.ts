@@ -82,7 +82,7 @@ export async function getOperatingBudgetMix() {
 export async function getReviewStatusMix() {
   const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null },
-    select: { stageStatus: true, humanReviews: { select: { id: true }, take: 1 } },
+    select: { stageStatus: true },
   });
   const reviewed = apps.filter(isReviewed).length;
   return [

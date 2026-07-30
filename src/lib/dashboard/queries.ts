@@ -74,7 +74,7 @@ export async function getDashboardKpis() {
 export async function getReviewDecisionFunnel() {
   const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null },
-    select: { internalDecision: true, stageStatus: true, humanReviews: { select: { id: true }, take: 1 } },
+    select: { internalDecision: true, stageStatus: true },
   });
   const total = apps.length;
   const reviewed = apps.filter(isReviewed).length;
