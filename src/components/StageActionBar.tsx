@@ -7,7 +7,7 @@ import { LEGAL_TRANSITIONS } from '@/lib/stages/rules';
 
 const EARLY_PIPELINE_STAGES: StageStatusValue[] = ['SUBMITTED', 'SCREENING', 'UNDER_REVIEW'];
 
-function pillStyle(active: boolean): React.CSSProperties {
+function pillStyle(active: boolean, disabled: boolean): React.CSSProperties {
   return {
     fontSize: 'var(--fs-caption)',
     textTransform: 'lowercase',
@@ -15,7 +15,8 @@ function pillStyle(active: boolean): React.CSSProperties {
     border: `1px solid ${active ? 'var(--delta-red)' : 'var(--border-strong)'}`,
     background: active ? 'var(--delta-red)' : 'transparent',
     color: active ? 'var(--text-inverse)' : 'var(--text-primary)',
-    cursor: 'pointer',
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
     fontFamily: 'var(--font-sans)',
   };
 }
@@ -28,13 +29,27 @@ function pillStyle(active: boolean): React.CSSProperties {
  *  control can't be mistaken for the thing that drives the dashboard KPI and applications filter.
  *  Applications that have already progressed to shortlist or beyond fall through to the full
  *  stage dropdown below, since that real progression (jury / finalist / winner / reject) still
- *  needs the validated stage machine. */
-function ReviewStageToggle({ applicationId, currentStage }: { applicationId: string; currentStage: StageStatusValue }) {
+ *  needs the validated stage machine.
+ *
+ *  Every reviewer sees this exact toggle on every application, assigned to them or not —
+ *  `canManage` only disables it, it never swaps in a different read-only view, so a reviewer
+ *  looking at a colleague's application can still see the current stage at a glance. */
+function ReviewStageToggle({
+  applicationId,
+  currentStage,
+  canManage,
+}: {
+  applicationId: string;
+  currentStage: StageStatusValue;
+  canManage: boolean;
+}) {
   const [pending, setPending] = React.useState(false);
   const underReview = currentStage === 'UNDER_REVIEW';
   const rejectOptions = LEGAL_TRANSITIONS[currentStage].filter((s) => s === 'REJECTED');
+  const disabled = pending || !canManage;
 
   async function setStage(value: boolean) {
+    if (!canManage) return;
     setPending(true);
     const formData = new FormData();
     formData.set('applicationId', applicationId);
@@ -49,14 +64,14 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-        <button type="button" disabled={pending} onClick={() => setStage(false)} style={pillStyle(!underReview)}>
+        <button type="button" disabled={disabled} onClick={() => setStage(false)} style={pillStyle(!underReview, disabled)}>
           {STAGE_STATUS_LABEL.SUBMITTED}
         </button>
-        <button type="button" disabled={pending} onClick={() => setStage(true)} style={pillStyle(underReview)}>
+        <button type="button" disabled={disabled} onClick={() => setStage(true)} style={pillStyle(underReview, disabled)}>
           {STAGE_STATUS_LABEL.UNDER_REVIEW}
         </button>
       </div>
-      {rejectOptions.length > 0 && (
+      {canManage && rejectOptions.length > 0 && (
         <form
           action={async (formData) => {
             setPending(true);
@@ -87,11 +102,17 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
   );
 }
 
-/** `canManage` gates the actual controls — true for admin always, and for a reviewer only on an
- *  application they're actually assigned to (canManageApplication, enforced again server-side in
- *  transitionApplicationAction/setReviewStageAction). Anyone else viewing this panel (e.g. a
- *  reviewer looking at an application assigned to someone else) gets a plain read-only stage badge
- *  instead of buttons that would just fail on click. */
+/** `canManage` gates whether the controls actually do anything — true for admin always, and for
+ *  a reviewer only on an application they're actually assigned to (canManageApplication, enforced
+ *  again server-side in transitionApplicationAction/setReviewStageAction). It never hides the
+ *  button view itself: every reviewer sees the same stage controls on every application, assigned
+ *  to them or not, so they can always see the current status at a glance — clicking just does
+ *  nothing (disabled) when it isn't theirs to change.
+ *  Early-pipeline stages get the two-state toggle (see ReviewStageToggle). Later stages
+ *  (shortlisted onward) get the full validated dropdown when editable, or a single highlighted
+ *  pill showing the current stage when not — that form's reason field/audit trail doesn't have a
+ *  meaningful disabled "view" equivalent, so it collapses to the same pill style used everywhere
+ *  else in this panel instead of a dead form. */
 export function StageActionBar({
   applicationId,
   currentStage,
@@ -101,15 +122,17 @@ export function StageActionBar({
   currentStage: StageStatusValue;
   canManage: boolean;
 }) {
+  if (EARLY_PIPELINE_STAGES.includes(currentStage)) {
+    return <ReviewStageToggle applicationId={applicationId} currentStage={currentStage} canManage={canManage} />;
+  }
   if (!canManage) {
     return (
-      <div style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-        current stage: <strong style={{ color: 'var(--text-primary)' }}>{STAGE_STATUS_LABEL[currentStage]}</strong>
+      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <button type="button" disabled style={pillStyle(true, true)}>
+          {STAGE_STATUS_LABEL[currentStage]}
+        </button>
       </div>
     );
-  }
-  if (EARLY_PIPELINE_STAGES.includes(currentStage)) {
-    return <ReviewStageToggle applicationId={applicationId} currentStage={currentStage} />;
   }
   return <LegalTransitionForm applicationId={applicationId} currentStage={currentStage} />;
 }

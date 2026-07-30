@@ -2,7 +2,7 @@
 import React from 'react';
 import { setInternalDecisionAction } from '@/lib/applications/actions';
 
-function pillStyle(active: boolean, tone: 'red' | 'neutral'): React.CSSProperties {
+function pillStyle(active: boolean, tone: 'red' | 'neutral', disabled: boolean): React.CSSProperties {
   return {
     fontSize: 'var(--fs-caption)',
     textTransform: 'lowercase',
@@ -10,15 +10,18 @@ function pillStyle(active: boolean, tone: 'red' | 'neutral'): React.CSSPropertie
     border: `1px solid ${active ? 'var(--delta-red)' : 'var(--border-strong)'}`,
     background: active ? (tone === 'red' ? 'var(--delta-red)' : 'var(--surface-ink)') : 'transparent',
     color: active ? 'var(--text-inverse)' : 'var(--text-primary)',
-    cursor: 'pointer',
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
     fontFamily: 'var(--font-sans)',
   };
 }
 
-/** `canManage` gates the actual buttons — true for admin always, and for a reviewer only on an
- *  application they're actually assigned to (canManageApplication, enforced again server-side in
- *  setInternalDecisionAction). Anyone else viewing this panel gets a plain read-only badge instead
- *  of buttons that would just fail on click. */
+/** Every viewer sees the same pill buttons showing the current decision — `canManage` only
+ *  controls whether they're clickable, it never swaps in a different read-only view. True for
+ *  admin always, and for a reviewer only on an application they're actually assigned to
+ *  (canManageApplication, enforced again server-side in setInternalDecisionAction). A reviewer
+ *  looking at someone else's assigned application sees the exact same pills, just disabled, so
+ *  they can still tell at a glance what's been marked. */
 export function DecisionStatusButtons({
   applicationId,
   current,
@@ -31,6 +34,7 @@ export function DecisionStatusButtons({
   const [pending, setPending] = React.useState(false);
 
   async function decide(decision: 'YES' | 'NO' | 'CLEAR') {
+    if (!canManage) return;
     setPending(true);
     const formData = new FormData();
     formData.set('applicationId', applicationId);
@@ -42,21 +46,18 @@ export function DecisionStatusButtons({
     }
   }
 
-  if (!canManage) {
-    const label = current === 'YES' ? 'decision: yes' : current === 'NO' ? 'decision: no' : 'undecided';
-    return <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{label}</span>;
-  }
+  const disabled = pending || !canManage;
 
   return (
     <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-      <button type="button" disabled={pending} onClick={() => decide('YES')} style={pillStyle(current === 'YES', 'red')}>
+      <button type="button" disabled={disabled} onClick={() => decide('YES')} style={pillStyle(current === 'YES', 'red', disabled)}>
         mark yes
       </button>
-      <button type="button" disabled={pending} onClick={() => decide('NO')} style={pillStyle(current === 'NO', 'neutral')}>
+      <button type="button" disabled={disabled} onClick={() => decide('NO')} style={pillStyle(current === 'NO', 'neutral', disabled)}>
         mark no
       </button>
       {current && (
-        <button type="button" disabled={pending} onClick={() => decide('CLEAR')} style={pillStyle(false, 'neutral')}>
+        <button type="button" disabled={disabled} onClick={() => decide('CLEAR')} style={pillStyle(false, 'neutral', disabled)}>
           clear
         </button>
       )}
