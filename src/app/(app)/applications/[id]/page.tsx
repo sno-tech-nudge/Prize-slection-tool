@@ -15,7 +15,7 @@ import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
-import { canScoreApplication } from '@/lib/auth/guard';
+import { canManageApplication } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { slugify } from '@/lib/sources/normalize';
 import { STAGE_STATUS_LABEL, type StageStatusValue } from '@/lib/constants';
@@ -52,9 +52,10 @@ export default async function ApplicationDetailPage({
   const hideInternalSections = isJury || isObserver;
   const myReview = app.humanReviews.find((r) => r.reviewerId === user?.id);
   const myJuryScore = app.juryScores.find((s) => s.jurorId === user?.id);
-  // a reviewer not assigned to this application shouldn't see a scoring entry point that would
-  // just be rejected on submit — admin can always score anything, matching every other override.
-  const canScore = canScoreApplication(user, app.reviewAssignments);
+  // a reviewer not assigned to this application shouldn't see scoring/stage/decision controls
+  // that would just be rejected on submit — admin can always manage anything, matching every
+  // other override. Drives the scoring entry point, the stage-action panel, and decision buttons.
+  const canManage = canManageApplication(user, app.reviewAssignments);
 
   return (
     <div>
@@ -74,7 +75,7 @@ export default async function ApplicationDetailPage({
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
-            {user && !hideInternalSections && canScore && (
+            {user && !hideInternalSections && canManage && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}
             {!isObserver && <DownloadPdfButton filename={slugify(app.orgName)} />}
@@ -181,7 +182,7 @@ export default async function ApplicationDetailPage({
               {(isAdmin || user?.role === 'REVIEWER') && (
                 <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
                   <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
-                  <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} canManage={isAdmin} />
+                  <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} canManage={canManage} />
                 </Card>
               )}
 
@@ -191,7 +192,7 @@ export default async function ApplicationDetailPage({
                   <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
                     only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
                   </p>
-                  <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} canManage={isAdmin} />
+                  <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} canManage={canManage} />
                 </Card>
               )}
 

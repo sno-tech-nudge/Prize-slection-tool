@@ -87,10 +87,11 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
   );
 }
 
-/** `canManage` gates the actual controls — stage transitions are an admin-only action
- *  server-side (CAN_TRANSITION_STAGE), so a viewer without that power (e.g. a reviewer, who can
- *  see this panel but not act on it) gets a plain read-only stage badge instead of buttons that
- *  would just fail on click. */
+/** `canManage` gates the actual controls — true for admin always, and for a reviewer only on an
+ *  application they're actually assigned to (canManageApplication, enforced again server-side in
+ *  transitionApplicationAction/setReviewStageAction). Anyone else viewing this panel (e.g. a
+ *  reviewer looking at an application assigned to someone else) gets a plain read-only stage badge
+ *  instead of buttons that would just fail on click. */
 export function StageActionBar({
   applicationId,
   currentStage,

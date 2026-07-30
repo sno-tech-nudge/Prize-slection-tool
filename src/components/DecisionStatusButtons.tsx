@@ -15,10 +15,10 @@ function pillStyle(active: boolean, tone: 'red' | 'neutral'): React.CSSPropertie
   };
 }
 
-/** `canManage` gates the actual buttons — the decision gate is an admin-only action server-side
- *  (CAN_TRANSITION_STAGE), so a viewer without that power (e.g. a reviewer, who can see this
- *  panel but not act on it) gets a plain read-only badge instead of buttons that would just fail
- *  on click. */
+/** `canManage` gates the actual buttons — true for admin always, and for a reviewer only on an
+ *  application they're actually assigned to (canManageApplication, enforced again server-side in
+ *  setInternalDecisionAction). Anyone else viewing this panel gets a plain read-only badge instead
+ *  of buttons that would just fail on click. */
 export function DecisionStatusButtons({
   applicationId,
   current,

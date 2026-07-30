@@ -4,7 +4,7 @@ import { AngularBanner, Card, Badge } from '@/design-system';
 import { CompositeBadge, SolutionCategoryTag } from '@/components/StatusBadges';
 import { ReviewScoringForm } from '@/components/ReviewScoringForm';
 import { getCurrentUser } from '@/lib/auth/session';
-import { canScoreApplication } from '@/lib/auth/guard';
+import { canManageApplication as canScoreApplication } from '@/lib/auth/guard';
 import { getApplicationDetail } from '@/lib/applications/queries';
 import { RUBRIC_CRITERIA } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';

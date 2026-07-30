@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/session';
-import { assertRole, canScoreApplication, ForbiddenError, CAN_TRANSITION_STAGE, CAN_REVIEW, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
+import { assertRole, canManageApplication, ForbiddenError, CAN_REVIEW, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { transitionApplication, setReviewStage } from '@/lib/stages/machine';
 import { enqueueStageEmail, approveAndSendOutboxEmail } from '@/lib/mail/outbox';
 import type { StageEmailTemplate } from '@/lib/mail/templates';
@@ -41,11 +41,20 @@ async function performTransition(applicationId: string, toStatus: StageStatusVal
   revalidatePath('/outreach');
 }
 
+/** Admin can transition any application; a reviewer can only transition one they're actually
+ *  assigned to — same rule as scoring (canManageApplication), so an assigned reviewer isn't stuck
+ *  looking at a read-only stage panel on their own applications, while still being blocked from
+ *  touching anyone else's. */
 export async function transitionApplicationAction(formData: FormData) {
   const user = await getCurrentUser();
-  assertRole(user, CAN_TRANSITION_STAGE);
+  assertRole(user, CAN_REVIEW);
 
   const applicationId = String(formData.get('applicationId'));
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
+
   const toStatus = String(formData.get('toStatus')) as StageStatusValue;
   const reason = String(formData.get('reason') ?? '') || undefined;
 
@@ -56,19 +65,29 @@ export async function transitionApplicationAction(formData: FormData) {
  *  as the form action above, just without a FormData wrapper. */
 export async function moveApplicationStageAction(applicationId: string, toStatus: StageStatusValue) {
   const user = await getCurrentUser();
-  assertRole(user, CAN_TRANSITION_STAGE);
+  assertRole(user, CAN_REVIEW);
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
   await performTransition(applicationId, toStatus, user.id, 'moved on the kanban board');
   return { ok: true };
 }
 
 /** Binary reviewed / not-reviewed toggle for the stage action panel, early-pipeline applications
  *  only (SUBMITTED/SCREENING/UNDER_REVIEW) — see setReviewStage for why this bypasses the
- *  validated single-hop machine. */
+ *  validated single-hop machine. Same admin-or-assigned-reviewer rule as every other mutation on
+ *  this stage panel. */
 export async function setReviewStageAction(formData: FormData) {
   const user = await getCurrentUser();
-  assertRole(user, CAN_TRANSITION_STAGE);
+  assertRole(user, CAN_REVIEW);
 
   const applicationId = String(formData.get('applicationId'));
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
+
   const reviewed = String(formData.get('reviewed')) === 'true';
 
   await setReviewStage({ applicationId, reviewed, actorId: user.id });
@@ -89,7 +108,7 @@ export async function submitHumanReviewAction(formData: FormData) {
   // assigned to — otherwise every admin-role "reviewer" could submit a score on every
   // application regardless of who was assigned, which is exactly the gap this closes.
   const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
-  if (!canScoreApplication(user, assignments)) {
+  if (!canManageApplication(user, assignments)) {
     throw new ForbiddenError('You can only score applications assigned to you.');
   }
 
@@ -128,13 +147,20 @@ export async function submitHumanReviewAction(formData: FormData) {
   revalidatePath('/dashboard');
 }
 
-/** Admin go/no-go gate — independent of stageStatus. Only applications marked YES here
- *  are visible to jury (see visibleApplicationWhere / listJuryQueue). */
+/** Go/no-go gate — independent of stageStatus. Only applications marked YES here are visible to
+ *  jury (see visibleApplicationWhere / listJuryQueue). Admin can set this on anything; a reviewer
+ *  can only set it on an application they're actually assigned to, same rule as scoring and stage
+ *  transitions. */
 export async function setInternalDecisionAction(formData: FormData) {
   const user = await getCurrentUser();
-  assertRole(user, CAN_TRANSITION_STAGE);
+  assertRole(user, CAN_REVIEW);
 
   const applicationId = String(formData.get('applicationId'));
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
+
   const decision = String(formData.get('decision')) as InternalDecisionValue | 'CLEAR';
 
   await prisma.application.update({
@@ -142,9 +168,12 @@ export async function setInternalDecisionAction(formData: FormData) {
     data: { internalDecision: decision === 'CLEAR' ? null : decision },
   });
 
+  // dashboard KPI ("decision: yes") and the reviewed→decision funnel both key off
+  // internalDecision, so they'd otherwise go stale until an unrelated revalidation happened.
   revalidatePath('/applications');
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath('/jury');
+  revalidatePath('/dashboard');
 }
 
 /** Free-form internal discussion thread on an application — any signed-in user can post,
