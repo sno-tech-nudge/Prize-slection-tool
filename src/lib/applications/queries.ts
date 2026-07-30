@@ -2,6 +2,7 @@ import type { Prisma, User } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { visibleApplicationWhere } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
+import { REVIEWED_WHERE, NOT_REVIEWED_WHERE } from '@/lib/applications/reviewStatus';
 
 export interface ApplicationListFilters {
   reviewed?: string;
@@ -24,8 +25,6 @@ export interface ApplicationListFilters {
  *  including "assigned to me", which any role can opt into (not just the REVIEWER-locked view). */
 function buildApplicationWhere(filters: ApplicationListFilters, user: User | null): Prisma.ApplicationWhereInput {
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
-  if (filters.reviewed === 'YES') where.humanReviews = { some: {} };
-  if (filters.reviewed === 'NO') where.humanReviews = { none: {} };
   if (filters.q) where.orgName = { contains: filters.q, mode: 'insensitive' };
   if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.internalDecision = null;
@@ -35,6 +34,11 @@ function buildApplicationWhere(filters: ApplicationListFilters, user: User | nul
   // it matches ANY selected value within that filter (OR), combined with an AND across the
   // different filter types (each becomes its own entry in this AND-of-ORs list).
   const andGroups: Prisma.ApplicationWhereInput[] = [];
+
+  // "reviewed" is a real submitted review AND not currently sent back to "under review" — see
+  // reviewStatus.ts, same definition used by the dashboard KPI/funnel and the CSV export.
+  if (filters.reviewed === 'YES') Object.assign(where, REVIEWED_WHERE);
+  if (filters.reviewed === 'NO') andGroups.push(NOT_REVIEWED_WHERE);
 
   const categories = splitCsv(filters.category);
   if (categories.length) where.solutionCategory = { in: categories };

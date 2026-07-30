@@ -4,6 +4,7 @@ import { listApplications, type ApplicationExportRow } from '@/lib/applications/
 import { EXPORT_COLUMNS } from '@/lib/applications/exportColumns';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { LEGAL_REGISTRATION_TYPE_LABEL, type LegalRegistrationTypeValue } from '@/lib/constants';
+import { isReviewed } from '@/lib/applications/reviewStatus';
 
 type ExportRow = ApplicationExportRow;
 
@@ -26,7 +27,7 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   reportLinks: (app) => app.reportLinks.map((r) => r.url).join('; '),
   bench: (app) => app.bench?.name ?? '',
   targetMatch: (app) => app.targetMatch?.name ?? '',
-  reviewStatus: (app) => (app.humanReviews.length > 0 ? 'reviewed' : 'not reviewed'),
+  reviewStatus: (app) => (isReviewed(app) ? 'reviewed' : 'not reviewed'),
   decisionStatus: (app) => (app.internalDecision === 'YES' ? 'yes' : app.internalDecision === 'NO' ? 'no' : 'undecided'),
   operatingModel: (app) => app.operatingModelArchetype ?? app.solutionCategory ?? '',
   states: (app) => app.statesOperating ?? '',

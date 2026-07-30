@@ -5,6 +5,7 @@ import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
+import { isReviewed } from '@/lib/applications/reviewStatus';
 import {
   OPERATING_MODEL_ARCHETYPE_LABEL,
   LEGAL_REGISTRATION_TYPE_LABEL,
@@ -78,7 +79,7 @@ export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowD
           : '—'}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        <ReviewStatusDropdown reviewed={app.humanReviews.length > 0} />
+        <ReviewStatusDropdown reviewed={isReviewed(app)} />
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <DsBadge tone={internalTone}>{internalLabel}</DsBadge>

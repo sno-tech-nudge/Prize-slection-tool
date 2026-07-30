@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { computeConsensus } from '@/lib/applications/consensus';
 import { parseRedFlags } from '@/lib/scoring/parse';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
+import { isReviewed, REVIEWED_WHERE } from '@/lib/applications/reviewStatus';
 
 /** Surfaces applications that need attention before they slip through the pipeline unnoticed:
  *  either the AI evaluation raised red flags, or the Level 1 eligibility screen (see
@@ -42,7 +43,7 @@ export async function getFlaggedApplications() {
 export async function getDashboardKpis() {
   const [total, reviewed, internalYes, statesRaw, yearsRaw] = await Promise.all([
     prisma.application.count({ where: { isDuplicateOf: null } }),
-    prisma.application.count({ where: { isDuplicateOf: null, humanReviews: { some: {} } } }),
+    prisma.application.count({ where: { isDuplicateOf: null, ...REVIEWED_WHERE } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
     prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } }),
     prisma.application.findMany({ where: { isDuplicateOf: null, yearsExperience: { not: null } }, select: { yearsExperience: true } }),
@@ -73,10 +74,10 @@ export async function getDashboardKpis() {
 export async function getReviewDecisionFunnel() {
   const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null },
-    select: { internalDecision: true, humanReviews: { select: { id: true }, take: 1 } },
+    select: { internalDecision: true, stageStatus: true, humanReviews: { select: { id: true }, take: 1 } },
   });
   const total = apps.length;
-  const reviewed = apps.filter((a) => a.humanReviews.length > 0).length;
+  const reviewed = apps.filter(isReviewed).length;
   const yes = apps.filter((a) => a.internalDecision === 'YES').length;
   const no = apps.filter((a) => a.internalDecision === 'NO').length;
   const undecided = total - yes - no;

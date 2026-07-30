@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { STAGE_ORDER } from '@/lib/stages/rules';
 import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue, type StageStatusValue } from '@/lib/constants';
+import { isReviewed } from '@/lib/applications/reviewStatus';
 
 /**
  * "Reached stage X" = the application's furthest position at or beyond X in the linear
@@ -81,9 +82,9 @@ export async function getOperatingBudgetMix() {
 export async function getReviewStatusMix() {
   const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null },
-    select: { humanReviews: { select: { id: true }, take: 1 } },
+    select: { stageStatus: true, humanReviews: { select: { id: true }, take: 1 } },
   });
-  const reviewed = apps.filter((a) => a.humanReviews.length > 0).length;
+  const reviewed = apps.filter(isReviewed).length;
   return [
     { label: 'reviewed', count: reviewed },
     { label: 'not reviewed', count: apps.length - reviewed },
