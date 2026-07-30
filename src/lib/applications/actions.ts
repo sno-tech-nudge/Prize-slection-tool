@@ -119,8 +119,13 @@ export async function submitHumanReviewAction(formData: FormData) {
     update: { criteria: JSON.stringify(criteria), composite, recommendation, comment, submittedAt: new Date() },
   });
 
+  // reviewed status everywhere else (dashboard KPI, applications list filter/badge) is derived
+  // purely from HumanReview existence — revalidate those too so a freshly submitted review shows
+  // up as "reviewed" immediately, not just on the application's own detail page.
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath('/review');
+  revalidatePath('/applications');
+  revalidatePath('/dashboard');
 }
 
 /** Admin go/no-go gate — independent of stageStatus. Only applications marked YES here

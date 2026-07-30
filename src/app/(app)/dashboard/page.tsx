@@ -16,6 +16,7 @@ import { BarRow } from '@/components/BarRow';
 import { PieChart } from '@/components/PieChart';
 import { IndiaStatesMap } from '@/components/IndiaStatesMap';
 import { OrgTitle } from '@/components/OrgTitle';
+import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 
 function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
   const content = (
@@ -123,6 +124,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <LiveRefreshTicker />
       <AngularBanner
         eyebrow="internal platform"
         title="dashboard"

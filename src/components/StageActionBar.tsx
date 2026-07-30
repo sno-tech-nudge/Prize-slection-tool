@@ -20,16 +20,21 @@ function pillStyle(active: boolean): React.CSSProperties {
   };
 }
 
-/** Early-pipeline applications (not yet shortlisted) get a plain reviewed / not-reviewed toggle
- *  instead of raw pipeline-stage jargon. Applications that have already progressed to shortlist
- *  or beyond fall through to the full stage dropdown below, since that real progression
- *  (jury / finalist / winner / reject) still needs the validated stage machine. */
+/** Early-pipeline applications (not yet shortlisted) get a plain two-state pipeline-stage toggle
+ *  instead of the full stage dropdown. This only moves `stageStatus` between SUBMITTED and
+ *  UNDER_REVIEW — it is NOT the same signal as "reviewed" elsewhere in the app (that's derived
+ *  purely from whether a HumanReview exists, see ReviewStatusDropdown / visibleApplicationWhere).
+ *  Labels intentionally say "submitted"/"under review", not "reviewed"/"not reviewed", so this
+ *  control can't be mistaken for the thing that drives the dashboard KPI and applications filter.
+ *  Applications that have already progressed to shortlist or beyond fall through to the full
+ *  stage dropdown below, since that real progression (jury / finalist / winner / reject) still
+ *  needs the validated stage machine. */
 function ReviewStageToggle({ applicationId, currentStage }: { applicationId: string; currentStage: StageStatusValue }) {
   const [pending, setPending] = React.useState(false);
-  const reviewed = currentStage === 'UNDER_REVIEW';
+  const underReview = currentStage === 'UNDER_REVIEW';
   const rejectOptions = LEGAL_TRANSITIONS[currentStage].filter((s) => s === 'REJECTED');
 
-  async function setReviewed(value: boolean) {
+  async function setStage(value: boolean) {
     setPending(true);
     const formData = new FormData();
     formData.set('applicationId', applicationId);
@@ -44,11 +49,11 @@ function ReviewStageToggle({ applicationId, currentStage }: { applicationId: str
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-        <button type="button" disabled={pending} onClick={() => setReviewed(false)} style={pillStyle(!reviewed)}>
-          not reviewed
+        <button type="button" disabled={pending} onClick={() => setStage(false)} style={pillStyle(!underReview)}>
+          {STAGE_STATUS_LABEL.SUBMITTED}
         </button>
-        <button type="button" disabled={pending} onClick={() => setReviewed(true)} style={pillStyle(reviewed)}>
-          reviewed
+        <button type="button" disabled={pending} onClick={() => setStage(true)} style={pillStyle(underReview)}>
+          {STAGE_STATUS_LABEL.UNDER_REVIEW}
         </button>
       </div>
       {rejectOptions.length > 0 && (

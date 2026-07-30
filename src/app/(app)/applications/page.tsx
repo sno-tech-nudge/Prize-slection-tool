@@ -7,6 +7,7 @@ import { ObserverApplicationRow } from '@/components/ObserverApplicationRow';
 import { ObserverApplicationFilters } from '@/components/ObserverApplicationFilters';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
+import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
 
@@ -151,6 +152,7 @@ export default async function ApplicationsPage({
 
   return (
     <div>
+      <LiveRefreshTicker />
       <AngularBanner
         eyebrow="the^delta prize · rapid re.gen challenge"
         title="applications"
