@@ -15,11 +15,23 @@ export interface Mailer {
   send(email: OutgoingEmail): Promise<SendResult>;
 }
 
-/** Prototype mailer — never touches the network. The Outbox row itself is the audit trail. */
+/** Prototype mailer — never touches the network. The Outbox row itself is the audit trail.
+ *  Only safe to silently "succeed" outside real production (local dev, preview builds) — on the
+ *  actual deployed production site this is almost always a misconfiguration (EMAIL_PROVIDER unset
+ *  or misspelled), and reporting SENT for a message that never left the process is exactly the
+ *  "looks fine, nothing arrives" failure mode this exists to prevent. */
 export class StubMailer implements Mailer {
   provider = 'stub';
 
   async send(_email: OutgoingEmail): Promise<SendResult> {
+    if (process.env.VERCEL_ENV === 'production') {
+      // eslint-disable-next-line no-console
+      console.error('[StubMailer] refusing to fake a send on production — EMAIL_PROVIDER is not set to "gmail" or "resend".');
+      return {
+        status: 'FAILED',
+        error: 'no real email provider is configured (EMAIL_PROVIDER env var) — nothing was sent',
+      };
+    }
     return { status: 'SENT', sentAt: new Date() };
   }
 }
@@ -110,7 +122,15 @@ export class GmailSmtpMailer implements Mailer {
       // a single-recipient send it normally throws on an outright rejection, but checking
       // `accepted` explicitly catches any edge case where it resolves without the recipient in
       // that list, instead of reporting SENT on a send that didn't really succeed.
-      if (!info.accepted?.some((a) => String(a).toLowerCase().includes(to.toLowerCase()))) {
+      const wasAccepted = info.accepted?.some((a) => String(a).toLowerCase().includes(to.toLowerCase()));
+      // logged unconditionally (success and failure) so `vercel logs` actually shows what
+      // happened on every send attempt instead of only surfacing errors that throw — this is the
+      // one place to check first if something shows "sent" in the UI but never arrives.
+      // eslint-disable-next-line no-console
+      console.log(
+        `[GmailSmtpMailer] to=${to} accepted=${wasAccepted} messageId=${info.messageId ?? 'n/a'} response=${info.response ?? 'n/a'}`,
+      );
+      if (!wasAccepted) {
         return {
           status: 'FAILED',
           error: `recipient not confirmed accepted by SMTP server (response: ${info.response ?? 'no response'})`,
@@ -118,7 +138,10 @@ export class GmailSmtpMailer implements Mailer {
       }
       return { status: 'SENT', sentAt: new Date() };
     } catch (err) {
-      return { status: 'FAILED', error: err instanceof Error ? err.message : 'unknown error' };
+      const message = err instanceof Error ? err.message : 'unknown error';
+      // eslint-disable-next-line no-console
+      console.error(`[GmailSmtpMailer] send to=${to} threw: ${message}`);
+      return { status: 'FAILED', error: message };
     }
   }
 }
@@ -136,7 +159,11 @@ function htmlToPlainText(html: string): string {
 }
 
 export function getMailer(): Mailer {
-  if (process.env.EMAIL_PROVIDER === 'resend') return new ResendMailer();
-  if (process.env.EMAIL_PROVIDER === 'gmail') return new GmailSmtpMailer();
+  // trimmed/lowercased so a stray space or "Gmail" typed into the Vercel dashboard doesn't
+  // silently fall through to the stub mailer — that exact mismatch is indistinguishable from a
+  // real send in the UI (both report a status), so it's worth guarding against here directly.
+  const provider = (process.env.EMAIL_PROVIDER ?? '').trim().toLowerCase();
+  if (provider === 'resend') return new ResendMailer();
+  if (provider === 'gmail') return new GmailSmtpMailer();
   return new StubMailer();
 }

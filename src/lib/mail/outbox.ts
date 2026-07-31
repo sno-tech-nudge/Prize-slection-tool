@@ -89,7 +89,10 @@ export async function approveAndSendOutboxEmail(outboxId: string) {
   const result = await mailer.send({ to: email.to, subject: email.subject, body: email.body });
   const updated = await prisma.outboxEmail.update({
     where: { id: outboxId },
-    data: { status: result.status, sentAt: result.sentAt },
+    // record the provider actually used for THIS send attempt, not just whatever was configured
+    // back when the row was queued — the outbox table shows this so "stub" on a row that's
+    // supposed to be a real send is immediately visible instead of hidden in server logs.
+    data: { status: result.status, sentAt: result.sentAt, provider: mailer.provider },
   });
   return { ...updated, error: result.error };
 }

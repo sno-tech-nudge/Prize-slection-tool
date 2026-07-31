@@ -73,6 +73,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
             status: e.status,
             createdAt: e.createdAt.toISOString(),
             sentAt: e.sentAt ? e.sentAt.toISOString() : null,
+            provider: e.provider,
           }))}
           canSend={canSend}
         />

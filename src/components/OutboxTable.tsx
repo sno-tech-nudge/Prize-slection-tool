@@ -14,6 +14,7 @@ export interface OutboxTableRowData {
   status: string;
   createdAt: string;
   sentAt: string | null;
+  provider: string;
 }
 
 // date + time of day, not just the date — so it's actually possible to tell when an email went
@@ -140,7 +141,7 @@ function OutboxTableRow({
   selected: boolean;
   onToggle: () => void;
 }) {
-  const { id, orgName, to, subject, body, template, status, createdAt, sentAt } = email;
+  const { id, orgName, to, subject, body, template, status, createdAt, sentAt, provider } = email;
   const { push } = useToast();
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<'preview' | 'edit'>('preview');
@@ -173,6 +174,10 @@ function OutboxTableRow({
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
           <Badge tone={TONE_FOR_STATUS[status] ?? 'neutral'}>{status.toLowerCase()}</Badge>
+          {/* diagnostic aid — if this ever says "stub" on a real send attempt, EMAIL_PROVIDER
+              isn't actually set to gmail/resend and nothing left the server despite the status
+              above. */}
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>via {provider}</div>
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
           <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
