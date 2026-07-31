@@ -1,6 +1,5 @@
 'use client';
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, Badge, Button, Dialog, Input, Textarea, Checkbox, useToast } from '@/design-system';
 import { approveAndSendAction, updateOutboxEmailAction, bulkApproveAndSendAction } from '@/lib/mail/actions';
 import { OrgTitle } from '@/components/OrgTitle';
@@ -33,13 +32,34 @@ const TONE_FOR_STATUS: Record<string, 'neutral' | 'red' | 'ink' | 'yellow' | 'ou
   SKIPPED: 'neutral',
 };
 
-export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[]; canSend: boolean }) {
-  const router = useRouter();
+/** Owns its own data via a direct fetch to /api/outbox instead of trusting the server-rendered
+ *  `initialEmails` prop to stay current through Next's router.refresh()/revalidatePath path —
+ *  that mechanism wasn't reliably showing a freshly sent email in this table in practice. Polls
+ *  on an interval and re-fetches immediately after any send/edit action anywhere in this table,
+ *  so what's on screen is always a real read of the database, not a cached route render. */
+export function OutboxTable({ emails: initialEmails, canSend }: { emails: OutboxTableRowData[]; canSend: boolean }) {
   const { push } = useToast();
+  const [emails, setEmails] = React.useState(initialEmails);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = React.useState(false);
   const queuedEmails = emails.filter((e) => e.status === 'QUEUED');
   const allQueuedSelected = queuedEmails.length > 0 && queuedEmails.every((e) => selected.has(e.id));
+
+  const refreshEmails = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/outbox', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.emails)) setEmails(data.emails);
+    } catch {
+      // best-effort — a missed refresh just means the next poll or action retries it
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const interval = setInterval(refreshEmails, 8000);
+    return () => clearInterval(interval);
+  }, [refreshEmails]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -67,7 +87,7 @@ export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[];
         const detail = result.errors.length ? result.errors.join('; ') : `${result.sent} sent, ${result.failed} failed — check status below.`;
         push('some emails failed', detail, 'error');
       }
-      router.refresh();
+      await refreshEmails();
     } finally {
       setBulkSending(false);
     }
@@ -118,7 +138,7 @@ export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[];
         </thead>
         <tbody>
           {emails.map((e) => (
-            <OutboxTableRow key={e.id} email={e} canSend={canSend} selected={selected.has(e.id)} onToggle={() => toggle(e.id)} />
+            <OutboxTableRow key={e.id} email={e} canSend={canSend} selected={selected.has(e.id)} onToggle={() => toggle(e.id)} onSent={refreshEmails} />
           ))}
           {emails.length === 0 && (
             <tr>
@@ -138,14 +158,15 @@ function OutboxTableRow({
   canSend,
   selected,
   onToggle,
+  onSent,
 }: {
   email: OutboxTableRowData;
   canSend: boolean;
   selected: boolean;
   onToggle: () => void;
+  onSent: () => Promise<void>;
 }) {
   const { id, orgName, to, subject, body, template, status, createdAt, sentAt, provider } = email;
-  const router = useRouter();
   const { push } = useToast();
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<'preview' | 'edit'>('preview');
@@ -214,7 +235,7 @@ function OutboxTableRow({
                       const result = await approveAndSendAction(formData);
                       if (result.status === 'SENT') push('sent', `email to ${orgName} sent.`, 'success');
                       else push('send failed', result.error ?? `email to ${orgName} could not be sent.`, 'error');
-                      router.refresh();
+                      await onSent();
                     } finally {
                       setPending(false);
                     }
@@ -238,7 +259,7 @@ function OutboxTableRow({
                     const result = await approveAndSendAction(formData);
                     if (result.status === 'SENT') push('sent', `email to ${orgName} sent.`, 'success');
                     else push('send failed', result.error ?? `email to ${orgName} could not be sent.`, 'error');
-                    router.refresh();
+                    await onSent();
                   } finally {
                     setPending(false);
                   }
@@ -264,7 +285,7 @@ function OutboxTableRow({
               try {
                 await updateOutboxEmailAction(formData);
                 setMode('preview');
-                router.refresh();
+                await onSent();
               } finally {
                 setSaving(false);
               }
