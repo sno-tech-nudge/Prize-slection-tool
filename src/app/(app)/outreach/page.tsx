@@ -6,6 +6,7 @@ import { listOutbox } from '@/lib/mail/queries';
 import { listApplicationsForOutreach } from '@/lib/applications/queries';
 import { getSettings } from '@/lib/settings';
 import { getCurrentUser } from '@/lib/auth/session';
+import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 
 const DECISION_FILTERS = ['', 'YES', 'NO', 'UNDECIDED'];
 
@@ -21,6 +22,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
 
   return (
     <div>
+      <LiveRefreshTicker />
       <AngularBanner
         eyebrow="email automation"
         title="outreach"

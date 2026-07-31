@@ -92,9 +92,10 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
       const parts = [`${result.sent} sent`];
       if (result.failed) parts.push(`${result.failed} failed`);
       if (result.skipped) parts.push(`${result.skipped} already contacted, skipped`);
+      const detail = result.errors.length ? `${parts.join(', ')}. ${result.errors.join(' ')}` : parts.join(', ');
       push(
         result.failed ? 'sent with errors' : 'sent',
-        result.errors.length ? `${parts.join(', ')}. ${result.errors.join(' ')}` : parts.join(', '),
+        result.failed ? `${detail} select the same applications and send again to retry the failed ones.` : detail,
         result.failed ? 'error' : 'success',
       );
       router.refresh();
@@ -263,7 +264,10 @@ function OutreachApplicationTableRow({
       formData.set('kind', kind);
       const result = await sendIndividualOutreachAction(formData);
       if (result.status === 'SENT') push('sent', `${kind} email to ${app.orgName} sent.`, 'success');
-      else push('send failed', result.error ?? `${kind} email to ${app.orgName} could not be sent.`, 'error');
+      else {
+        const reason = result.error ?? `${kind} email to ${app.orgName} could not be sent.`;
+        push('send failed', `${reason} click send again to try again.`, 'error');
+      }
       router.refresh();
     } finally {
       setSending(false);

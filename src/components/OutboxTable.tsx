@@ -222,6 +222,28 @@ function OutboxTableRow({
                 </form>
               </>
             )}
+            {/* a failed send previously had no way to retry from this table at all — approveAndSendOutboxEmail
+                always re-attempts regardless of the row's current status, so this is a safe, real retry, not
+                just re-reporting the old failure. */}
+            {canSend && status === 'FAILED' && (
+              <form
+                action={async (formData) => {
+                  setPending(true);
+                  try {
+                    const result = await approveAndSendAction(formData);
+                    if (result.status === 'SENT') push('sent', `email to ${orgName} sent.`, 'success');
+                    else push('send failed', result.error ?? `email to ${orgName} could not be sent.`, 'error');
+                  } finally {
+                    setPending(false);
+                  }
+                }}
+              >
+                <input type="hidden" name="outboxId" value={id} />
+                <Button type="submit" variant="cta" size="sm" disabled={pending}>
+                  {pending ? 'retrying…' : 'try again'}
+                </Button>
+              </form>
+            )}
           </div>
         </td>
       </tr>

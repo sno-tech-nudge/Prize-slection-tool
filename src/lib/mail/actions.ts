@@ -85,8 +85,10 @@ function outboxTemplateName(kind: CustomOutreachKind): string {
 /** Sends an acceptance, rejection, or query email (from the customisable templates) to every
  *  selected application immediately — the confirm dialog on the button is the human-approval
  *  gate, so once confirmed there is no separate queue-then-approve step to go find and click
- *  again. Skips an application that already has a matching bulk email on file (queued, sent, or
- *  failed), so re-selecting the same rows twice doesn't pile up duplicates or re-send. */
+ *  again. Skips an application that's already been successfully SENT this template, so
+ *  re-selecting the same rows twice doesn't re-send to someone already contacted. A row that
+ *  previously FAILED (or is still QUEUED) is not "already contacted" — it's retried instead of
+ *  silently skipped forever. */
 export async function bulkSendOutreachAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_SEND_MAIL);
@@ -102,11 +104,11 @@ export async function bulkSendOutreachAction(formData: FormData) {
 
   for (const applicationId of applicationIds) {
     const existing = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
-    if (existing) {
+    if (existing && existing.status === 'SENT') {
       skipped++;
       continue;
     }
-    const email = await enqueueCustomOutreachEmail(applicationId, kind);
+    const email = existing ?? (await enqueueCustomOutreachEmail(applicationId, kind));
     const result = await approveAndSendOutboxEmail(email.id);
     if (result.status === 'SENT') sent++;
     else {
