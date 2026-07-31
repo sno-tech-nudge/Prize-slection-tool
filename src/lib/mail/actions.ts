@@ -131,9 +131,13 @@ export async function previewOutreachEmailAction(formData: FormData) {
 }
 
 /** One-click send for a single application, directly from the applications table — queues the
- *  email if it isn't already queued, then immediately approves and sends it. A shortcut around
- *  the bulk-select → queue → separately-approve flow for when you only want to handle one
- *  applicant right now. */
+ *  email if one doesn't exist yet for this application+template, then always actually attempts a
+ *  fresh send. The confirm dialog in front of this action is the deliberate-intent gate, not the
+ *  row's stored status — a repeat click (retry, or genuinely re-sending) must really re-attempt
+ *  delivery, not silently re-report whatever status happened to be stored from a previous
+ *  attempt. Previously this only sent when the existing row was still QUEUED, so once a row was
+ *  marked SENT (even from a much earlier attempt), every later click just echoed that stale
+ *  status back as if it had just succeeded, without ever touching the network again. */
 export async function sendIndividualOutreachAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_SEND_MAIL);
@@ -147,15 +151,10 @@ export async function sendIndividualOutreachAction(formData: FormData) {
     email = await enqueueCustomOutreachEmail(applicationId, kind);
   }
 
-  let error: string | undefined;
-  if (email.status === 'QUEUED') {
-    const result = await approveAndSendOutboxEmail(email.id);
-    email = result;
-    error = result.error;
-  }
+  const result = await approveAndSendOutboxEmail(email.id);
 
   revalidatePath('/outreach');
-  return { status: email.status, error };
+  return { status: result.status, error: result.error };
 }
 
 /** Saves the admin-editable acceptance/rejection/query email templates used by bulk outreach.
