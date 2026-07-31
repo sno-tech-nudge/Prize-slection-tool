@@ -22,7 +22,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
 
   return (
     <div>
-      <LiveRefreshTicker />
+      <LiveRefreshTicker intervalMs={8000} />
       <AngularBanner
         eyebrow="email automation"
         title="outreach"

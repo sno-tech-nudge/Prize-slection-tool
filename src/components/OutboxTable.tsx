@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, Badge, Button, Dialog, Input, Textarea, Checkbox, useToast } from '@/design-system';
 import { approveAndSendAction, updateOutboxEmailAction, bulkApproveAndSendAction } from '@/lib/mail/actions';
 import { OrgTitle } from '@/components/OrgTitle';
@@ -33,6 +34,7 @@ const TONE_FOR_STATUS: Record<string, 'neutral' | 'red' | 'ink' | 'yellow' | 'ou
 };
 
 export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[]; canSend: boolean }) {
+  const router = useRouter();
   const { push } = useToast();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = React.useState(false);
@@ -65,6 +67,7 @@ export function OutboxTable({ emails, canSend }: { emails: OutboxTableRowData[];
         const detail = result.errors.length ? result.errors.join('; ') : `${result.sent} sent, ${result.failed} failed — check status below.`;
         push('some emails failed', detail, 'error');
       }
+      router.refresh();
     } finally {
       setBulkSending(false);
     }
@@ -142,6 +145,7 @@ function OutboxTableRow({
   onToggle: () => void;
 }) {
   const { id, orgName, to, subject, body, template, status, createdAt, sentAt, provider } = email;
+  const router = useRouter();
   const { push } = useToast();
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<'preview' | 'edit'>('preview');
@@ -210,6 +214,7 @@ function OutboxTableRow({
                       const result = await approveAndSendAction(formData);
                       if (result.status === 'SENT') push('sent', `email to ${orgName} sent.`, 'success');
                       else push('send failed', result.error ?? `email to ${orgName} could not be sent.`, 'error');
+                      router.refresh();
                     } finally {
                       setPending(false);
                     }
@@ -233,6 +238,7 @@ function OutboxTableRow({
                     const result = await approveAndSendAction(formData);
                     if (result.status === 'SENT') push('sent', `email to ${orgName} sent.`, 'success');
                     else push('send failed', result.error ?? `email to ${orgName} could not be sent.`, 'error');
+                    router.refresh();
                   } finally {
                     setPending(false);
                   }
@@ -258,6 +264,7 @@ function OutboxTableRow({
               try {
                 await updateOutboxEmailAction(formData);
                 setMode('preview');
+                router.refresh();
               } finally {
                 setSaving(false);
               }
