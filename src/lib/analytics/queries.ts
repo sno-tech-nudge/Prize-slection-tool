@@ -79,6 +79,26 @@ export async function getOperatingBudgetMix() {
   return [...tally.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
 }
 
+/** How applicants found out about the challenge — a multi-select off the real Zoho form with no
+ *  fixed enum list (same shape as operating budget above), so each selected value is tallied
+ *  individually rather than treating "A;B" as its own bucket distinct from "A" and "B". */
+export async function getHeardAboutMix() {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { heardAboutChallenge: true } });
+  const tally = new Map<string, number>();
+  for (const a of apps) {
+    if (!a.heardAboutChallenge) {
+      tally.set('not provided', (tally.get('not provided') ?? 0) + 1);
+      continue;
+    }
+    for (const raw of a.heardAboutChallenge.split(';')) {
+      const key = raw.trim();
+      if (!key) continue;
+      tally.set(key, (tally.get(key) ?? 0) + 1);
+    }
+  }
+  return [...tally.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+}
+
 export async function getReviewStatusMix() {
   const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null },

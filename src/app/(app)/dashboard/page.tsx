@@ -8,6 +8,7 @@ import { listRecentMatches, getTargetStats } from '@/lib/targets/queries';
 import {
   getOperatingModelMix,
   getOperatingBudgetMix,
+  getHeardAboutMix,
   getStateApplicationMix,
   getOrgSizeMix,
   getOrgAgeMix,
@@ -103,6 +104,7 @@ export default async function DashboardPage() {
     activity,
     categoryMix,
     budgetMix,
+    heardAboutMix,
     stateMix,
     orgSizeMix,
     orgAgeMix,
@@ -115,6 +117,7 @@ export default async function DashboardPage() {
     getRecentActivity(30),
     getOperatingModelMix(),
     getOperatingBudgetMix(),
+    getHeardAboutMix(),
     getStateApplicationMix(),
     getOrgSizeMix(),
     getOrgAgeMix(),
@@ -253,6 +256,11 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
+        <Card accent style={{ marginBottom: 'var(--space-8)' }}>
+          <SectionHeader title="how applicants heard about the challenge" />
+          <PieChart data={heardAboutMix} />
+        </Card>
+
         <Card accent>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
             <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by state</h2>
@@ -281,10 +289,11 @@ export default async function DashboardPage() {
  *  dashboard, minus the pipeline funnel, reviewer stats, target matches, and recent activity
  *  sections (internal operational detail not meant for an outside observer). */
 async function ObserverDashboard() {
-  const [kpis, categoryMix, budgetMix, stateMix, orgSizeMix, orgAgeMix] = await Promise.all([
+  const [kpis, categoryMix, budgetMix, heardAboutMix, stateMix, orgSizeMix, orgAgeMix] = await Promise.all([
     getDashboardKpis(),
     getOperatingModelMix(),
     getOperatingBudgetMix(),
+    getHeardAboutMix(),
     getStateApplicationMix(),
     getOrgSizeMix(),
     getOrgAgeMix(),
@@ -313,6 +322,11 @@ async function ObserverDashboard() {
             <PieChart data={budgetMix} />
           </Card>
         </div>
+
+        <Card accent style={{ marginBottom: 'var(--space-8)' }}>
+          <SectionHeader title="how applicants heard about the challenge" />
+          <PieChart data={heardAboutMix} />
+        </Card>
 
         <Card accent>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
