@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 
 export interface PieSlice {
@@ -30,8 +31,12 @@ function polarPoint(cx: number, cy: number, r: number, angleDeg: number) {
 
 /** Donut chart with numbered slices (1, 2, 3...) plus a legend mapping number → label — used
  *  instead of full text labels directly on the chart, since operating model / budget band labels
- *  are too long to fit legibly inside or next to a slice. */
+ *  are too long to fit legibly inside or next to a slice. Hovering a slice (or its legend row)
+ *  dims the rest and reveals that slice's share as a percentage — the percentage stays hidden
+ *  the rest of the time so the legend reads as label + count only, matching the other dashboard
+ *  metrics. */
 export function PieChart({ data, size = 200 }: { data: PieSlice[]; size?: number }) {
+  const [hovered, setHovered] = React.useState<number | null>(null);
   const total = data.reduce((sum, d) => sum + d.count, 0);
   const r = size / 2;
   const innerR = r * 0.55;
@@ -66,8 +71,17 @@ export function PieChart({ data, size = 200 }: { data: PieSlice[]; size?: number
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-        {slices.map((s) => (
-          <path key={s.number} d={s.path} fill={s.color} stroke="var(--surface-card)" strokeWidth={1} />
+        {slices.map((s, i) => (
+          <path
+            key={s.number}
+            d={s.path}
+            fill={s.color}
+            stroke="var(--surface-card)"
+            strokeWidth={1}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            style={{ opacity: hovered === null || hovered === i ? 1 : 0.35, cursor: 'pointer', transition: 'opacity 120ms ease' }}
+          />
         ))}
         {slices
           .filter((s) => s.pct > 0.06)
@@ -81,6 +95,7 @@ export function PieChart({ data, size = 200 }: { data: PieSlice[]; size?: number
               fontSize={12}
               fontWeight={700}
               fill="var(--text-inverse)"
+              style={{ pointerEvents: 'none' }}
             >
               {s.number}
             </text>
@@ -88,11 +103,39 @@ export function PieChart({ data, size = 200 }: { data: PieSlice[]; size?: number
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', minWidth: 180 }}>
         {slices.map((s, i) => (
-          <div key={s.number} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)' }}>
-            <span style={{ width: 12, height: 12, background: s.color, flexShrink: 0 }} />
+          <div
+            key={s.number}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', cursor: 'pointer' }}
+          >
+            <span
+              style={{
+                width: 12,
+                height: 12,
+                background: s.color,
+                flexShrink: 0,
+                opacity: hovered === null || hovered === i ? 1 : 0.35,
+                transition: 'opacity 120ms ease',
+              }}
+            />
             <span style={{ width: 16, color: 'var(--text-muted)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{s.number}</span>
             <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{data[i].label}</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{data[i].count}</span>
+            <span
+              style={{
+                fontSize: 'var(--fs-caption)',
+                color: 'var(--text-muted)',
+                minWidth: 34,
+                textAlign: 'right',
+                opacity: hovered === i ? 1 : 0,
+                transition: 'opacity 120ms ease',
+              }}
+            >
+              {Math.round(s.pct * 100)}%
+            </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--fw-bold)' as unknown as number, minWidth: 24, textAlign: 'right' }}>
+              {data[i].count}
+            </span>
           </div>
         ))}
       </div>
