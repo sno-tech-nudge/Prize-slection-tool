@@ -15,6 +15,72 @@ import { deriveOrgTypeFromLegalRegistration } from './normalize';
  * builder, so we parse defensively (try several plausible JSONB key names, fall back to raw
  * string dumps) rather than assume a rigid contract that breaks the whole sync on one bad row.
  */
+// explicit column list — deliberately excludes raw_payload, enrichment, and ai_score_breakdown.
+// Those three are large JSONB blobs (raw_payload duplicates the entire original form submission
+// per row) that get stored locally but are never read back out anywhere in this app — pulling
+// them on every sync tick was the primary driver of a 60GB/month Supabase egress bill against a
+// source table with only a few hundred rows. If a genuine need to inspect one of these ever
+// comes up, fetch it lazily for a single row on demand rather than adding it back here.
+const SOURCE_COLUMNS = [
+  'id',
+  'creator_record_id',
+  'challenge',
+  'submitted_at',
+  'ingested_at',
+  'updated_at',
+  'current_stage',
+  'ai_score',
+  'ai_score_rationale',
+  'organisation_name',
+  'founder_first_name',
+  'founder_last_name',
+  'designation',
+  'email',
+  'contact_number',
+  'organisation_website',
+  'organisation_linkedin',
+  'registered_on',
+  'legal_registration_type',
+  'fcra_registration',
+  'certificate_12a',
+  'certificate_80g',
+  'csr1_registration',
+  'niti_darpan_id',
+  'darpan_id_number',
+  'annual_operating_budget',
+  'full_time_employees',
+  'operating_model',
+  'operating_model_description',
+  'crops',
+  'regenerative_practices',
+  'biggest_hurdle',
+  'internal_tools',
+  'other_tools',
+  'tools_developed_internally',
+  'years_experience',
+  'significant_impacts',
+  'operating_states',
+  'farmers_count',
+  'smallholder_farmers_count',
+  'avg_land_holding_ha',
+  'total_area_regen_ha',
+  'villages_districts',
+  'work_beyond_agriculture',
+  'other_development_areas',
+  'materials_in_local_languages',
+  'team_formal_training',
+  'team_training_description',
+  'mel_handling',
+  'prize_fund_use',
+  'heard_about_challenge',
+  'other_heard_about',
+  'info_accurate_confirmed',
+  'founders',
+  'funders',
+  'tech_use_cases',
+  'reference_links',
+].join(',');
+
 interface SupabaseApplicationRow {
   id: string;
   creator_record_id: string | null;
@@ -23,9 +89,7 @@ interface SupabaseApplicationRow {
   ingested_at: string | null;
   updated_at: string | null;
   current_stage: string | null;
-  enrichment: unknown;
   ai_score: number | null;
-  ai_score_breakdown: unknown;
   ai_score_rationale: string | null;
   organisation_name: string | null;
   founder_first_name: string | null;
@@ -75,7 +139,6 @@ interface SupabaseApplicationRow {
   funders: unknown;
   tech_use_cases: unknown;
   reference_links: unknown;
-  raw_payload: unknown;
 }
 
 /** organisation_website / organisation_linkedin currently arrive wrapped as
@@ -124,16 +187,6 @@ function toStringLoose(raw: string | number | null | undefined): string | undefi
   if (raw === null || raw === undefined) return undefined;
   const s = String(raw).trim();
   return s || undefined;
-}
-
-function toJsonString(raw: unknown): string | undefined {
-  if (raw === null || raw === undefined) return undefined;
-  if (typeof raw === 'string') return raw.trim() || undefined;
-  try {
-    return JSON.stringify(raw);
-  } catch {
-    return undefined;
-  }
 }
 
 function firstString(obj: unknown, keys: string[]): string | undefined {
@@ -227,20 +280,38 @@ export interface SupabaseSyncResult {
   skipped: { id: string; reason: string }[];
 }
 
-/** Pulls every row from the live Supabase `applications` table and upserts it into the local
+/** Pulls rows from the live Supabase `applications` table and upserts them into the local
  *  Application table (keyed by externalId = Supabase row id). Safe to re-run — existing rows
  *  are updated in place, their founders/funders/tech-use-cases/report-links replaced wholesale
- *  (the source has no stable child ids, so delete+recreate is the only sane sync strategy). */
+ *  (the source has no stable child ids, so delete+recreate is the only sane sync strategy).
+ *
+ *  Only pulls rows that changed since our last successful sync (source `updated_at` at or after
+ *  the newest `sourceUpdatedAt` we already have locally), instead of the full table every time —
+ *  combined with the explicit column list above, this is the fix for a 60GB/month Supabase
+ *  egress bill against a source table with only a few hundred rows. Falls back to a full,
+ *  unfiltered fetch on the very first run (no local rows yet to compare against).
+ *  One narrow trade-off: a source row that was previously skipped here (missing
+ *  organisation_name/email) and later corrected upstream *without* its `updated_at` moving again
+ *  won't be picked up until some other row's `updated_at` also fails to advance past it — this
+ *  was already a possible gap before (the row would just sit in `skipped` every tick), and is
+ *  rare enough not to warrant a periodic full-fetch fallback for it. */
 export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult> {
   const client = getSupabaseClient();
   if (!client) {
     throw new Error('SUPABASE_URL / SUPABASE_ANON_KEY not set — cannot sync.');
   }
 
-  const { data, error } = await client.from('applications').select('*');
+  const watermark = await prisma.application.aggregate({
+    where: { source: 'SUPABASE' },
+    _max: { sourceUpdatedAt: true },
+  });
+  const since = watermark._max.sourceUpdatedAt;
+
+  const query = client.from('applications').select(SOURCE_COLUMNS);
+  const { data, error } = await (since ? query.gte('updated_at', since.toISOString()) : query);
   if (error) throw new Error(`Supabase fetch failed: ${error.message}`);
 
-  const rows = (data ?? []) as SupabaseApplicationRow[];
+  const rows = (data ?? []) as unknown as SupabaseApplicationRow[];
   const result: SupabaseSyncResult = { fetched: rows.length, created: 0, updated: 0, skipped: [] };
 
   // one batch lookup instead of one findUnique per row — against a remote pooler at ~150-600ms
@@ -328,11 +399,8 @@ export async function syncApplicationsFromSupabase(): Promise<SupabaseSyncResult
       creatorRecordId: row.creator_record_id ?? undefined,
       sourceIngestedAt: toDate(row.ingested_at),
       sourceUpdatedAt: toDate(row.updated_at),
-      externalEnrichment: toJsonString(row.enrichment),
       externalAiScore: row.ai_score ?? undefined,
-      externalAiScoreBreakdown: toJsonString(row.ai_score_breakdown),
       externalAiScoreRationale: row.ai_score_rationale ?? undefined,
-      rawSourcePayload: toJsonString(row.raw_payload),
 
       source: 'SUPABASE',
       externalId: row.id,
