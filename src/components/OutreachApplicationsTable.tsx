@@ -240,9 +240,8 @@ function OutreachApplicationTableRow({
   // sends without a human approving it" guarantee is unchanged.
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
-  async function openPreview() {
+  async function loadPreview() {
     setPreview(null);
-    setPreviewOpen(true);
     setPreviewLoading(true);
     try {
       const formData = new FormData();
@@ -253,6 +252,20 @@ function OutreachApplicationTableRow({
     } finally {
       setPreviewLoading(false);
     }
+  }
+
+  function openPreview() {
+    setPreviewOpen(true);
+    loadPreview();
+  }
+
+  // "send" now opens the same confirm dialog it always did, but loads the actual rendered
+  // subject/body into it first — so what's about to go out is visible right there next to the
+  // send button, not just a plain "send this email?" line. Nothing about the actual send action
+  // itself changed.
+  function openSendConfirm() {
+    setConfirmOpen(true);
+    loadPreview();
   }
 
   async function sendNow() {
@@ -310,7 +323,7 @@ function OutreachApplicationTableRow({
               <Button variant="secondary" size="sm" onClick={openPreview}>
                 preview
               </Button>
-              <Button variant="cta" size="sm" disabled={sending} onClick={() => setConfirmOpen(true)}>
+              <Button variant="cta" size="sm" disabled={sending} onClick={openSendConfirm}>
                 {sending ? 'sending…' : 'send'}
               </Button>
             </div>
@@ -330,6 +343,7 @@ function OutreachApplicationTableRow({
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title="send this email?"
+        width={680}
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(false)}>
@@ -341,7 +355,14 @@ function OutreachApplicationTableRow({
           </>
         }
       >
-        send a {kind} email to {app.pocFirstName} {app.pocLastName} ({app.email}) right now?
+        <p style={{ marginBottom: 'var(--space-3)' }}>
+          send a {kind} email to {app.pocFirstName} {app.pocLastName} ({app.email}) right now?
+        </p>
+        {previewLoading || !preview ? (
+          <p style={{ color: 'var(--text-secondary)' }}>loading preview…</p>
+        ) : (
+          <iframe title="email preview" srcDoc={preview.body} style={{ width: '100%', height: 360, border: '1px solid var(--border-subtle)' }} />
+        )}
       </Dialog>
     </>
   );
