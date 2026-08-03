@@ -42,30 +42,19 @@ export function OutboxTable({ emails: initialEmails, canSend }: { emails: Outbox
   const [emails, setEmails] = React.useState(initialEmails);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = React.useState(false);
-  // TEMPORARY diagnostic — remove once the live-refresh issue is confirmed fixed. Shows exactly
-  // when the client last polled /api/outbox and what it got back, so we can tell from the screen
-  // alone whether the polling loop is even running in this browser session.
-  const [debugInfo, setDebugInfo] = React.useState('not checked yet');
   const queuedEmails = emails.filter((e) => e.status === 'QUEUED');
   const allQueuedSelected = queuedEmails.length > 0 && queuedEmails.every((e) => selected.has(e.id));
 
   const refreshEmails = React.useCallback(async () => {
-    const now = new Date().toLocaleTimeString('en-GB');
     try {
       const res = await fetch('/api/outbox', { cache: 'no-store' });
-      if (!res.ok) {
-        setDebugInfo(`${now} — fetch failed, status ${res.status}`);
-        return;
-      }
+      if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data.emails)) {
         setEmails(data.emails);
-        setDebugInfo(`${now} — got ${data.emails.length} rows`);
-      } else {
-        setDebugInfo(`${now} — unexpected response shape`);
       }
-    } catch (err) {
-      setDebugInfo(`${now} — fetch threw: ${err instanceof Error ? err.message : 'unknown'}`);
+    } catch {
+      // next poll will retry
     }
   }, []);
 
@@ -109,9 +98,6 @@ export function OutboxTable({ emails: initialEmails, canSend }: { emails: Outbox
 
   return (
     <Card padding="0" style={{ overflowX: 'auto' }}>
-      <div style={{ padding: 'var(--space-2) var(--space-4)', fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', background: 'var(--surface-canvas)' }}>
-        debug: last poll {debugInfo}
-      </div>
       {canSend && selected.size > 0 && (
         <div
           style={{
