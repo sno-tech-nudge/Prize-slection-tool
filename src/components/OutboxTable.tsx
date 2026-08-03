@@ -123,7 +123,7 @@ export function OutboxTable({ emails: initialEmails, canSend }: { emails: Outbox
                 <Checkbox checked={allQueuedSelected} onChange={toggleAll} disabled={queuedEmails.length === 0} aria-label="select all queued" />
               </th>
             )}
-            {['organisation', 'subject', 'template', 'created', 'status', ''].map((h) => (
+            {['organisation', 'subject', 'template', 'sent / created', 'status', ''].map((h) => (
               <th
                 key={h}
                 style={{
@@ -195,10 +195,14 @@ function OutboxTableRow({
           {template.replace(/_/g, ' ')}
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-          {formatDateTime(createdAt)}
           {sentAt ? (
-            <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>sent {formatDateTime(sentAt)}</div>
-          ) : null}
+            <>
+              <div>{formatDateTime(sentAt)}</div>
+              <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>created {formatDateTime(createdAt)}</div>
+            </>
+          ) : (
+            formatDateTime(createdAt)
+          )}
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
           <Badge tone={TONE_FOR_STATUS[status] ?? 'neutral'}>{status.toLowerCase()}</Badge>
