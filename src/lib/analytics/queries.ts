@@ -3,14 +3,15 @@ import { STAGE_ORDER } from '@/lib/stages/rules';
 import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue, type StageStatusValue } from '@/lib/constants';
 import { isReviewed } from '@/lib/applications/reviewStatus';
 
-const OTHERS_THRESHOLD = 5;
+const OTHERS_THRESHOLD = 3;
 
 /** A category is exempt from being folded into "others" even below the threshold when it's a
- *  meaningful, singular bucket (an absence of data, or a deliberately separate cohort) rather
- *  than one of many small stray free-text values. */
+ *  deliberately separate cohort (e.g. the legacy AgWater cohort) rather than a missing-data or
+ *  stray free-text value — "not provided" is deliberately NOT exempt, so a handful of blank
+ *  answers reads as part of "others" rather than its own confusingly-separate near-empty slice. */
 function isExemptFromOthers(label: string): boolean {
   const l = label.trim().toLowerCase();
-  return l === 'not provided' || l.includes('not yet classified') || l.includes('not classified');
+  return l.includes('not yet classified') || l.includes('not classified');
 }
 
 /** Collapses every category with a count below the threshold into a single "others" bucket —
