@@ -75,10 +75,10 @@ export default async function ApplicationDetailPage({
           <>
             {app.pocFirstName} {app.pocLastName}
             {app.designation ? `, ${app.designation}` : ''}
-            {!isObserver && app.externalId && (
+            {!isObserver && app.creatorRecordId && (
               <>
                 {' '}
-                · {app.externalId}
+                · rec_id {app.creatorRecordId}
               </>
             )}
           </>
