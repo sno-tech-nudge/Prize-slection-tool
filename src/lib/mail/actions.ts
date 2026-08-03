@@ -108,7 +108,13 @@ export async function bulkSendOutreachAction(formData: FormData) {
       skipped++;
       continue;
     }
-    const email = existing ?? (await enqueueCustomOutreachEmail(applicationId, kind));
+    // re-render a reused (e.g. previously FAILED) row fresh before sending, same reasoning as
+    // sendIndividualOutreachAction above — a freshly-created row is already current.
+    let email = existing ?? (await enqueueCustomOutreachEmail(applicationId, kind));
+    if (existing) {
+      const fresh = await previewCustomOutreachEmail(applicationId, kind);
+      email = await prisma.outboxEmail.update({ where: { id: existing.id }, data: { subject: fresh.subject, body: fresh.body } });
+    }
     const result = await approveAndSendOutboxEmail(email.id);
     if (result.status === 'SENT') sent++;
     else {
@@ -139,7 +145,13 @@ export async function previewOutreachEmailAction(formData: FormData) {
  *  delivery, not silently re-report whatever status happened to be stored from a previous
  *  attempt. Previously this only sent when the existing row was still QUEUED, so once a row was
  *  marked SENT (even from a much earlier attempt), every later click just echoed that stale
- *  status back as if it had just succeeded, without ever touching the network again. */
+ *  status back as if it had just succeeded, without ever touching the network again.
+ *
+ *  When an existing row is found, its subject/body are re-rendered fresh right before sending
+ *  instead of trusting whatever was stored when the row was first queued — a form link, rec_id,
+ *  or template change made since then (a settings edit, a bug fix) needs to actually go out, not
+ *  the stale snapshot. This matches the preview shown in the send confirmation dialog, which is
+ *  always rendered fresh. A freshly-created row is already current, so no extra render needed. */
 export async function sendIndividualOutreachAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_SEND_MAIL);
@@ -151,6 +163,9 @@ export async function sendIndividualOutreachAction(formData: FormData) {
   let email = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
   if (!email) {
     email = await enqueueCustomOutreachEmail(applicationId, kind);
+  } else {
+    const fresh = await previewCustomOutreachEmail(applicationId, kind);
+    email = await prisma.outboxEmail.update({ where: { id: email.id }, data: { subject: fresh.subject, body: fresh.body } });
   }
 
   const result = await approveAndSendOutboxEmail(email.id);
