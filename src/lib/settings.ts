@@ -40,7 +40,7 @@ const DEFAULTS: DeltaSettings = {
   emailTemplateQuery: {
     subject: 'a quick follow-up on your application — {{challengeName}}',
     body: 'dear {{pocFirstName}},\n\nthank you for applying to {{challengeName}} on behalf of {{orgName}}. as we review your application, we need a little more information before we can move forward.\n\ncould you share a few additional details using the short form below?\n\n{{formLink}}\n\nwith thanks,\nthe^delta prize team',
-    formLink: '',
+    formLink: 'https://tally.so/r/q4XYpk',
   },
 };
 
