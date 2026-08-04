@@ -7,6 +7,30 @@ import { RUBRIC_CRITERIA, RUBRIC_SECTIONS, computeComposite } from '@/lib/scorin
 import { parseCriteria } from '@/lib/scoring/parse';
 import { submitHumanReviewAction } from '@/lib/applications/actions';
 
+/** In-progress scores/comments are only ever held in React state, so a review that closes
+ *  mid-way (accidental navigation, tab close, session hiccup) loses everything typed so far —
+ *  this mirrors it into localStorage as the reviewer types, and clears it once actually
+ *  submitted, so reopening the same application restores the draft instead of a blank form. */
+interface ReviewDraft {
+  scores: Record<string, number>;
+  criterionComments: Record<string, string>;
+  comment: string;
+}
+
+function draftKeyFor(applicationId: string): string {
+  return `delta-review-draft:${applicationId}`;
+}
+
+function loadDraft(applicationId: string): ReviewDraft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(draftKeyFor(applicationId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function ReviewScoringForm({
   applicationId,
   existing,
@@ -28,8 +52,17 @@ export function ReviewScoringForm({
     return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.comment ?? '']));
   }, [existing]);
 
-  const [scores, setScores] = React.useState<Record<string, number>>(existingScores);
-  const [criterionComments, setCriterionComments] = React.useState<Record<string, string>>(existingComments);
+  const draft = React.useMemo(() => loadDraft(applicationId), [applicationId]);
+
+  const [scores, setScores] = React.useState<Record<string, number>>(draft?.scores ?? existingScores);
+  const [criterionComments, setCriterionComments] = React.useState<Record<string, string>>(draft?.criterionComments ?? existingComments);
+  const [comment, setComment] = React.useState(draft?.comment ?? existing?.comment ?? '');
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(draftKeyFor(applicationId), JSON.stringify({ scores, criterionComments, comment }));
+  }, [applicationId, scores, criterionComments, comment]);
+
   const answeredCount = Object.keys(scores).length;
   const liveComposite = computeComposite(scores);
   let runningIndex = 0;
@@ -53,6 +86,7 @@ export function ReviewScoringForm({
         setPending(true);
         try {
           await submitHumanReviewAction(formData);
+          window.localStorage.removeItem(draftKeyFor(applicationId));
           router.refresh();
           onSubmitted?.();
         } finally {
@@ -150,7 +184,7 @@ export function ReviewScoringForm({
         );
       })}
 
-      <Textarea name="comment" label="comment" rows={3} defaultValue={existing?.comment ?? ''} />
+      <Textarea name="comment" label="comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} />
 
       <Button type="submit" variant="cta" disabled={pending}>
         {pending ? 'saving…' : existing ? 'update score' : 'submit score'}
