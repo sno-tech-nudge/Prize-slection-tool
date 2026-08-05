@@ -17,14 +17,47 @@ interface ReviewDraft {
   comment: string;
 }
 
-/** Sizes the criterion comment box to fit its own scoring-guidance placeholder with no inner
- *  scroll — estimating wrapped rows by dividing the WHOLE guidance string's length undercounted
- *  badly whenever one line was much longer than the rest (that one line still wraps regardless of
- *  how short its neighbouring lines are), so this sums each line's own wrap estimate instead. */
-function guidanceRows(guidance: string): number {
-  const CHARS_PER_LINE = 55;
-  const wrapped = guidance.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / CHARS_PER_LINE)), 0);
-  return Math.min(12, Math.max(2, wrapped));
+/** Every criterion's comment box starts at this same height, so the form reads as a clean,
+ *  uniform grid at first glance rather than a jagged one sized per criterion's own guidance
+ *  length. It only grows (or shrinks back) once the reviewer actually types — see
+ *  CriterionCommentBox below — so a criterion with longer guidance just scrolls internally
+ *  until then rather than making every box taller to accommodate it. */
+const COMMENT_BOX_ROWS = 3;
+
+/** Auto-grows to fit its own typed content (not the placeholder) as the reviewer types, and
+ *  shrinks back down if they delete text — starts every box at the same COMMENT_BOX_ROWS height
+ *  regardless of how long its placeholder guidance is. */
+function CriterionCommentBox({
+  name,
+  placeholder,
+  value,
+  onChange,
+}: {
+  name: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <Textarea
+      ref={ref}
+      name={name}
+      placeholder={placeholder}
+      rows={COMMENT_BOX_ROWS}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{ fontSize: 'var(--fs-caption)', resize: 'none', overflow: 'hidden' }}
+    />
+  );
 }
 
 function draftKeyFor(applicationId: string): string {
@@ -183,13 +216,11 @@ export function ReviewScoringForm({
                         </div>
                       )}
                     </div>
-                    <Textarea
+                    <CriterionCommentBox
                       name={`criterion_comment_${c.key}`}
                       placeholder={c.guidance}
-                      rows={guidanceRows(c.guidance)}
                       value={criterionComments[c.key] ?? ''}
-                      onChange={(e) => setCriterionComments((prev) => ({ ...prev, [c.key]: e.target.value }))}
-                      style={{ fontSize: 'var(--fs-caption)' }}
+                      onChange={(v) => setCriterionComments((prev) => ({ ...prev, [c.key]: v }))}
                     />
                   </div>
                 );

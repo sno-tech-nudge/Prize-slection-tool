@@ -8,7 +8,10 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
   containerStyle?: React.CSSProperties;
 }
 
-export function Textarea({ label, helper, error, id, rows = 4, style, containerStyle, ...rest }: TextareaProps) {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { label, helper, error, id, rows = 4, style, containerStyle, ...rest },
+  ref,
+) {
   const generatedId = React.useId();
   const inputId = id || generatedId;
   const [focus, setFocus] = React.useState(false);
@@ -28,6 +31,7 @@ export function Textarea({ label, helper, error, id, rows = 4, style, containerS
         </label>
       )}
       <textarea
+        ref={ref}
         id={inputId}
         rows={rows}
         onFocus={(e) => {
@@ -62,4 +66,4 @@ export function Textarea({ label, helper, error, id, rows = 4, style, containerS
       )}
     </div>
   );
-}
+});
