@@ -189,6 +189,7 @@ export function ReviewScoringForm({
                       rows={guidanceRows(c.guidance)}
                       value={criterionComments[c.key] ?? ''}
                       onChange={(e) => setCriterionComments((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                      style={{ fontSize: 'var(--fs-caption)' }}
                     />
                   </div>
                 );
