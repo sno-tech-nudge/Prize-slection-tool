@@ -15,13 +15,15 @@ export interface RubricCriterionDef {
   guidance: string;
 }
 
-/** The team's "Selection Rubric" (new-selection-rubric.csv) — 4 sections, 14 criteria, each
- *  scored on its own point scale (not a shared 0-5) summing to 100. */
+/** The team's "Selection Rubric" (new-selection-rubric.csv) — 4 scored sections (14 criteria,
+ *  each on its own point scale, summing to 100) plus USP: a free-text, unscored line the sheet
+ *  itself marks "(Text box, no scores)" — carries no weight and doesn't affect the composite. */
 export const RUBRIC_SECTIONS = [
   { key: 'org_strength', label: "organisation's strength", weight: 30 },
   { key: 'model_strength', label: "model's strength", weight: 50 },
   { key: 'evidence_impact', label: 'evidence and impact', weight: 15 },
   { key: 'bonus', label: 'bonus', weight: 5 },
+  { key: 'usp', label: 'usp', weight: 0 },
 ] as const;
 
 export const RUBRIC_CRITERIA: RubricCriterionDef[] = [
@@ -156,6 +158,16 @@ export const RUBRIC_CRITERIA: RubricCriterionDef[] = [
     description: ["If you think they are doing additional work in the service of the challenge thresholds but isn't reflected in the rubric."],
     guidance:
       "0: nothing distinctive to add\n1-2: potential to do something unique, innovative that isn't directly reflected but you see the possibility of coming through\n3-5: Adoption mechanism or practice that you think will really propel challenge outcomes. Reflects a whole is better than the sum of its parts reading",
+  },
+
+  // ---- usp (0 — free text, not scored) ----
+  {
+    key: 'usp',
+    section: 'usp',
+    label: 'usp',
+    maxScore: 0,
+    description: ['What is their unique value proposition for driving the adoption of regenerative practices among SHFs?'],
+    guidance: 'free text — no fixed scoring band for this one',
   },
 ];
 

@@ -38,7 +38,8 @@ export function RubricSidePanel() {
               <div>
                 <h2 style={{ fontSize: 'var(--fs-h4)' }}>scoring rubric</h2>
                 <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                  the team&apos;s real selection rubric — 11 criteria across 4 sections, each scored on its own point scale.
+                  the team&apos;s real selection rubric — 14 scored criteria across 4 sections (each on its own point scale, summing
+                  to 100) plus a free-text USP line.
                 </p>
               </div>
               <button
@@ -58,9 +59,11 @@ export function RubricSidePanel() {
                     <h3 style={{ fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-primary)' }}>
                       {section.label}
                     </h3>
-                    <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
-                      weight {section.weight}
-                    </span>
+                    {section.weight > 0 && (
+                      <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+                        weight {section.weight}
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                     {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c, i) => (
@@ -69,7 +72,9 @@ export function RubricSidePanel() {
                           <span style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
                             {i + 1}. {c.label}
                           </span>
-                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>max {c.maxScore}</span>
+                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+                            {c.maxScore > 0 ? `max ${c.maxScore}` : 'not scored'}
+                          </span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           {c.description.map((d) => (

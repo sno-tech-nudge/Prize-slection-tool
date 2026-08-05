@@ -17,14 +17,14 @@ interface ReviewDraft {
   comment: string;
 }
 
-/** Sizes the criterion comment box to roughly fit its own scoring-guidance placeholder — a fixed
- *  2-row box left long guidance cramped behind an inner scrollbar, and a fixed tall box made
- *  short guidance look oddly empty. Estimates wrapped line count from character length (~45
- *  chars/line at this column width) alongside explicit newlines, capped to a sane range. */
+/** Sizes the criterion comment box to fit its own scoring-guidance placeholder with no inner
+ *  scroll — estimating wrapped rows by dividing the WHOLE guidance string's length undercounted
+ *  badly whenever one line was much longer than the rest (that one line still wraps regardless of
+ *  how short its neighbouring lines are), so this sums each line's own wrap estimate instead. */
 function guidanceRows(guidance: string): number {
-  const explicitLines = guidance.split('\n').length;
-  const wrappedLines = Math.ceil(guidance.length / 45);
-  return Math.min(6, Math.max(2, Math.max(explicitLines, wrappedLines)));
+  const CHARS_PER_LINE = 55;
+  const wrapped = guidance.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / CHARS_PER_LINE)), 0);
+  return Math.min(12, Math.max(2, wrapped));
 }
 
 function draftKeyFor(applicationId: string): string {
@@ -73,6 +73,10 @@ export function ReviewScoringForm({
     window.localStorage.setItem(draftKeyFor(applicationId), JSON.stringify({ scores, criterionComments, comment }));
   }, [applicationId, scores, criterionComments, comment]);
 
+  // USP (maxScore 0) is a free-text line the sheet itself marks "no scores" — it never appears
+  // in the scored-criteria count, only in the numeric composite math (where 0 already means it
+  // can't move the needle).
+  const scoredCriteria = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0);
   const answeredCount = Object.keys(scores).length;
   const liveComposite = computeComposite(scores);
   let runningIndex = 0;
@@ -129,7 +133,7 @@ export function ReviewScoringForm({
           </div>
         </div>
         <div style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', textAlign: 'right' }}>
-          {answeredCount} / {RUBRIC_CRITERIA.length} criteria scored
+          {answeredCount} / {scoredCriteria.length} criteria scored
         </div>
       </div>
 
@@ -163,17 +167,19 @@ export function ReviewScoringForm({
                         </div>
                         <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0 }}>{c.description.join(' ')}</p>
                       </div>
-                      <Input
-                        name={`criterion_${c.key}`}
-                        type="number"
-                        min={0}
-                        max={c.maxScore}
-                        step={1}
-                        value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
-                        onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
-                        containerStyle={{ width: 70, flexShrink: 0 }}
-                        helper={`/ ${c.maxScore}`}
-                      />
+                      {c.maxScore > 0 && (
+                        <Input
+                          name={`criterion_${c.key}`}
+                          type="number"
+                          min={0}
+                          max={c.maxScore}
+                          step={1}
+                          value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
+                          onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
+                          containerStyle={{ width: 70, flexShrink: 0 }}
+                          helper={`/ ${c.maxScore}`}
+                        />
+                      )}
                     </div>
                     <Textarea
                       name={`criterion_comment_${c.key}`}

@@ -43,7 +43,8 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
               paddingBottom: 'var(--space-2)',
             }}
           >
-            {section.label} · max {section.weight}
+            {section.label}
+            {section.weight > 0 ? ` · max ${section.weight}` : ''}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c, i) => (
@@ -58,16 +59,18 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
                     ))}
                   </ul>
                 </div>
-                <Input
-                  name={`criterion_${c.key}`}
-                  type="number"
-                  min={0}
-                  max={c.maxScore}
-                  step={1}
-                  defaultValue={existingScores[c.key] !== undefined ? String(existingScores[c.key]) : ''}
-                  containerStyle={{ width: 70, flexShrink: 0 }}
-                  helper={`/ ${c.maxScore}`}
-                />
+                {c.maxScore > 0 && (
+                  <Input
+                    name={`criterion_${c.key}`}
+                    type="number"
+                    min={0}
+                    max={c.maxScore}
+                    step={1}
+                    defaultValue={existingScores[c.key] !== undefined ? String(existingScores[c.key]) : ''}
+                    containerStyle={{ width: 70, flexShrink: 0 }}
+                    helper={`/ ${c.maxScore}`}
+                  />
+                )}
               </div>
             ))}
           </div>

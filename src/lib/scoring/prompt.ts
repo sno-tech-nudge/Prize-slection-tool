@@ -32,7 +32,9 @@ function label<T extends string>(map: Record<T, string>, value: string | null, f
 }
 
 export function buildUserPrompt(app: ApplicationForScoring): string {
-  const criteriaList = RUBRIC_CRITERIA.map((c) => {
+  // USP (maxScore 0) is a free-text, unscored line for human judgement only — nothing for the
+  // model to score numerically, so it's left out of what the AI is asked to evaluate.
+  const criteriaList = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0).map((c) => {
     const points = c.description.map((d) => `    - ${d}`).join('\n');
     return `- ${c.key} (${c.label}) — score as a whole number from 0 to ${c.maxScore}:\n${points}`;
   }).join('\n');

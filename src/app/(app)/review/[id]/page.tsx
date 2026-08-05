@@ -29,7 +29,7 @@ export default async function ReviewApplicationPage({ params }: { params: { id: 
       <AngularBanner
         eyebrow="reviewer console"
         title={app.orgName}
-        subtitle={`${app.pocFirstName} ${app.pocLastName} · scoring against the ${RUBRIC_CRITERIA.length} rapid re.gen rubric criteria`}
+        subtitle={`${app.pocFirstName} ${app.pocLastName} · scoring against the ${RUBRIC_CRITERIA.filter((c) => c.maxScore > 0).length} rapid re.gen rubric criteria`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <SolutionCategoryTag category={app.solutionCategory} />

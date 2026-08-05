@@ -82,7 +82,9 @@ export function heuristicScore(app: ApplicationForHeuristic): ScoringResult {
     extra_points: points(0.2, 5), // subjective bonus — needs manual/AI read
   };
 
-  const criteria: CriterionScore[] = RUBRIC_CRITERIA.map((c) => ({
+  // USP (maxScore 0) is a free-text, unscored line for human judgement only — the heuristic
+  // fallback has nothing structured to estimate it from, so it's left out entirely.
+  const criteria: CriterionScore[] = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0).map((c) => ({
     key: c.key,
     score: scoreFor[c.key] ?? 0,
     rationale: `Heuristic estimate from structured fields (${c.label}) — no language model was consulted.`,
