@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { FileText, ClipboardCheck, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { FileText, ClipboardCheck, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
@@ -138,6 +138,7 @@ export default async function DashboardPage() {
           <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
           <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
+          <Kpi label="decision: no" value={kpis.internalNo} icon={XCircle} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
@@ -307,6 +308,7 @@ async function ObserverDashboard() {
           <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
           <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
           <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
+          <Kpi label="decision: no" value={kpis.internalNo} icon={XCircle} />
         </div>
 
         <PartHeader title="application analytics" />
