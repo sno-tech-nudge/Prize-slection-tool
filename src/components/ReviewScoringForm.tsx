@@ -17,6 +17,16 @@ interface ReviewDraft {
   comment: string;
 }
 
+/** Sizes the criterion comment box to roughly fit its own scoring-guidance placeholder — a fixed
+ *  2-row box left long guidance cramped behind an inner scrollbar, and a fixed tall box made
+ *  short guidance look oddly empty. Estimates wrapped line count from character length (~45
+ *  chars/line at this column width) alongside explicit newlines, capped to a sane range. */
+function guidanceRows(guidance: string): number {
+  const explicitLines = guidance.split('\n').length;
+  const wrappedLines = Math.ceil(guidance.length / 45);
+  return Math.min(6, Math.max(2, Math.max(explicitLines, wrappedLines)));
+}
+
 function draftKeyFor(applicationId: string): string {
   return `delta-review-draft:${applicationId}`;
 }
@@ -168,7 +178,7 @@ export function ReviewScoringForm({
                     <Textarea
                       name={`criterion_comment_${c.key}`}
                       placeholder={c.guidance}
-                      rows={2}
+                      rows={guidanceRows(c.guidance)}
                       value={criterionComments[c.key] ?? ''}
                       onChange={(e) => setCriterionComments((prev) => ({ ...prev, [c.key]: e.target.value }))}
                     />
