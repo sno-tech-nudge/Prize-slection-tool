@@ -168,17 +168,19 @@ export function ReviewScoringForm({
                         <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0 }}>{c.description.join(' ')}</p>
                       </div>
                       {c.maxScore > 0 && (
-                        <Input
-                          name={`criterion_${c.key}`}
-                          type="number"
-                          min={0}
-                          max={c.maxScore}
-                          step={1}
-                          value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
-                          onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
-                          containerStyle={{ width: 70, flexShrink: 0 }}
-                          helper={`/ ${c.maxScore}`}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexShrink: 0 }}>
+                          <Input
+                            name={`criterion_${c.key}`}
+                            type="number"
+                            min={0}
+                            max={c.maxScore}
+                            step={1}
+                            value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
+                            onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
+                            containerStyle={{ width: 70 }}
+                          />
+                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>/ {c.maxScore}</span>
+                        </div>
                       )}
                     </div>
                     <Textarea
