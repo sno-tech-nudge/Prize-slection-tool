@@ -98,7 +98,7 @@ ${app.enrichmentSummary ?? 'no enrichment data available'}
 RESPOND WITH ONLY THIS JSON SHAPE (no other text):
 {
   "criteria": [
-    {"key": "operating_capacity", "score": 0, "rationale": "", "evidence": "", "confidence": 0.0}
+    {"key": "people_strength", "score": 0, "rationale": "", "evidence": "", "confidence": 0.0}
     // ... one entry per rubric key above, in the same order
   ],
   "eligibility": {"farmers_reached": 0, "states_operating": "", "hectares_under_practice": "", "fit_notes": ""},

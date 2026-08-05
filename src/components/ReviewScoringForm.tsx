@@ -133,7 +133,7 @@ export function ReviewScoringForm({
                 fontSize: 'var(--fs-caption)',
                 textTransform: 'uppercase',
                 letterSpacing: 'var(--ls-wide)',
-                color: 'var(--text-muted)',
+                color: 'var(--text-secondary)',
                 marginBottom: 'var(--space-3)',
                 borderBottom: '1px solid var(--border-subtle)',
                 paddingBottom: 'var(--space-2)',
@@ -151,11 +151,7 @@ export function ReviewScoringForm({
                         <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, marginBottom: 'var(--space-1)' }}>
                           {runningIndex}. {c.label}
                         </div>
-                        <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0, paddingLeft: 'var(--space-4)' }}>
-                          {c.description.map((d) => (
-                            <li key={d}>{d}</li>
-                          ))}
-                        </ul>
+                        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: 0 }}>{c.description.join(' ')}</p>
                       </div>
                       <Input
                         name={`criterion_${c.key}`}
@@ -171,7 +167,7 @@ export function ReviewScoringForm({
                     </div>
                     <Textarea
                       name={`criterion_comment_${c.key}`}
-                      placeholder="note on this criterion (optional)"
+                      placeholder={c.guidance}
                       rows={2}
                       value={criterionComments[c.key] ?? ''}
                       onChange={(e) => setCriterionComments((prev) => ({ ...prev, [c.key]: e.target.value }))}

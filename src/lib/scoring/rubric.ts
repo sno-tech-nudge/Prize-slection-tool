@@ -6,130 +6,161 @@ export interface RubricCriterionDef {
    *  there's no separate weighting step. Section weights are just the sum of their criteria's
    *  maxScore. */
   maxScore: number;
-  /** explainer bullets shown to both the reviewer and the AI model — what to actually look for
-   *  when scoring this criterion, not a fixed set of discrete bands. */
+  /** the evaluation question shown under the criterion label — a single question, not a bulleted
+   *  list, kept as an array only so existing call sites (AI prompt, jury/rubric side panels) that
+   *  already iterate `description` didn't need to change shape. */
   description: string[];
+  /** scoring guidance shown as the review form's comment-box placeholder for this criterion — the
+   *  team's own notes on what a given score should look like, not a fixed set of discrete bands. */
+  guidance: string;
 }
 
-/** The team's "Those who clear level 1 — move to LEVEL 2" selection rubric — 4 sections, 11
- *  criteria, each scored on its own point scale (not a shared 0-5) summing to 100. */
+/** The team's "Selection Rubric" (new-selection-rubric.csv) — 4 sections, 14 criteria, each
+ *  scored on its own point scale (not a shared 0-5) summing to 100. */
 export const RUBRIC_SECTIONS = [
-  { key: 'org_health', label: 'organisation health', weight: 20 },
-  { key: 'model_approach', label: 'model and approach', weight: 35 },
-  { key: 'tech_science', label: 'tech and science integration', weight: 25 },
-  { key: 'evidence_impact', label: 'evidence and impact', weight: 20 },
+  { key: 'org_strength', label: "organisation's strength", weight: 30 },
+  { key: 'model_strength', label: "model's strength", weight: 50 },
+  { key: 'evidence_impact', label: 'evidence and impact', weight: 15 },
+  { key: 'bonus', label: 'bonus', weight: 5 },
 ] as const;
 
 export const RUBRIC_CRITERIA: RubricCriterionDef[] = [
-  // ---- organisation health (20) ----
+  // ---- organisation's strength (30) ----
   {
-    key: 'operating_capacity',
-    section: 'org_health',
-    label: 'operating capacity',
+    key: 'people_strength',
+    section: 'org_strength',
+    label: 'people strength',
+    maxScore: 5,
+    description: ['Does the organisation have the team capacity and relevant experience required to implement a challenge of this scale?'],
+    guidance: 'Score 5 if:\n• Team strength is >50 members\n• Organisation has been operational for >10 years and demonstrates institutional stability',
+  },
+  {
+    key: 'quality_of_funding',
+    section: 'org_strength',
+    label: 'quality of funding',
+    maxScore: 5,
+    description: ['Do they have the budget/pipeline to run the challenge?'],
+    guidance:
+      'Score 5 if:\n• Annual operating budget >₹5 crore\n• Multiple high-quality funders\n• Evidence of sustained funding pipeline (e.g., multi-year grants or repeat funders)',
+  },
+  {
+    key: 'potential_for_scaling',
+    section: 'org_strength',
+    label: 'potential for scaling',
     maxScore: 10,
-    description: ['annual operating budget', 'employee strength', 'year of registration', 'vision and clarity of fund utilisation'],
+    description: ['Do they have the implementation muscle, and the networks required to reach scale?'],
+    guidance: 'Assess:\n• Existing farmer networks\n• Geographic presence\n• Implementation partnerships\n• Ability to expand beyond current footprint',
   },
   {
-    key: 'team_expertise',
-    section: 'org_health',
-    label: 'team expertise in agri/soil',
+    key: 'expertise_in_agriculture',
+    section: 'org_strength',
+    label: 'expertise in agriculture',
     maxScore: 5,
-    description: ['founder expertise', 'soil scientist / agri experts / sector experts (in team or advisory/consultant capacity)'],
+    description: ['Does the founder and/or team and/or consultants have agri/regen expertise?'],
+    guidance: 'Check founders LinkedIn, training notes question (if received training from established/reputed centres)',
   },
   {
-    key: 'ecosystem_linkages',
-    section: 'org_health',
-    label: 'ecosystem linkages',
+    key: 'credibility',
+    section: 'org_strength',
+    label: 'credibility',
     maxScore: 5,
-    description: ['funder pipeline', 'government / public institutions'],
+    description: ['How credible are they as an organisation or as founders in the work of rapid regen?'],
+    guidance:
+      'Measures to look at:\nGovernment buy in or partnerships OR\nGoogle Search on Awards Grants PR OR\nWebsite and LinkedIn Scan OR\nPublications and Journals',
   },
 
-  // ---- model and approach (35) ----
+  // ---- model's strength (50) ----
   {
-    key: 'regen_practices',
-    section: 'model_approach',
-    label: 'regen practices undertaken',
+    key: 'commitment_to_regen_agri',
+    section: 'model_strength',
+    label: 'commitment to regen agri',
+    maxScore: 5,
+    description: [
+      'Has the organisation demonstrated a sustained, long-term commitment to driving the adoption and expansion of regenerative agriculture among smallholder farmers?',
+    ],
+    guidance:
+      'Assess whether regen agri is a strategic programme area that the org has consistently invested in and strengthened over time, rather than a series of isolated, donor-funded projects.',
+  },
+  {
+    key: 'strength_of_pop',
+    section: 'model_strength',
+    label: 'strength of package of practices (PoP)',
+    maxScore: 5,
+    description: ['What is the range (and how many across multiple domains) of the regenerative practices they deploy?'],
+    guidance:
+      'Assess the breadth and integration of the regenerative practices deployed by the org. Consider whether they promote a comprehensive package of complementary practices, rather than focusing on one or two standalone interventions.',
+  },
+  {
+    key: 'robustness_of_model',
+    section: 'model_strength',
+    label: 'robustness of model',
+    maxScore: 15,
+    description: ['Does the organisation address multiple barriers to regenerative adoption across the agricultural value chain?'],
+    guidance:
+      'Strong models will address multiple barriers to adoption by combining technical, financial, operational, and market support. Activities: soil diagnostics, seeds, practices (mulching, cover crops etc), inputs, IPM, water management (watershedding etc), harvest (machinery), market linkages, certifications, crop residue mgmt (least likely to be seen in our applications)',
+  },
+  {
+    key: 'tech_integration',
+    section: 'model_strength',
+    label: 'tech integration',
     maxScore: 15,
     description: [
-      'single / multiple practice',
-      'type (description): nature and rigour of practices undertaken',
-      'interventions have a direct impact on soil health and farmer net income',
+      'Is tech meaningfully integrated into their model? (Practice-led advisory, diagnostics, inputs infra, market intelligence, traceability systems)',
     ],
-  },
-  {
-    key: 'operating_model',
-    section: 'model_approach',
-    label: 'operating model',
-    maxScore: 20,
-    description: [
-      'directly working with farmers (only advisory/practice/both) OR working through partners (FPO/NGO/for profit/govt/markets)',
-      'business model & revenue generation: who pays for the work? degree of philanthropy-dependence vs. farmer pay/co-pay; path to sustainability',
-      'crop specificity: level of difficulty dealt with from an agro-climatic zone; soil type; landholding patterns',
-    ],
-  },
-
-  // ---- tech and science integration (25) ----
-  {
-    key: 'tech_use_case_maturity',
-    section: 'tech_science',
-    label: 'tech use-case maturity / adoption of tech',
-    maxScore: 10,
-    description: [
-      'type of tech integration (across the cultivation cycle)',
-      'who is using it (internal team / farmer / partner org)',
-      'maturity and actual (not just planned) adoption of technology in the model',
-    ],
-  },
-  {
-    key: 'last_mile_integration',
-    section: 'tech_science',
-    label: 'last mile integration of tech',
-    maxScore: 10,
-    description: ['whether technology actually reaches and is usable by field staff/farmers, not just at idea level'],
+    guidance: 'Assess use of technology across: practice-led advisory, diagnostics, inputs infra, market intelligence, traceability systems',
   },
   {
     key: 'science_integration',
-    section: 'tech_science',
+    section: 'model_strength',
     label: 'science integration',
-    maxScore: 5,
+    maxScore: 10,
     description: [
-      'is there an in-house or partner scientific/technical capacity for soil testing, inoculation etc',
-      'in-house built or external support',
-      'if external — what is the level/type of partnership?',
+      'Does the organisation have the deep science lens required to combat chemical dependency from Year 1 without yield risk/loss? E.g. do they have a biotechnology bone? Have they innovated or brought in innovations in biological inputs?',
     ],
+    guidance: '<5 if they have no deep science lens (R&D with in-house or external)\nBringing new bio-inputs for soil performance',
   },
 
-  // ---- evidence and impact (20) ----
+  // ---- evidence and impact (15) ----
   {
     key: 'verified_impact',
     section: 'evidence_impact',
-    label: 'verified impact (through empirical evidence)',
+    label: 'verified impact',
     maxScore: 5,
-    description: [
-      'whether an actual impact study exists — baseline, endline, sample size, verification',
-      'and whether it is published / independently checked',
-    ],
+    description: ['Does an impact study exist like baseline, endline, sample size, verification and is it published/independently checked?'],
+    guidance: '<3 if no independent studies conducted',
   },
   {
-    key: 'scale',
+    key: 'growth_rate_in_regen',
     section: 'evidence_impact',
-    label: 'scale (farmers reached / hectares covered)',
-    maxScore: 10,
-    description: ['how many farmers have they reached (or hectares)?'],
+    label: 'growth rate in regen',
+    maxScore: 5,
+    description: ['What is the growth rate of farmers acquired by the organisation year on year?'],
+    guidance:
+      'Scoring basis [SHFarmer Reach:Years of Exp]\n<100: 0\n<500: 1\n<1000/yr: 2\n<2500: 3\n~2500: 4\n>2500: 5\ntake a judgement call if the org is very new and their growth rate seems impressive, or if the org is very established and may have hit saturation which they can push during mission mode.',
   },
   {
-    key: 'geographic_depth',
+    key: 'tg_focus',
     section: 'evidence_impact',
-    label: 'geographic depth (villages/districts)',
+    label: 'tg focus',
     maxScore: 5,
-    description: [
-      'how many villages, blocks, and districts are they actually working in? spread across several districts scores higher than a single village or area',
-    ],
+    description: ['Are SHFs the target group for the organisation?'],
+    guidance: 'TG Focus : Average hectares:\n>2: 0\n1-2: 3\n<1: 5',
+  },
+
+  // ---- bonus (5) ----
+  {
+    key: 'extra_points',
+    section: 'bonus',
+    label: 'extra points',
+    maxScore: 5,
+    description: ["If you think they are doing additional work in the service of the challenge thresholds but isn't reflected in the rubric."],
+    guidance:
+      "0: nothing distinctive to add\n1-2: potential to do something unique, innovative that isn't directly reflected but you see the possibility of coming through\n3-5: Adoption mechanism or practice that you think will really propel challenge outcomes. Reflects a whole is better than the sum of its parts reading",
   },
 ];
 
 /** Composite is a direct sum of per-criterion scores — each criterion's maxScore already IS its
- *  weight (they sum to 100 across all 11 criteria), so there's no separate weighting step. */
+ *  weight (they sum to 100 across all 14 criteria), so there's no separate weighting step. */
 export function computeComposite(scores: Record<string, number>): number {
   let total = 0;
   for (const c of RUBRIC_CRITERIA) {
