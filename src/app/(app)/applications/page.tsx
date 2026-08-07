@@ -28,9 +28,10 @@ const HEADERS = [
 // — not the bench name or the internal/AI read. Kept to 5 columns on purpose.
 const JURY_HEADERS = ['organisation', 'state', 'operating model', 'registration type', 'your score'];
 
-// observer sees every field column except review status, decision status, reviewer, eligibility,
-// and score — purely identifying/operational fields, no scoring of any kind.
-const OBSERVER_HEADERS = ['organisation', 'registration type', 'operating model', 'states'];
+// observer now also sees review status, decision status, and score (all read-only) alongside the
+// identifying/operational fields — reviewer and eligibility are still left out, internal working
+// detail rather than something requested for this view.
+const OBSERVER_HEADERS = ['organisation', 'registration type', 'review status', 'decision status', 'operating model', 'states', 'score'];
 
 export default async function ApplicationsPage({
   searchParams,
