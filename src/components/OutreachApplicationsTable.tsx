@@ -18,6 +18,13 @@ export interface OutreachApplicationRow {
 const DECISION_TONE: Record<string, 'red' | 'neutral' | 'outline'> = {
   YES: 'red',
   NO: 'neutral',
+  ECOSYSTEM_PARTNER: 'neutral',
+};
+
+const DECISION_LABEL: Record<string, string> = {
+  YES: 'decision: yes',
+  NO: 'decision: no',
+  ECOSYSTEM_PARTNER: 'potential ecosystem partner',
 };
 
 const BULK_TEMPLATE_KIND: Record<string, string> = {
@@ -306,7 +313,7 @@ function OutreachApplicationTableRow({
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
           <Badge tone={app.internalDecision ? (DECISION_TONE[app.internalDecision] ?? 'outline') : 'outline'}>
-            {app.internalDecision ? `decision: ${app.internalDecision.toLowerCase()}` : 'undecided'}
+            {app.internalDecision ? (DECISION_LABEL[app.internalDecision] ?? app.internalDecision.toLowerCase()) : 'undecided'}
           </Badge>
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>

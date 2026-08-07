@@ -28,7 +28,14 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   bench: (app) => app.bench?.name ?? '',
   targetMatch: (app) => app.targetMatch?.name ?? '',
   reviewStatus: (app) => (isReviewed(app) ? 'reviewed' : 'not reviewed'),
-  decisionStatus: (app) => (app.internalDecision === 'YES' ? 'yes' : app.internalDecision === 'NO' ? 'no' : 'undecided'),
+  decisionStatus: (app) =>
+    app.internalDecision === 'YES'
+      ? 'yes'
+      : app.internalDecision === 'NO'
+        ? 'no'
+        : app.internalDecision === 'ECOSYSTEM_PARTNER'
+          ? 'potential ecosystem partner'
+          : 'undecided',
   operatingModel: (app) => app.operatingModelArchetype ?? app.solutionCategory ?? '',
   states: (app) => app.statesOperating ?? '',
   annualBudget: (app) => app.annualOperatingBudget ?? '',

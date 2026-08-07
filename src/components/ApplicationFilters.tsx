@@ -127,6 +127,7 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
         <option value="">decision status: all</option>
         <option value="YES">decision: yes</option>
         <option value="NO">decision: no</option>
+        <option value="ECOSYSTEM_PARTNER">potential ecosystem partner</option>
         <option value="UNDECIDED">decision: undecided</option>
       </Select>
       <MultiSelect

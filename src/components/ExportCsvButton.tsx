@@ -8,8 +8,19 @@ const ALL_IDS = EXPORT_COLUMNS.map((c) => c.id);
 
 /** `mine` scopes the export to applications assigned to the signed-in user (same `assignedToMe`
  *  filter the applications list itself already supports server-side) — everything else about the
- *  dialog and download flow is identical to the "all applications" export. */
-export function ExportCsvButton({ searchParams, mine = false }: { searchParams: Record<string, string | undefined>; mine?: boolean }) {
+ *  dialog and download flow is identical to the "all applications" export. `label` overrides the
+ *  trigger button's text — needed anywhere `searchParams` already scopes the export to something
+ *  narrower than "all"/"my" applications (e.g. a specific decision status), so the button doesn't
+ *  read as exporting more than it actually does. */
+export function ExportCsvButton({
+  searchParams,
+  mine = false,
+  label,
+}: {
+  searchParams: Record<string, string | undefined>;
+  mine?: boolean;
+  label?: string;
+}) {
   const [open, setOpen] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set(DEFAULT_IDS));
 
@@ -36,7 +47,7 @@ export function ExportCsvButton({ searchParams, mine = false }: { searchParams: 
   return (
     <>
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        export {mine ? 'my' : 'all'} applications
+        {label ?? `export ${mine ? 'my' : 'all'} applications`}
       </Button>
 
       <Dialog

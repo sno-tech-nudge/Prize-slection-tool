@@ -26,7 +26,7 @@ export interface ApplicationListFilters {
 function buildApplicationWhere(filters: ApplicationListFilters, user: User | null): Prisma.ApplicationWhereInput {
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
   if (filters.q) where.orgName = { contains: filters.q, mode: 'insensitive' };
-  if (filters.internal === 'YES' || filters.internal === 'NO') where.internalDecision = filters.internal;
+  if (filters.internal === 'YES' || filters.internal === 'NO' || filters.internal === 'ECOSYSTEM_PARTNER') where.internalDecision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.internalDecision = null;
   if (filters.assignedToMe === '1' && user) where.reviewAssignments = { some: { reviewerId: user.id } };
 
@@ -154,7 +154,7 @@ export async function getApplicationFilterOptions() {
  *  application's outbox email history so the table can show what's already queued/sent. */
 export async function listApplicationsForOutreach(internalDecision?: string) {
   const where: Prisma.ApplicationWhereInput = { isDuplicateOf: null };
-  if (internalDecision === 'YES' || internalDecision === 'NO') where.internalDecision = internalDecision;
+  if (internalDecision === 'YES' || internalDecision === 'NO' || internalDecision === 'ECOSYSTEM_PARTNER') where.internalDecision = internalDecision;
   if (internalDecision === 'UNDECIDED') where.internalDecision = null;
 
   return prisma.application.findMany({

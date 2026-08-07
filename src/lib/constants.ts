@@ -107,12 +107,16 @@ export const OUTBOX_STATUSES = ['QUEUED', 'APPROVED', 'SENT', 'FAILED', 'SKIPPED
 export type OutboxStatusValue = (typeof OUTBOX_STATUSES)[number];
 
 // admin call on whether an application should be treated as an internal pick — only
-// applications marked YES here are passed through to jury review.
-export const INTERNAL_DECISIONS = ['YES', 'NO'] as const;
+// applications marked YES here are passed through to jury review. ECOSYSTEM_PARTNER is a third,
+// separate outcome for applications that don't make the challenge cut but are worth tracking as
+// potential ecosystem partners (e.g. an academic/research institution or funder-adjacent org) —
+// it's mutually exclusive with YES/NO, not a tag layered on top of one.
+export const INTERNAL_DECISIONS = ['YES', 'NO', 'ECOSYSTEM_PARTNER'] as const;
 export type InternalDecisionValue = (typeof INTERNAL_DECISIONS)[number];
 export const INTERNAL_DECISION_LABEL: Record<InternalDecisionValue, string> = {
   YES: 'decision: yes',
   NO: 'decision: no',
+  ECOSYSTEM_PARTNER: 'potential ecosystem partner',
 };
 
 export const VALUE_CHAIN_OPTIONS = [

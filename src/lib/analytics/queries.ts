@@ -142,14 +142,16 @@ export async function getReviewStatusMix() {
 }
 
 export async function getInternalDecisionMix() {
-  const [yes, no, undecided] = await Promise.all([
+  const [yes, no, ecosystemPartner, undecided] = await Promise.all([
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'NO' } }),
+    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'ECOSYSTEM_PARTNER' } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: null } }),
   ]);
   return [
     { label: 'decision: yes', count: yes },
     { label: 'decision: no', count: no },
+    { label: 'potential ecosystem partner', count: ecosystemPartner },
     { label: 'undecided', count: undecided },
   ];
 }

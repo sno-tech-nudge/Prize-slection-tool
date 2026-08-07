@@ -18,6 +18,7 @@ import { PieChart } from '@/components/PieChart';
 import { IndiaStatesMap } from '@/components/IndiaStatesMap';
 import { OrgTitle } from '@/components/OrgTitle';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
+import { ExportCsvButton } from '@/components/ExportCsvButton';
 
 function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
   const content = (
@@ -281,6 +282,22 @@ export default async function DashboardPage() {
             <PieChart data={orgAgeMix} size={160} />
           </Card>
         </div>
+
+        <Card accent>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+            <div>
+              <h2 style={{ fontSize: 'var(--fs-h4)' }}>potential ecosystem partners</h2>
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
+                applications marked as a potential ecosystem partner instead of a straight yes/no — organisations worth
+                staying connected to even though they don&apos;t fit the challenge itself.
+              </p>
+              <div style={{ fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)', marginTop: 'var(--space-3)' }}>
+                {kpis.ecosystemPartners}
+              </div>
+            </div>
+            <ExportCsvButton searchParams={{ internal: 'ECOSYSTEM_PARTNER' }} label="download ecosystem partners" />
+          </div>
+        </Card>
       </div>
     </div>
   );
@@ -349,6 +366,17 @@ async function ObserverDashboard() {
             <PieChart data={orgAgeMix} size={160} />
           </Card>
         </div>
+
+        <Card accent>
+          <h2 style={{ fontSize: 'var(--fs-h4)' }}>potential ecosystem partners</h2>
+          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
+            applications marked as a potential ecosystem partner instead of a straight yes/no — organisations worth
+            staying connected to even though they don&apos;t fit the challenge itself.
+          </p>
+          <div style={{ fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)', marginTop: 'var(--space-3)' }}>
+            {kpis.ecosystemPartners}
+          </div>
+        </Card>
       </div>
     </div>
   );

@@ -33,7 +33,7 @@ export function DecisionStatusButtons({
 }) {
   const [pending, setPending] = React.useState(false);
 
-  async function decide(decision: 'YES' | 'NO' | 'CLEAR') {
+  async function decide(decision: 'YES' | 'NO' | 'ECOSYSTEM_PARTNER' | 'CLEAR') {
     if (!canManage) return;
     setPending(true);
     const formData = new FormData();
@@ -55,6 +55,14 @@ export function DecisionStatusButtons({
       </button>
       <button type="button" disabled={disabled} onClick={() => decide('NO')} style={pillStyle(current === 'NO', 'neutral', disabled)}>
         mark no
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => decide('ECOSYSTEM_PARTNER')}
+        style={pillStyle(current === 'ECOSYSTEM_PARTNER', 'neutral', disabled)}
+      >
+        potential ecosystem partner
       </button>
       {current && (
         <button type="button" disabled={disabled} onClick={() => decide('CLEAR')} style={pillStyle(false, 'neutral', disabled)}>

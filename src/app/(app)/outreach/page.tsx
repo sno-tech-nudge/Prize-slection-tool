@@ -8,7 +8,13 @@ import { getSettings } from '@/lib/settings';
 import { getCurrentUser } from '@/lib/auth/session';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 
-const DECISION_FILTERS = ['', 'YES', 'NO', 'UNDECIDED'];
+const DECISION_FILTERS = ['', 'YES', 'NO', 'ECOSYSTEM_PARTNER', 'UNDECIDED'];
+const DECISION_FILTER_LABEL: Record<string, string> = {
+  YES: 'decision: yes',
+  NO: 'decision: no',
+  ECOSYSTEM_PARTNER: 'potential ecosystem partner',
+  UNDECIDED: 'decision: undecided',
+};
 
 export default async function OutreachPage({ searchParams }: { searchParams: { status?: string; internal?: string } }) {
   const [emails, applications, settings, user] = await Promise.all([
@@ -42,7 +48,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
           {DECISION_FILTERS.map((d) => (
             <a key={d || 'all'} href={d ? `/outreach?internal=${d}` : '/outreach'} style={{ textDecoration: 'none' }}>
               <Badge tone={searchParams.internal === d || (!searchParams.internal && !d) ? 'red' : 'outline'}>
-                {d ? `decision: ${d.toLowerCase()}` : 'all applications'}
+                {d ? DECISION_FILTER_LABEL[d] : 'all applications'}
               </Badge>
             </a>
           ))}

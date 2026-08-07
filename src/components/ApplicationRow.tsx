@@ -9,8 +9,10 @@ import { isReviewed } from '@/lib/applications/reviewStatus';
 import {
   OPERATING_MODEL_ARCHETYPE_LABEL,
   LEGAL_REGISTRATION_TYPE_LABEL,
+  INTERNAL_DECISION_LABEL,
   type OperatingModelArchetypeValue,
   type LegalRegistrationTypeValue,
+  type InternalDecisionValue,
 } from '@/lib/constants';
 
 export interface ApplicationRowData {
@@ -49,8 +51,9 @@ export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowD
       ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
       : null;
 
-  const internalTone = app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' ? 'neutral' : 'outline';
-  const internalLabel = app.internalDecision === 'YES' ? 'decision: yes' : app.internalDecision === 'NO' ? 'decision: no' : 'undecided';
+  const internalTone =
+    app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' || app.internalDecision === 'ECOSYSTEM_PARTNER' ? 'neutral' : 'outline';
+  const internalLabel = app.internalDecision ? (INTERNAL_DECISION_LABEL[app.internalDecision as InternalDecisionValue] ?? 'undecided') : 'undecided';
 
   const reviewedBy = app.reviewAssignments.length > 0 ? app.reviewAssignments.map((r) => r.reviewer.name).join(', ') : 'unassigned';
 
