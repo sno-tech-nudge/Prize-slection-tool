@@ -6,7 +6,13 @@ import { prisma } from '@/lib/db';
  *  rotation, no matter how many other ADMIN/JURY accounts exist (new admins, the "Prize
  *  Applications" sender account, or Tanush's own login never get auto-assigned an application).
  *  KC is deliberately excluded — no new applications should be routed to them. */
-const ROTATION_EMAILS = ['nisha.chawla@thedelta.org.in', 'paromita.sen@thedelta.org.in', 'saba.ahmed@thenudge.org', 'sravya.jandhyala@thedelta.org.in'];
+const ROTATION_EMAILS = [
+  'nisha.chawla@thedelta.org.in',
+  'paromita.sen@thedelta.org.in',
+  'saba.ahmed@thenudge.org',
+  'saba.ahmed@thedelta.org.in',
+  'sravya.jandhyala@thedelta.org.in',
+];
 
 /** Fixed round-robin order for auto-assignment, ordered by name. New applications cycle through
  *  this list one at a time; once it reaches the end it wraps back to position 1. */
