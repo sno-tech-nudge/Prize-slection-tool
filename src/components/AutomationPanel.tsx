@@ -2,9 +2,9 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, RefreshCw, Globe, type LucideIcon } from 'lucide-react';
-import { Card, Button, Badge } from '@/design-system';
-import { scoreAllUnscoredAction, rerunMatcherAction, enrichAllAction, reassignAllInRotationOrderAction } from '@/lib/automation/actions';
-import { Users } from 'lucide-react';
+import { Card, Button, Badge, Input, useToast } from '@/design-system';
+import { scoreAllUnscoredAction, rerunMatcherAction, enrichAllAction, reassignAllInRotationOrderAction, reassignReviewerAction } from '@/lib/automation/actions';
+import { Users, ArrowRightLeft } from 'lucide-react';
 
 export interface AutomationStats {
   totalApps: number;
@@ -66,10 +66,12 @@ function TaskRow({
 
 export function AutomationPanel({ stats }: { stats: AutomationStats }) {
   const router = useRouter();
+  const { push } = useToast();
   const [scoring, setScoring] = React.useState(false);
   const [matching, setMatching] = React.useState(false);
   const [enriching, setEnriching] = React.useState(false);
   const [reassigning, setReassigning] = React.useState(false);
+  const [movingAssignments, setMovingAssignments] = React.useState(false);
   const jobsInFlight = stats.jobStats.PENDING + stats.jobStats.RUNNING;
 
   async function runScore() {
@@ -109,6 +111,21 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
       router.refresh();
     } finally {
       setReassigning(false);
+    }
+  }
+
+  async function moveAssignments(formData: FormData) {
+    setMovingAssignments(true);
+    try {
+      const result = await reassignReviewerAction(formData);
+      if (result.error) {
+        push('reassignment failed', result.error, 'error');
+      } else {
+        push('reassigned', `moved ${result.moved} application${result.moved === 1 ? '' : 's'}.`, 'success');
+        router.refresh();
+      }
+    } finally {
+      setMovingAssignments(false);
     }
   }
 
@@ -168,6 +185,28 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
           {reassigning ? 'reassigning…' : 're-run rotation'}
         </Button>
       </div>
+
+      <form
+        action={moveAssignments}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 'var(--space-3)',
+          flexWrap: 'wrap',
+          padding: 'var(--space-4) 0',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div style={{ flex: '0 0 100%', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
+          <ArrowRightLeft size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
+          move one person&apos;s review assignments to another
+        </div>
+        <Input name="fromEmail" type="email" label="from" placeholder="old.login@example.org" required containerStyle={{ minWidth: 200, flex: 1 }} />
+        <Input name="toEmail" type="email" label="to" placeholder="new.login@example.org" required containerStyle={{ minWidth: 200, flex: 1 }} />
+        <Button type="submit" variant="secondary" size="sm" disabled={movingAssignments}>
+          {movingAssignments ? 'moving…' : 'move assignments'}
+        </Button>
+      </form>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 'var(--space-4)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)' }}>

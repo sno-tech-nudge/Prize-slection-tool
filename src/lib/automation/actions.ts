@@ -92,6 +92,49 @@ export async function reassignAllInRotationOrderAction() {
   return result;
 }
 
+/** Moves every one of one person's review assignments to another person — for when someone's
+ *  old account (a rename, a domain change, a re-provisioned login) needs to hand off everything
+ *  they were assigned without touching anyone else's assignments. If the destination person is
+ *  already assigned to an application the source person is also on, the source's duplicate is
+ *  dropped rather than kept — the unique (applicationId, reviewerId) constraint means both can't
+ *  end up pointing at the same person on the same application anyway. */
+export async function reassignReviewerAction(formData: FormData): Promise<{ moved?: number; error?: string }> {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const fromEmail = String(formData.get('fromEmail') ?? '').trim().toLowerCase();
+  const toEmail = String(formData.get('toEmail') ?? '').trim().toLowerCase();
+  if (!fromEmail || !toEmail) return { error: 'enter both email addresses.' };
+  if (fromEmail === toEmail) return { error: 'those are the same email address.' };
+
+  const [fromUser, toUser] = await Promise.all([
+    prisma.user.findUnique({ where: { email: fromEmail } }),
+    prisma.user.findUnique({ where: { email: toEmail } }),
+  ]);
+  if (!fromUser) return { error: `no team member found with email ${fromEmail}` };
+  if (!toUser) return { error: `no team member found with email ${toEmail}` };
+
+  const toUsersAssignments = await prisma.reviewAssignment.findMany({
+    where: { reviewerId: toUser.id },
+    select: { applicationId: true },
+  });
+  if (toUsersAssignments.length > 0) {
+    await prisma.reviewAssignment.deleteMany({
+      where: { reviewerId: fromUser.id, applicationId: { in: toUsersAssignments.map((a) => a.applicationId) } },
+    });
+  }
+
+  const result = await prisma.reviewAssignment.updateMany({
+    where: { reviewerId: fromUser.id },
+    data: { reviewerId: toUser.id },
+  });
+
+  revalidatePath('/applications');
+  revalidatePath('/dashboard');
+  revalidatePath('/review');
+  return { moved: result.count };
+}
+
 export async function getAutomationStats() {
   const [totalApps, scoredApps, matchedTargets, totalTargets, queuedOutbox, sentOutbox, jobStats, sitesToEnrich, enrichedApps] = await Promise.all([
     prisma.application.count({ where: { isDuplicateOf: null } }),
