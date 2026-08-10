@@ -168,7 +168,7 @@ export default async function ApplicationsPage({
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
         <Suspense>
-          <ApplicationFilters options={filterOptions} />
+          <ApplicationFilters options={filterOptions} isAdmin={user?.role === 'ADMIN'} />
         </Suspense>
 
         <Card padding="0" style={{ overflowX: 'auto' }}>

@@ -9,6 +9,7 @@ export interface ApplicationFilterOptions {
   registrationTypes: string[];
   operatingModels: string[];
   states: string[];
+  reviewers: { id: string; name: string }[];
 }
 
 const REVIEW_TOGGLE_OPTIONS = [
@@ -64,7 +65,7 @@ function fixedWidth(px: number): React.CSSProperties {
   return { width: px, minWidth: 0, flexShrink: 0 };
 }
 
-export function ApplicationFilters({ options }: { options: ApplicationFilterOptions }) {
+export function ApplicationFilters({ options, isAdmin = false }: { options: ApplicationFilterOptions; isAdmin?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -151,6 +152,22 @@ export function ApplicationFilters({ options }: { options: ApplicationFilterOpti
         onChange={(v) => setMultiParam('state', v)}
         options={options.states.map((s) => ({ value: s, label: s }))}
       />
+      {isAdmin && (
+        <Select
+          aria-label="filter by reviewer"
+          defaultValue={searchParams.get('reviewer') ?? ''}
+          onChange={(e) => setParam('reviewer', e.target.value)}
+          containerStyle={fixedWidth(160)}
+          style={compactSelectStyle}
+        >
+          <option value="">reviewer: all</option>
+          {options.reviewers.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </Select>
+      )}
       <Select
         aria-label="filter by eligibility"
         defaultValue={searchParams.get('eligible') ?? ''}

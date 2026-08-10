@@ -14,6 +14,7 @@ export interface ApplicationListFilters {
   state?: string;
   eligible?: string;
   assignedToMe?: string;
+  reviewer?: string;
   // route searchParams objects carry other page-specific keys too (e.g. "stage") that this
   // filter set doesn't act on — an index signature lets callers pass the whole searchParams
   // object through without a separate narrower type at each call site.
@@ -51,6 +52,11 @@ function buildApplicationWhere(filters: ApplicationListFilters, user: User | nul
 
   const states = splitCsv(filters.state);
   if (states.length) andGroups.push({ OR: states.map((s) => ({ statesOperating: { contains: s } })) });
+
+  // kept as its own AND entry rather than assigned directly onto `where.reviewAssignments` so it
+  // composes correctly alongside "assigned to me" if both ever end up set at once, instead of one
+  // silently overwriting the other.
+  if (filters.reviewer) andGroups.push({ reviewAssignments: { some: { reviewerId: filters.reviewer } } });
 
   if (andGroups.length) where.AND = andGroups;
 
@@ -126,12 +132,18 @@ function splitCsv(value: string | undefined): string[] {
 
 /** Registration type, operating model and state values are free text keyed off the real Zoho
  *  form, not the fixed enums in constants.ts — so filter dropdowns are built from whatever
- *  distinct values actually exist in the data, not from the enum list. */
+ *  distinct values actually exist in the data, not from the enum list. `reviewers` is everyone
+ *  who could plausibly be assigned to review something (ADMIN or REVIEWER role), for the
+ *  admin-only "filter by reviewer" control — cheap to always fetch, the caller decides whether to
+ *  actually render it. */
 export async function getApplicationFilterOptions() {
-  const apps = await prisma.application.findMany({
-    where: { isDuplicateOf: null },
-    select: { legalRegistrationType: true, operatingModelArchetype: true, statesOperating: true },
-  });
+  const [apps, reviewers] = await Promise.all([
+    prisma.application.findMany({
+      where: { isDuplicateOf: null },
+      select: { legalRegistrationType: true, operatingModelArchetype: true, statesOperating: true },
+    }),
+    prisma.user.findMany({ where: { role: { in: ['ADMIN', 'REVIEWER'] } }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+  ]);
 
   const registrationTypes = new Set<string>();
   const operatingModels = new Set<string>();
@@ -147,6 +159,7 @@ export async function getApplicationFilterOptions() {
     registrationTypes: [...registrationTypes].sort(),
     operatingModels: [...operatingModels].sort(),
     states: [...states].sort(),
+    reviewers,
   };
 }
 
