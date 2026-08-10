@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { enqueueJobs, getJobStats } from '@/lib/jobs/queue';
 import { syncApplicationsFromSupabase, type SupabaseSyncResult } from '@/lib/sources/supabase-source';
 import { reassignAllInRotationOrder } from '@/lib/applications/assignment';
+import { getSettings } from '@/lib/settings';
 
 const BATCH_LIMIT = 200; // enqueue is cheap (no LLM call happens here) — the ticker drains it over time
 
@@ -136,16 +137,29 @@ export async function reassignReviewerAction(formData: FormData): Promise<{ move
 }
 
 export async function getAutomationStats() {
-  const [totalApps, scoredApps, matchedTargets, totalTargets, queuedOutbox, sentOutbox, jobStats, sitesToEnrich, enrichedApps] = await Promise.all([
-    prisma.application.count({ where: { isDuplicateOf: null } }),
-    prisma.application.count({ where: { isDuplicateOf: null, aiEvaluations: { some: {} } } }),
-    prisma.target.count({ where: { status: { in: ['APPLIED', 'CONTACTED'] } } }),
-    prisma.target.count(),
-    prisma.outboxEmail.count({ where: { status: 'QUEUED' } }),
-    prisma.outboxEmail.count({ where: { status: 'SENT' } }),
-    getJobStats(),
-    prisma.application.count({ where: { isDuplicateOf: null, website: { not: null } } }),
-    prisma.application.count({ where: { isDuplicateOf: null, website: { not: null }, enrichmentSummary: { not: null } } }),
-  ]);
-  return { totalApps, scoredApps, matchedTargets, totalTargets, queuedOutbox, sentOutbox, jobStats, sitesToEnrich, enrichedApps };
+  const [totalApps, scoredApps, matchedTargets, totalTargets, queuedOutbox, sentOutbox, jobStats, sitesToEnrich, enrichedApps, settings] =
+    await Promise.all([
+      prisma.application.count({ where: { isDuplicateOf: null } }),
+      prisma.application.count({ where: { isDuplicateOf: null, aiEvaluations: { some: {} } } }),
+      prisma.target.count({ where: { status: { in: ['APPLIED', 'CONTACTED'] } } }),
+      prisma.target.count(),
+      prisma.outboxEmail.count({ where: { status: 'QUEUED' } }),
+      prisma.outboxEmail.count({ where: { status: 'SENT' } }),
+      getJobStats(),
+      prisma.application.count({ where: { isDuplicateOf: null, website: { not: null } } }),
+      prisma.application.count({ where: { isDuplicateOf: null, website: { not: null }, enrichmentSummary: { not: null } } }),
+      getSettings(),
+    ]);
+  return {
+    totalApps,
+    scoredApps,
+    matchedTargets,
+    totalTargets,
+    queuedOutbox,
+    sentOutbox,
+    jobStats,
+    sitesToEnrich,
+    enrichedApps,
+    autoSendRejections: settings.autoSendRejections,
+  };
 }

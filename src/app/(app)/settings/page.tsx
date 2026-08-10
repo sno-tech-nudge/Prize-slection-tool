@@ -3,9 +3,11 @@ import { AngularBanner, Card } from '@/design-system';
 import { listUsers } from '@/lib/auth/session';
 import { SupabaseSyncPanel } from '@/components/SupabaseSyncPanel';
 import { UserRoleManager } from '@/components/UserRoleManager';
+import { AutomationPanel } from '@/components/AutomationPanel';
+import { getAutomationStats } from '@/lib/automation/actions';
 
 export default async function SettingsPage() {
-  const allUsers = await listUsers();
+  const [allUsers, automationStats] = await Promise.all([listUsers(), getAutomationStats()]);
   // jury members are managed on the benches page, not here — showing them in both places invited
   // editing the same person's login from two different forms.
   const users = allUsers.filter((u) => u.role !== 'JURY');
@@ -28,6 +30,8 @@ export default async function SettingsPage() {
         </Card>
 
         <SupabaseSyncPanel configured={supabaseConfigured} />
+
+        <AutomationPanel stats={automationStats} />
       </div>
     </div>
   );
