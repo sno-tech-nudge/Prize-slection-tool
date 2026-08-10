@@ -366,17 +366,6 @@ async function ObserverDashboard() {
             <PieChart data={orgAgeMix} size={160} />
           </Card>
         </div>
-
-        <Card accent>
-          <h2 style={{ fontSize: 'var(--fs-h4)' }}>potential ecosystem partners</h2>
-          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-            applications marked as a potential ecosystem partner instead of a straight yes/no — organisations worth
-            staying connected to even though they don&apos;t fit the challenge itself.
-          </p>
-          <div style={{ fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)', marginTop: 'var(--space-3)' }}>
-            {kpis.ecosystemPartners}
-          </div>
-        </Card>
       </div>
     </div>
   );
