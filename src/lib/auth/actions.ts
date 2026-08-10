@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getCurrentUser, SESSION_COOKIE } from './session';
 import { signSession } from './session-token';
-import { verifyPassword } from './password';
+import { verifyPassword, hashPassword } from './password';
 import { assertRole, CAN_MANAGE_SETTINGS } from './guard';
 import type { UserRoleValue } from '@/lib/constants';
 
@@ -54,9 +54,12 @@ export async function setUserRoleAction(formData: FormData) {
   revalidatePath('/', 'layout');
 }
 
-/** Admin-only: add a new team member by email (created with a given starting role). Note: this
- *  doesn't set a username/password — that's done via the seed-users script, since logins are
- *  provisioned by an admin out of band, not self-served. */
+/** Admin-only: add a new team member by email (created with a given starting role). A password
+ *  is optional here — leave it blank to create just the profile (matches the old behaviour, e.g.
+ *  for someone who already has a login provisioned another way); fill it in to set up a real,
+ *  working login (username + hashed password) in this same step, same pattern as
+ *  addJuryMemberAction already uses for jury members. Also works to reset an existing person's
+ *  password by re-submitting this form for their email with a new one. */
 export async function addUserAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
@@ -64,21 +67,26 @@ export async function addUserAction(formData: FormData) {
   const email = String(formData.get('email')).trim().toLowerCase();
   const name = String(formData.get('name')).trim();
   const role = String(formData.get('role')) as UserRoleValue;
+  const password = String(formData.get('password') ?? '').trim();
   if (!email || !name) return;
+
+  const loginFields = password ? { username: email, passwordHash: hashPassword(password) } : {};
 
   await prisma.user.upsert({
     where: { email },
-    create: { email, name, role },
-    update: { name, role },
+    create: { email, name, role, ...loginFields },
+    update: { name, role, ...loginFields },
   });
 
   revalidatePath('/settings');
   revalidatePath('/', 'layout');
 }
 
-/** Admin-only: edit an existing team member's name/email. If they already have a real login
- *  (username = their email, set via addJuryMemberAction or the seed-logins script), the
- *  username is kept in sync with the new email so their login doesn't silently break. */
+/** Admin-only: edit an existing team member's name/email, and optionally reset their password in
+ *  the same step (leave it blank to leave their login untouched). If they already have a real
+ *  login (username = their email, set via addJuryMemberAction, this form's own password field,
+ *  or the seed-logins script), the username is kept in sync with the new email so their login
+ *  doesn't silently break. */
 export async function updateUserAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
@@ -86,12 +94,17 @@ export async function updateUserAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const name = String(formData.get('name') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '').trim();
   if (!name || !email) return;
 
   const existing = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const loginFields = password
+    ? { username: email, passwordHash: hashPassword(password) }
+    : { username: existing.passwordHash ? email : existing.username };
+
   await prisma.user.update({
     where: { id: userId },
-    data: { name, email, username: existing.passwordHash ? email : existing.username },
+    data: { name, email, ...loginFields },
   });
 
   revalidatePath('/settings');

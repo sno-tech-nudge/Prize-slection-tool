@@ -72,6 +72,13 @@ function RoleRow({ user }: { user: ManagedUser }) {
       >
         <Input name="name" label="name" defaultValue={user.name} required containerStyle={{ minWidth: 160, flex: 1 }} />
         <Input name="email" type="email" label="email" defaultValue={user.email} required containerStyle={{ minWidth: 200, flex: 1 }} />
+        <Input
+          name="password"
+          type="password"
+          label="reset password"
+          placeholder="leave blank to keep current"
+          containerStyle={{ minWidth: 180, flex: 1 }}
+        />
         <Button type="submit" variant="cta" size="sm" disabled={saving}>
           {saving ? 'saving…' : 'save'}
         </Button>
@@ -120,11 +127,12 @@ export function UserRoleManager({ users }: { users: ManagedUser[] }) {
         <Badge tone="outline">{users.length} people</Badge>
       </div>
       <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' }}>
-        assign who&apos;s admin, reviewer, jury or observer, edit their name/email, or remove them entirely — this
-        covers jury members and reviewers too, not just admins. adding a person here only creates their profile —
-        real login credentials (username/password) still need to be provisioned separately, except for jury
-        members, which the <Link href="/settings/benches" style={{ color: 'var(--delta-red)' }}>bench settings</Link>{' '}
-        page can create with a real login in one step.
+        assign who&apos;s admin, reviewer, jury or observer, edit their name/email, set or reset their login
+        password, or remove them entirely — this covers jury members and reviewers too, not just admins. set a
+        password when adding or editing someone to give them a working login right away, or leave it blank to just
+        create/update their profile. jury members can also be managed from{' '}
+        <Link href="/settings/benches" style={{ color: 'var(--delta-red)' }}>bench settings</Link>, which additionally
+        handles bench assignment.
       </p>
 
       <div>
@@ -149,6 +157,7 @@ export function UserRoleManager({ users }: { users: ManagedUser[] }) {
         >
           <Input name="name" label="name" placeholder="full name" required containerStyle={{ minWidth: 160 }} />
           <Input name="email" type="email" label="email" placeholder="name@thedelta.org.in" required containerStyle={{ minWidth: 220 }} />
+          <Input name="password" type="password" label="password" placeholder="leave blank to set up later" containerStyle={{ minWidth: 180 }} />
           <Select name="role" label="role" defaultValue="REVIEWER" containerStyle={{ minWidth: 140 }}>
             {USER_ROLES.map((r) => (
               <option key={r} value={r}>
