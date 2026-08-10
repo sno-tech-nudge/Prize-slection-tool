@@ -45,7 +45,12 @@ export async function getDashboardKpis() {
     prisma.application.count({ where: { isDuplicateOf: null } }),
     prisma.application.count({ where: { isDuplicateOf: null, ...REVIEWED_WHERE } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
-    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'NO' } }),
+    // "decision: no" on the dashboard also folds in potential ecosystem partners — they didn't
+    // make the challenge cut either, just via a different outcome than a flat no. The dedicated
+    // ecosystem-partners count/section below still tracks that subset on its own; this is purely
+    // additive to the top KPI, not a change to what NO means anywhere else in the app (the
+    // applications list "decision: no" filter, outreach, exports, etc. all stay strict NO-only).
+    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: { in: ['NO', 'ECOSYSTEM_PARTNER'] } } }),
     prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'ECOSYSTEM_PARTNER' } }),
     prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } }),
     prisma.application.findMany({ where: { isDuplicateOf: null, yearsExperience: { not: null } }, select: { yearsExperience: true } }),
