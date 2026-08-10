@@ -5,26 +5,6 @@ import { getSettings } from '@/lib/settings';
 
 const CHALLENGE_NAME = process.env.CHALLENGE_NAME || 'the^delta prize · rapid re.gen challenge';
 
-// falls back to this if the admin hasn't set a form link in Settings yet (or the settings row
-// predates this default) — keeps the query outreach template working correctly out of the box.
-const DEFAULT_TALLY_FORM_LINK = 'https://tally.so/r/q4XYpk';
-
-/** Appends this specific application's rec_id (the Zoho creator_record_id, shown on the
- *  application page) as a query param on the additional-information form link, so a Tally
- *  hidden field can capture it and the webhook that ingests the response can match it straight
- *  back to this application — no manual matching required on either side. */
-function buildFormLink(baseUrl: string, recId: string | null): string {
-  const base = baseUrl || DEFAULT_TALLY_FORM_LINK;
-  if (!recId) return base;
-  try {
-    const url = new URL(base);
-    url.searchParams.set('rec_id', recId);
-    return url.toString();
-  } catch {
-    return base;
-  }
-}
-
 /** Queues any stage-transition email — rejection or confirmation (shortlisted/finalist/winner). */
 export async function enqueueStageEmail(applicationId: string, template: StageEmailTemplate, personalNote?: string) {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
@@ -75,7 +55,6 @@ export async function previewCustomOutreachEmail(applicationId: string, kind: Cu
     pocFirstName: app.pocFirstName,
     orgName: app.orgName,
     challengeName: CHALLENGE_NAME,
-    formLink: kind === 'query' ? buildFormLink(settings.emailTemplateQuery.formLink, app.creatorRecordId) : undefined,
   });
 }
 

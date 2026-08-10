@@ -174,8 +174,7 @@ export async function sendIndividualOutreachAction(formData: FormData) {
   return { status: result.status, error: result.error };
 }
 
-/** Saves the admin-editable acceptance/rejection/query email templates used by bulk outreach.
- *  The query template also carries a form link, saved alongside subject/body only for that kind. */
+/** Saves the admin-editable acceptance/rejection/query email templates used by bulk outreach. */
 export async function updateEmailTemplateAction(formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
@@ -183,15 +182,12 @@ export async function updateEmailTemplateAction(formData: FormData) {
   const kind = parseKind(formData);
   const subject = String(formData.get('subject') ?? '').trim();
   const body = String(formData.get('body') ?? '');
-  const formLink = String(formData.get('formLink') ?? '').trim();
 
   const settings = await getSettings();
   if (kind === 'acceptance') {
     await updateSettings({ emailTemplateAcceptance: { subject: subject || settings.emailTemplateAcceptance.subject, body } });
   } else if (kind === 'query') {
-    await updateSettings({
-      emailTemplateQuery: { subject: subject || settings.emailTemplateQuery.subject, body, formLink },
-    });
+    await updateSettings({ emailTemplateQuery: { subject: subject || settings.emailTemplateQuery.subject, body } });
   } else {
     await updateSettings({ emailTemplateRejection: { subject: subject || settings.emailTemplateRejection.subject, body } });
   }

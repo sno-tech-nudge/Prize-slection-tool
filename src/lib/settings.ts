@@ -5,13 +5,6 @@ export interface EmailTemplate {
   body: string;
 }
 
-/** The query-outreach template also carries a link to the additional-information form (tally.so)
- *  — not sent as its own field, substituted into the body via {{formLink}} same as the other
- *  tokens, but kept structured here so the settings UI can show it as its own input. */
-export interface QueryEmailTemplate extends EmailTemplate {
-  formLink: string;
-}
-
 export interface DeltaSettings {
   /** snapshotted onto every AiEvaluation so historical scores stay interpretable if the rubric
    *  itself is ever replaced again later. */
@@ -21,7 +14,7 @@ export interface DeltaSettings {
   activeSource: 'seed' | 'zoho_crm' | 'google_form' | 'supabase';
   emailTemplateAcceptance: EmailTemplate;
   emailTemplateRejection: EmailTemplate;
-  emailTemplateQuery: QueryEmailTemplate;
+  emailTemplateQuery: EmailTemplate;
 }
 
 const DEFAULTS: DeltaSettings = {
@@ -39,8 +32,7 @@ const DEFAULTS: DeltaSettings = {
   },
   emailTemplateQuery: {
     subject: 'a quick follow-up on your application — {{challengeName}}',
-    body: 'dear {{pocFirstName}},\n\nthank you for applying to {{challengeName}} on behalf of {{orgName}}. as we review your application, we need a little more information before we can move forward.\n\ncould you share a few additional details using the short form below?\n\n{{formLink}}\n\nwith thanks,\nthe^delta prize team',
-    formLink: 'https://tally.so/r/q4XYpk',
+    body: 'dear {{pocFirstName}},\n\nthank you for applying to {{challengeName}} on behalf of {{orgName}}. as we review your application, we need a little more information before we can move forward — could you reply to this email with the additional details?\n\nwith thanks,\nthe^delta prize team',
   },
 };
 

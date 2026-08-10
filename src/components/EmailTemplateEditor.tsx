@@ -7,7 +7,7 @@ import { updateEmailTemplateAction } from '@/lib/mail/actions';
 export interface EmailTemplateEditorData {
   acceptance: { subject: string; body: string };
   rejection: { subject: string; body: string };
-  query: { subject: string; body: string; formLink: string };
+  query: { subject: string; body: string };
 }
 
 type TemplateKind = 'acceptance' | 'rejection' | 'query';
@@ -23,7 +23,6 @@ export function EmailTemplateEditor({ templates, canManage }: { templates: Email
   const [activeTab, setActiveTab] = React.useState<TemplateKind>('acceptance');
   const [subject, setSubject] = React.useState(templates[activeTab].subject);
   const [body, setBody] = React.useState(templates[activeTab].body);
-  const [formLink, setFormLink] = React.useState(templates.query.formLink);
   const [pending, setPending] = React.useState(false);
   const [savedTab, setSavedTab] = React.useState<TemplateKind | null>(null);
 
@@ -31,7 +30,6 @@ export function EmailTemplateEditor({ templates, canManage }: { templates: Email
     setActiveTab(kind);
     setSubject(templates[kind].subject);
     setBody(templates[kind].body);
-    setFormLink(templates.query.formLink);
     setSavedTab(null);
   }
 
@@ -62,25 +60,12 @@ export function EmailTemplateEditor({ templates, canManage }: { templates: Email
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         <Input label="subject" value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!canManage} />
         <Textarea
-          label={
-            activeTab === 'query'
-              ? 'body (plain text — use {{orgName}}, {{pocFirstName}}, {{challengeName}}, {{formLink}})'
-              : 'body (plain text — use {{orgName}}, {{pocFirstName}}, {{challengeName}})'
-          }
+          label="body (plain text — use {{orgName}}, {{pocFirstName}}, {{challengeName}})"
           rows={8}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           disabled={!canManage}
         />
-        {activeTab === 'query' && (
-          <Input
-            label="additional information form link (tally.so)"
-            placeholder="https://tally.so/r/..."
-            value={formLink}
-            onChange={(e) => setFormLink(e.target.value)}
-            disabled={!canManage}
-          />
-        )}
         {canManage && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <Button
@@ -95,7 +80,6 @@ export function EmailTemplateEditor({ templates, canManage }: { templates: Email
                   formData.set('kind', activeTab);
                   formData.set('subject', subject);
                   formData.set('body', body);
-                  if (activeTab === 'query') formData.set('formLink', formLink);
                   await updateEmailTemplateAction(formData);
                   setSavedTab(activeTab);
                   router.refresh();

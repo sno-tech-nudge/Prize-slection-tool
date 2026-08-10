@@ -543,25 +543,6 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      <div id="section-additional-information">
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>additional information</h2>
-          {app.additionalInfo ? (
-            <>
-              <p style={{ whiteSpace: 'pre-wrap', lineHeight: 'var(--lh-relaxed)' }}>{app.additionalInfo}</p>
-              {app.additionalInfoAt && (
-                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
-                  submitted {new Date(app.additionalInfoAt).toLocaleDateString('en-GB')}
-                </p>
-              )}
-            </>
-          ) : (
-            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>
-              no additional information submitted yet — sent via the query template outreach for applications where more detail is needed.
-            </p>
-          )}
-        </Card>
-      </div>
     </div>
   );
 }
