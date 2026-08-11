@@ -19,6 +19,22 @@ import { IndiaStatesMap } from '@/components/IndiaStatesMap';
 import { OrgTitle } from '@/components/OrgTitle';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
+import { ApplicationRow } from '@/components/ApplicationRow';
+import { listApplications } from '@/lib/applications/queries';
+
+// same column order as the applications tab's own table, so this widget reads as "that same
+// table, filtered" rather than a different view with its own layout to learn.
+const ECOSYSTEM_PARTNER_TABLE_HEADERS = [
+  'organisation',
+  'registration type',
+  'review status',
+  'decision status',
+  'operating model',
+  'states',
+  'eligibility',
+  'score',
+  'reviewer',
+];
 
 function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
   const content = (
@@ -110,6 +126,7 @@ export default async function DashboardPage() {
     orgSizeMix,
     orgAgeMix,
     reviewerStats,
+    ecosystemPartnerApps,
   ] = await Promise.all([
     getDashboardKpis(),
     getReviewDecisionFunnel(),
@@ -123,6 +140,7 @@ export default async function DashboardPage() {
     getOrgSizeMix(),
     getOrgAgeMix(),
     getReviewerStats(),
+    listApplications({ internal: 'ECOSYSTEM_PARTNER' }, user),
   ]);
   const funnelMax = Math.max(...funnel.map((f) => f.count), 1);
 
@@ -297,6 +315,45 @@ export default async function DashboardPage() {
             </div>
             <ExportCsvButton searchParams={{ internal: 'ECOSYSTEM_PARTNER' }} label="download ecosystem partners" />
           </div>
+
+          <Card padding="0" style={{ marginTop: 'var(--space-5)', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
+                  {ECOSYSTEM_PARTNER_TABLE_HEADERS.map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: 'var(--space-3) var(--space-4)',
+                        fontSize: 'var(--fs-caption)',
+                        textTransform: 'uppercase',
+                        letterSpacing: 'var(--ls-wide)',
+                        color: 'var(--text-secondary)',
+                        minWidth: h === 'operating model' ? 260 : undefined,
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ecosystemPartnerApps.map((app) => (
+                  <ApplicationRow key={app.id} app={app} />
+                ))}
+                {ecosystemPartnerApps.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={ECOSYSTEM_PARTNER_TABLE_HEADERS.length}
+                      style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}
+                    >
+                      no applications marked as a potential ecosystem partner yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </Card>
         </Card>
       </div>
     </div>
