@@ -85,6 +85,13 @@ export function ReviewScoringForm({
 }) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
+
+  // USP (maxScore 0) is a free-text line the sheet itself marks "no scores" — it never appears
+  // in the scored-criteria count, only in the numeric composite math (where 0 already means it
+  // can't move the needle).
+  const scoredCriteria = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0);
+  const currentKeys = React.useMemo(() => new Set(scoredCriteria.map((c) => c.key)), [scoredCriteria]);
+
   const existingScores = React.useMemo(() => {
     if (!existing) return {};
     return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.score]));
@@ -95,7 +102,27 @@ export function ReviewScoringForm({
     return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.comment ?? '']));
   }, [existing]);
 
-  const draft = React.useMemo(() => loadDraft(applicationId), [applicationId]);
+  // If this review was scored under an earlier rubric (different criterion keys), most of its
+  // stored scores simply won't match anything in the CURRENT rubric — reloading it here is
+  // expected to look mostly blank, not a data-loss bug. Surfaced as a warning below instead of
+  // silently pretending the review is complete.
+  const existingCriteriaKeys = React.useMemo(() => {
+    if (!existing) return new Set<string>();
+    return new Set(parseCriteria(existing.criteria).map((c) => c.key));
+  }, [existing]);
+  const carriedOverCount = [...existingCriteriaKeys].filter((k) => currentKeys.has(k)).length;
+  const isStaleRubric = !!existing && existingCriteriaKeys.size > 0 && carriedOverCount < currentKeys.size;
+
+  const draft = React.useMemo(() => {
+    const d = loadDraft(applicationId);
+    if (!d) return null;
+    // a draft saved under a since-changed rubric has keys that don't line up with the current
+    // criteria — trusting it would silently reproduce the exact "mostly blank" confusion a rubric
+    // change causes, instead of falling back to the real saved review below.
+    const draftKeys = Object.keys(d.scores ?? {});
+    const hasForeignKeys = draftKeys.some((k) => !currentKeys.has(k));
+    return hasForeignKeys ? null : d;
+  }, [applicationId, currentKeys]);
 
   const [scores, setScores] = React.useState<Record<string, number>>(draft?.scores ?? existingScores);
   const [criterionComments, setCriterionComments] = React.useState<Record<string, string>>(draft?.criterionComments ?? existingComments);
@@ -106,11 +133,8 @@ export function ReviewScoringForm({
     window.localStorage.setItem(draftKeyFor(applicationId), JSON.stringify({ scores, criterionComments, comment }));
   }, [applicationId, scores, criterionComments, comment]);
 
-  // USP (maxScore 0) is a free-text line the sheet itself marks "no scores" — it never appears
-  // in the scored-criteria count, only in the numeric composite math (where 0 already means it
-  // can't move the needle).
-  const scoredCriteria = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0);
   const answeredCount = Object.keys(scores).length;
+  const allCriteriaScored = answeredCount === scoredCriteria.length;
   const liveComposite = computeComposite(scores);
   let runningIndex = 0;
 
@@ -143,6 +167,23 @@ export function ReviewScoringForm({
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
     >
       <input type="hidden" name="applicationId" value={applicationId} />
+
+      {isStaleRubric && (
+        <div
+          style={{
+            border: '1px solid var(--delta-red)',
+            background: 'var(--surface-canvas)',
+            padding: 'var(--space-4)',
+            fontSize: 'var(--fs-small)',
+            lineHeight: 'var(--lh-relaxed)',
+          }}
+        >
+          <strong>this review predates a rubric change.</strong> only {carriedOverCount} of the {currentKeys.size} current
+          criteria carried over from the original submission — the rest show blank below and need to be scored fresh.
+          the original score of <strong>{existing?.composite}/100</strong> stays exactly as recorded unless you save this
+          form, so please only submit once every criterion below has been scored against the current rubric.
+        </div>
+      )}
 
       <div
         style={{
@@ -232,8 +273,14 @@ export function ReviewScoringForm({
 
       <Textarea name="comment" label="comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} />
 
-      <Button type="submit" variant="cta" disabled={pending}>
-        {pending ? 'saving…' : existing ? 'update score' : 'submit score'}
+      {!allCriteriaScored && (
+        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>
+          score all {scoredCriteria.length} criteria before submitting — {scoredCriteria.length - answeredCount} still blank.
+        </p>
+      )}
+
+      <Button type="submit" variant="cta" disabled={pending || !allCriteriaScored}>
+        {pending ? 'saving…' : !allCriteriaScored ? 'score every criterion to continue' : existing ? 'update score' : 'submit score'}
       </Button>
     </form>
   );

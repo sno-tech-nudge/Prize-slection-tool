@@ -15,6 +15,20 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
     return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.score]));
   }, [existing]);
 
+  // If this score was submitted under an earlier rubric (different criterion keys), most of its
+  // stored values won't match anything in the CURRENT rubric — reloading it is expected to look
+  // mostly blank, not a data-loss bug. Surfaced as a warning rather than silently pretending the
+  // score is complete (each score input below is also `required`, so it can't be re-submitted
+  // half-blank and silently overwrite the original composite with a deflated one).
+  const scoredCriteria = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0);
+  const existingCriteriaKeys = React.useMemo(() => {
+    if (!existing) return new Set<string>();
+    return new Set(parseCriteria(existing.criteria).map((c) => c.key));
+  }, [existing]);
+  const currentKeys = new Set(scoredCriteria.map((c) => c.key));
+  const carriedOverCount = [...existingCriteriaKeys].filter((k) => currentKeys.has(k)).length;
+  const isStaleRubric = !!existing && existingCriteriaKeys.size > 0 && carriedOverCount < currentKeys.size;
+
   return (
     <form
       action={async (formData) => {
@@ -29,6 +43,23 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
     >
       <input type="hidden" name="applicationId" value={applicationId} />
+
+      {isStaleRubric && (
+        <div
+          style={{
+            border: '1px solid var(--delta-red)',
+            background: 'var(--surface-canvas)',
+            padding: 'var(--space-4)',
+            fontSize: 'var(--fs-small)',
+            lineHeight: 'var(--lh-relaxed)',
+          }}
+        >
+          <strong>this score predates a rubric change.</strong> only {carriedOverCount} of the {currentKeys.size} current
+          criteria carried over from the original submission — the rest show blank below and need to be scored fresh.
+          the original score of <strong>{existing?.composite}/100</strong> stays exactly as recorded unless you save this
+          form, so please only submit once every criterion below has been scored against the current rubric.
+        </div>
+      )}
 
       {RUBRIC_SECTIONS.map((section) => (
         <div key={section.key}>
@@ -66,6 +97,7 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
                     min={0}
                     max={c.maxScore}
                     step={1}
+                    required
                     defaultValue={existingScores[c.key] !== undefined ? String(existingScores[c.key]) : ''}
                     containerStyle={{ width: 70, flexShrink: 0 }}
                     helper={`/ ${c.maxScore}`}
