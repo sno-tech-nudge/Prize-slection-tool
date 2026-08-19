@@ -5,7 +5,7 @@ import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
-import { isReviewed } from '@/lib/applications/reviewStatus';
+import { isReviewed, computeHumanComposite } from '@/lib/applications/reviewStatus';
 import {
   OPERATING_MODEL_ARCHETYPE_LABEL,
   LEGAL_REGISTRATION_TYPE_LABEL,
@@ -46,10 +46,7 @@ export interface ApplicationRowData {
  *  anchor, so left-click, middle-click, ctrl/cmd-click and right-click "open in new tab" all
  *  behave the way the browser expects, with no JS interception. */
 export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowData; queryString?: string }) {
-  const humanComposite =
-    app.humanReviews.length > 0
-      ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
-      : null;
+  const humanComposite = computeHumanComposite(app);
 
   const internalTone =
     app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' || app.internalDecision === 'ECOSYSTEM_PARTNER' ? 'neutral' : 'outline';

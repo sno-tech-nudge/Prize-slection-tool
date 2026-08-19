@@ -10,6 +10,7 @@ import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
+import { computeHumanComposite } from '@/lib/applications/reviewStatus';
 
 const HEADERS = [
   'organisation',
@@ -149,7 +150,23 @@ export default async function ApplicationsPage({
     );
   }
 
-  const [applications, filterOptions] = await Promise.all([listApplications(searchParams, user), getApplicationFilterOptions()]);
+  const [unsortedApplications, filterOptions] = await Promise.all([listApplications(searchParams, user), getApplicationFilterOptions()]);
+
+  // score is a computed average across HumanReview rows, not a plain column, so sorting by it
+  // happens here rather than as a database ORDER BY. Unscored applications always sink to the
+  // bottom regardless of direction — there's no meaningful place to rank "no score yet" among
+  // real numbers.
+  const applications =
+    searchParams.sort === 'score_desc' || searchParams.sort === 'score_asc'
+      ? [...unsortedApplications].sort((a, b) => {
+          const scoreA = computeHumanComposite(a);
+          const scoreB = computeHumanComposite(b);
+          if (scoreA === null && scoreB === null) return 0;
+          if (scoreA === null) return 1;
+          if (scoreB === null) return -1;
+          return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
+        })
+      : unsortedApplications;
 
   return (
     <div>

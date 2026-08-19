@@ -15,6 +15,11 @@ export interface ApplicationListFilters {
   eligible?: string;
   assignedToMe?: string;
   reviewer?: string;
+  /** 'score_desc' | 'score_asc' — applied client-side by the caller after fetching (score is a
+   *  computed average across HumanReview rows, not a plain column Prisma can order by), not part
+   *  of buildApplicationWhere. Left out of the WHERE clause entirely; kept here just so callers
+   *  passing the whole searchParams object through don't need a separate narrower type. */
+  sort?: string;
   // route searchParams objects carry other page-specific keys too (e.g. "stage") that this
   // filter set doesn't act on — an index signature lets callers pass the whole searchParams
   // object through without a separate narrower type at each call site.

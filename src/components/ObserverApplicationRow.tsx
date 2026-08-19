@@ -3,7 +3,7 @@ import { CompositeBadge, SolutionCategoryTag } from '@/components/StatusBadges';
 import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
-import { isReviewed } from '@/lib/applications/reviewStatus';
+import { isReviewed, computeHumanComposite } from '@/lib/applications/reviewStatus';
 import {
   OPERATING_MODEL_ARCHETYPE_LABEL,
   LEGAL_REGISTRATION_TYPE_LABEL,
@@ -20,10 +20,7 @@ import type { ApplicationRowData } from '@/components/ApplicationRow';
  *  badges, not editable controls, so reusing them here doesn't grant any write ability. Reviewer
  *  and eligibility are still deliberately excluded — internal working detail, not requested. */
 export function ObserverApplicationRow({ app, queryString = '' }: { app: ApplicationRowData; queryString?: string }) {
-  const humanComposite =
-    app.humanReviews.length > 0
-      ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
-      : null;
+  const humanComposite = computeHumanComposite(app);
 
   const internalTone =
     app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' || app.internalDecision === 'ECOSYSTEM_PARTNER' ? 'neutral' : 'outline';

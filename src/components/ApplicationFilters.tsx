@@ -179,6 +179,17 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         <option value="YES">eligible</option>
         <option value="NO">ineligible</option>
       </Select>
+      <Select
+        aria-label="sort by score"
+        defaultValue={searchParams.get('sort') ?? ''}
+        onChange={(e) => setParam('sort', e.target.value)}
+        containerStyle={fixedWidth(170)}
+        style={compactSelectStyle}
+      >
+        <option value="">sort: most recent</option>
+        <option value="score_desc">score: high to low</option>
+        <option value="score_asc">score: low to high</option>
+      </Select>
     </div>
   );
 }

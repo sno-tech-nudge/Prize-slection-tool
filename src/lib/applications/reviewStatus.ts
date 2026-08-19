@@ -12,3 +12,13 @@ export function isReviewed(app: { stageStatus: string }): boolean {
 export const REVIEWED_WHERE: Prisma.ApplicationWhereInput = { stageStatus: 'UNDER_REVIEW' };
 
 export const NOT_REVIEWED_WHERE: Prisma.ApplicationWhereInput = { stageStatus: { not: 'UNDER_REVIEW' } };
+
+/** The "score" shown in the applications list and used for sorting — average composite across
+ *  every submitted HumanReview for the application, or null if nobody's reviewed it yet. Single
+ *  definition shared by the row display and the list's sort-by-score option, so they can never
+ *  drift apart. */
+export function computeHumanComposite(app: { humanReviews: { composite: number }[] }): number | null {
+  return app.humanReviews.length > 0
+    ? Math.round(app.humanReviews.reduce((sum, r) => sum + r.composite, 0) / app.humanReviews.length)
+    : null;
+}
