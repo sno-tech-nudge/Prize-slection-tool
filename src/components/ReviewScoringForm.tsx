@@ -92,10 +92,15 @@ export function ReviewScoringForm({
   const scoredCriteria = RUBRIC_CRITERIA.filter((c) => c.maxScore > 0);
   const currentKeys = React.useMemo(() => new Set(scoredCriteria.map((c) => c.key)), [scoredCriteria]);
 
+  // Filtered to scored criteria only — the stored criteria JSON always carries an entry for
+  // every RUBRIC_CRITERIA key, including unscored ones like USP (always {score: 0}). Letting
+  // that leak into `scores` inflated answeredCount past scoredCriteria.length on every reopened
+  // review, which permanently disabled the submit button below (answeredCount could never equal
+  // the denominator) — this is what was actually blocking re-scoring, not just a display glitch.
   const existingScores = React.useMemo(() => {
     if (!existing) return {};
-    return Object.fromEntries(parseCriteria(existing.criteria).map((c) => [c.key, c.score]));
-  }, [existing]);
+    return Object.fromEntries(parseCriteria(existing.criteria).filter((c) => currentKeys.has(c.key)).map((c) => [c.key, c.score]));
+  }, [existing, currentKeys]);
 
   const existingComments = React.useMemo(() => {
     if (!existing) return {};
