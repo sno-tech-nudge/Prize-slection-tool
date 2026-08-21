@@ -93,13 +93,20 @@ export async function reassignAllInRotationOrderAction() {
   return result;
 }
 
-/** Moves every one of one person's review assignments to another person — for when someone's
- *  old account (a rename, a domain change, a re-provisioned login) needs to hand off everything
- *  they were assigned without touching anyone else's assignments. If the destination person is
- *  already assigned to an application the source person is also on, the source's duplicate is
- *  dropped rather than kept — the unique (applicationId, reviewerId) constraint means both can't
- *  end up pointing at the same person on the same application anyway. */
-export async function reassignReviewerAction(formData: FormData): Promise<{ moved?: number; error?: string }> {
+/** Moves every one of one person's review assignments AND their already-submitted HumanReview
+ *  rows to another person — for when someone's old account (a rename, a domain change, a
+ *  re-provisioned login) needs to hand off everything they were assigned/scored without touching
+ *  anyone else's. Moving the actual reviews (not just assignments) is the point: leaving a stale
+ *  HumanReview behind under the old account is exactly what silently dragged an application's
+ *  displayed score down — the applications list averages every HumanReview row for an
+ *  application, so an old, stale, or incomplete row sitting next to a real new one from the same
+ *  person under a different account pulls the average toward the stale value instead of showing
+ *  the real one. If the destination person already has their own row (assignment or review) for
+ *  an application, the source's is dropped rather than kept — the unique (applicationId,
+ *  reviewerId) constraint means both can't point at the same person on the same application
+ *  anyway, and a review the destination already submitted under their own account is treated as
+ *  the current, authoritative one. */
+export async function reassignReviewerAction(formData: FormData): Promise<{ movedAssignments?: number; movedReviews?: number; error?: string }> {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
 
@@ -124,8 +131,21 @@ export async function reassignReviewerAction(formData: FormData): Promise<{ move
       where: { reviewerId: fromUser.id, applicationId: { in: toUsersAssignments.map((a) => a.applicationId) } },
     });
   }
+  const assignmentResult = await prisma.reviewAssignment.updateMany({
+    where: { reviewerId: fromUser.id },
+    data: { reviewerId: toUser.id },
+  });
 
-  const result = await prisma.reviewAssignment.updateMany({
+  const toUsersReviews = await prisma.humanReview.findMany({
+    where: { reviewerId: toUser.id },
+    select: { applicationId: true },
+  });
+  if (toUsersReviews.length > 0) {
+    await prisma.humanReview.deleteMany({
+      where: { reviewerId: fromUser.id, applicationId: { in: toUsersReviews.map((r) => r.applicationId) } },
+    });
+  }
+  const reviewResult = await prisma.humanReview.updateMany({
     where: { reviewerId: fromUser.id },
     data: { reviewerId: toUser.id },
   });
@@ -133,7 +153,53 @@ export async function reassignReviewerAction(formData: FormData): Promise<{ move
   revalidatePath('/applications');
   revalidatePath('/dashboard');
   revalidatePath('/review');
-  return { moved: result.count };
+  return { movedAssignments: assignmentResult.count, movedReviews: reviewResult.count };
+}
+
+/** Same idea as reassignReviewerAction, for jury: moves one juror's bench membership and
+ *  already-submitted JuryScore rows to another account. Bench membership (not just scores) has
+ *  to move too, or the destination account's jury view (gated on being placed on a bench) simply
+ *  wouldn't show the applications they're meant to be scoring. */
+export async function reassignJurorAction(formData: FormData): Promise<{ movedBenches?: number; movedScores?: number; error?: string }> {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const fromEmail = String(formData.get('fromEmail') ?? '').trim().toLowerCase();
+  const toEmail = String(formData.get('toEmail') ?? '').trim().toLowerCase();
+  if (!fromEmail || !toEmail) return { error: 'enter both email addresses.' };
+  if (fromEmail === toEmail) return { error: 'those are the same email address.' };
+
+  const [fromUser, toUser] = await Promise.all([
+    prisma.user.findUnique({ where: { email: fromEmail }, include: { benches: { select: { id: true } } } }),
+    prisma.user.findUnique({ where: { email: toEmail } }),
+  ]);
+  if (!fromUser) return { error: `no team member found with email ${fromEmail}` };
+  if (!toUser) return { error: `no team member found with email ${toEmail}` };
+
+  if (fromUser.benches.length > 0) {
+    await prisma.user.update({
+      where: { id: toUser.id },
+      data: { benches: { connect: fromUser.benches.map((b) => ({ id: b.id })) } },
+    });
+  }
+
+  const toUsersScores = await prisma.juryScore.findMany({
+    where: { jurorId: toUser.id },
+    select: { applicationId: true },
+  });
+  if (toUsersScores.length > 0) {
+    await prisma.juryScore.deleteMany({
+      where: { jurorId: fromUser.id, applicationId: { in: toUsersScores.map((s) => s.applicationId) } },
+    });
+  }
+  const scoreResult = await prisma.juryScore.updateMany({
+    where: { jurorId: fromUser.id },
+    data: { jurorId: toUser.id },
+  });
+
+  revalidatePath('/jury');
+  revalidatePath('/applications');
+  return { movedBenches: fromUser.benches.length, movedScores: scoreResult.count };
 }
 
 export async function getAutomationStats() {

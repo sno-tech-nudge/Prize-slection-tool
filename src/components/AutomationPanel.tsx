@@ -3,7 +3,14 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, RefreshCw, Globe, type LucideIcon } from 'lucide-react';
 import { Card, Button, Badge, Input, useToast } from '@/design-system';
-import { scoreAllUnscoredAction, rerunMatcherAction, enrichAllAction, reassignAllInRotationOrderAction, reassignReviewerAction } from '@/lib/automation/actions';
+import {
+  scoreAllUnscoredAction,
+  rerunMatcherAction,
+  enrichAllAction,
+  reassignAllInRotationOrderAction,
+  reassignReviewerAction,
+  reassignJurorAction,
+} from '@/lib/automation/actions';
 import { Users, ArrowRightLeft } from 'lucide-react';
 
 export interface AutomationStats {
@@ -72,6 +79,7 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
   const [enriching, setEnriching] = React.useState(false);
   const [reassigning, setReassigning] = React.useState(false);
   const [movingAssignments, setMovingAssignments] = React.useState(false);
+  const [movingJuror, setMovingJuror] = React.useState(false);
   const jobsInFlight = stats.jobStats.PENDING + stats.jobStats.RUNNING;
 
   async function runScore() {
@@ -121,11 +129,34 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
       if (result.error) {
         push('reassignment failed', result.error, 'error');
       } else {
-        push('reassigned', `moved ${result.moved} application${result.moved === 1 ? '' : 's'}.`, 'success');
+        push(
+          'reassigned',
+          `moved ${result.movedAssignments} assignment${result.movedAssignments === 1 ? '' : 's'} and ${result.movedReviews} submitted review${result.movedReviews === 1 ? '' : 's'}.`,
+          'success',
+        );
         router.refresh();
       }
     } finally {
       setMovingAssignments(false);
+    }
+  }
+
+  async function moveJuror(formData: FormData) {
+    setMovingJuror(true);
+    try {
+      const result = await reassignJurorAction(formData);
+      if (result.error) {
+        push('reassignment failed', result.error, 'error');
+      } else {
+        push(
+          'reassigned',
+          `moved ${result.movedBenches} bench${result.movedBenches === 1 ? '' : 'es'} and ${result.movedScores} submitted score${result.movedScores === 1 ? '' : 's'}.`,
+          'success',
+        );
+        router.refresh();
+      }
+    } finally {
+      setMovingJuror(false);
     }
   }
 
@@ -199,12 +230,34 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
       >
         <div style={{ flex: '0 0 100%', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
           <ArrowRightLeft size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
-          move one person&apos;s review assignments to another
+          move one reviewer&apos;s assignments and submitted reviews to another account
         </div>
         <Input name="fromEmail" type="email" label="from" placeholder="old.login@example.org" required containerStyle={{ minWidth: 200, flex: 1 }} />
         <Input name="toEmail" type="email" label="to" placeholder="new.login@example.org" required containerStyle={{ minWidth: 200, flex: 1 }} />
         <Button type="submit" variant="secondary" size="sm" disabled={movingAssignments}>
-          {movingAssignments ? 'moving…' : 'move assignments'}
+          {movingAssignments ? 'moving…' : 'move reviewer'}
+        </Button>
+      </form>
+
+      <form
+        action={moveJuror}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 'var(--space-3)',
+          flexWrap: 'wrap',
+          padding: 'var(--space-4) 0',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div style={{ flex: '0 0 100%', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
+          <ArrowRightLeft size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
+          move one juror&apos;s bench membership and submitted scores to another account
+        </div>
+        <Input name="fromEmail" type="email" label="from" placeholder="old.login@example.org" required containerStyle={{ minWidth: 200, flex: 1 }} />
+        <Input name="toEmail" type="email" label="to" placeholder="new.login@example.org" required containerStyle={{ minWidth: 200, flex: 1 }} />
+        <Button type="submit" variant="secondary" size="sm" disabled={movingJuror}>
+          {movingJuror ? 'moving…' : 'move juror'}
         </Button>
       </form>
 
