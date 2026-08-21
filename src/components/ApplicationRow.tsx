@@ -38,7 +38,7 @@ export interface ApplicationRowData {
   darpanRegistered: string | null;
   targetMatch: { name: string } | null;
   founders: { fullName: string; email: string | null; linkedin: string | null }[];
-  humanReviews: { id: string; composite: number }[];
+  humanReviews: { id: string; composite: number; submittedAt: Date }[];
   reviewAssignments: { id: string; reviewer: { name: string } }[];
 }
 
