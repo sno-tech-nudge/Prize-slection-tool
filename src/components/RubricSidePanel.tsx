@@ -17,7 +17,7 @@ export function RubricSidePanel() {
       </Button>
 
       {open && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-overlay)' as unknown as number, display: 'flex', justifyContent: 'flex-end' }}>
           <div
             onClick={() => setOpen(false)}
             style={{ position: 'absolute', inset: 0, background: 'var(--surface-ink)', opacity: 0.5 }}

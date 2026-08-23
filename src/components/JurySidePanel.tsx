@@ -51,7 +51,9 @@ export function JurySidePanel({ applicationId, orgName, myScore }: JurySidePanel
             width: 520,
             maxWidth: '100%',
             height: '100%',
-            zIndex: 100,
+            // must clear SectionJumpNav's sticky z-index (var(--z-sticky), 100) — see the same
+            // note in ReviewSidePanel.tsx.
+            zIndex: 'var(--z-overlay)' as unknown as number,
             background: 'var(--surface-card)',
             borderLeft: '4px solid var(--delta-red)',
             boxShadow: 'var(--shadow-md)',
