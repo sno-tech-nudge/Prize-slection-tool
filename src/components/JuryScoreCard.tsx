@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, Badge } from '@/design-system';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { parseCriteria } from '@/lib/scoring/parse';
-import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
+import { JURY_RUBRIC_CRITERIA } from '@/lib/scoring/juryRubric';
 import type { JuryScoresTableRow } from '@/components/JuryScoresTable';
 
 /** The internal jury dashboard's detail view — a single full-width "jury score card" instead of
@@ -12,7 +12,7 @@ import type { JuryScoresTableRow } from '@/components/JuryScoresTable';
  *  is purely for reading jury progress; "view application" links out to the full record. */
 export function JuryScoreCard({ juryScores }: { juryScores: JuryScoresTableRow[] }) {
   const scoresByJuror = React.useMemo(
-    () => juryScores.map((s) => ({ score: s, byKey: Object.fromEntries(parseCriteria(s.criteria).map((c) => [c.key, c.score])) })),
+    () => juryScores.map((s) => ({ score: s, byKey: Object.fromEntries(parseCriteria(s.criteria).map((c) => [c.key, c])) })),
     [juryScores],
   );
 
@@ -67,26 +67,22 @@ export function JuryScoreCard({ juryScores }: { juryScores: JuryScoresTableRow[]
             </tr>
           </thead>
           <tbody>
-            {RUBRIC_SECTIONS.map((section) => (
-              <React.Fragment key={section.key}>
-                <tr>
-                  <td colSpan={scoresByJuror.length + 1} style={{ padding: 'var(--space-2) var(--space-3) var(--space-1)', fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
-                    {section.label}
+            {JURY_RUBRIC_CRITERIA.map((c) => (
+              <tr key={c.key} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', verticalAlign: 'top' }}>
+                  {c.label} <span style={{ color: 'var(--text-muted)' }}>/ {c.maxScore}</span>
+                </td>
+                {scoresByJuror.map(({ score, byKey }) => (
+                  <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', textAlign: 'right', verticalAlign: 'top' }}>
+                    <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number }}>{byKey[c.key]?.score ?? '—'}</div>
+                    {byKey[c.key]?.comment && (
+                      <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', textAlign: 'left', whiteSpace: 'pre-wrap', marginTop: 'var(--space-1)' }}>
+                        {byKey[c.key].comment}
+                      </div>
+                    )}
                   </td>
-                </tr>
-                {RUBRIC_CRITERIA.filter((c) => c.section === section.key).map((c) => (
-                  <tr key={c.key} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)' }}>
-                      {c.label} <span style={{ color: 'var(--text-muted)' }}>/ {c.maxScore}</span>
-                    </td>
-                    {scoresByJuror.map(({ score, byKey }) => (
-                      <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', textAlign: 'right', fontWeight: 'var(--fw-bold)' as unknown as number }}>
-                        {byKey[c.key] ?? '—'}
-                      </td>
-                    ))}
-                  </tr>
                 ))}
-              </React.Fragment>
+              </tr>
             ))}
             <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
               <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>composite</td>
@@ -100,7 +96,9 @@ export function JuryScoreCard({ juryScores }: { juryScores: JuryScoresTableRow[]
               ))}
             </tr>
             <tr>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, verticalAlign: 'top' }}>comment</td>
+              <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, verticalAlign: 'top' }}>
+                why a winning model
+              </td>
               {scoresByJuror.map(({ score }) => (
                 <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', whiteSpace: 'pre-wrap' }}>
                   {score.comment || '—'}

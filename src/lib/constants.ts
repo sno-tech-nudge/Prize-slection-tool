@@ -97,7 +97,7 @@ export type DispositionValue = (typeof DISPOSITIONS)[number];
 export const REVIEW_RECOMMENDATIONS = ['ADVANCE', 'HOLD', 'REJECT'] as const;
 export type ReviewRecommendationValue = (typeof REVIEW_RECOMMENDATIONS)[number];
 
-export const JURY_VERDICTS = ['YES', 'MAYBE', 'NO'] as const;
+export const JURY_VERDICTS = ['YES', 'NO'] as const;
 export type JuryVerdictValue = (typeof JURY_VERDICTS)[number];
 
 export const TARGET_STATUSES = ['NOT_APPLIED', 'APPLIED', 'CONTACTED'] as const;

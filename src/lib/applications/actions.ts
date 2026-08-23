@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db';
 import type { StageStatusValue, InternalDecisionValue } from '@/lib/constants';
 import { RUBRIC_CRITERIA, computeComposite, dispositionFromComposite } from '@/lib/scoring/rubric';
 import { notifyMentionedUsers } from '@/lib/notifications/actions';
+import { enqueueJob } from '@/lib/jobs/queue';
 
 /** Stages that trigger an automated email — rejection or a congratulatory confirmation. Stages
  *  not listed here (SCREENING, UNDER_REVIEW, JURY_REVIEW, WITHDRAWN) are internal-only moves. */
@@ -173,10 +174,21 @@ export async function setInternalDecisionAction(formData: FormData) {
 
   const decision = String(formData.get('decision')) as InternalDecisionValue | 'CLEAR';
 
+  const previous = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { orgSynopsisStatus: true } });
+
   await prisma.application.update({
     where: { id: applicationId },
     data: { internalDecision: decision === 'CLEAR' ? null : decision },
   });
+
+  // the organisation & model synopsis is jury-facing context, so it only needs to exist once an
+  // application actually clears the jury gate — generate it once here rather than for every
+  // application regardless of decision. Guarded on orgSynopsisStatus so toggling the decision
+  // back and forth doesn't re-enqueue a job every time; a failed run can still be retried
+  // manually from the application page.
+  if (decision === 'YES' && !previous.orgSynopsisStatus) {
+    await enqueueJob('SYNOPSIZE_APPLICATION', applicationId);
+  }
 
   // dashboard KPI ("decision: yes") and the reviewed→decision funnel both key off
   // internalDecision, so they'd otherwise go stale until an unrelated revalidation happened.
