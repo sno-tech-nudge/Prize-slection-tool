@@ -14,6 +14,7 @@ import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
 import { computeHumanComposite } from '@/lib/applications/reviewStatus';
+import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
 
 const HEADERS = [
   'organisation',
@@ -65,6 +66,11 @@ export default async function ApplicationsPage({
             return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
           })
         : unsortedJuryApplications;
+
+    // backfills any missing synopsis before the juror even opens an application — every
+    // application on this list is already internalDecision: YES (that's the visibility gate), so
+    // there's no per-app check to make here, just queue whatever's missing.
+    await Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a)));
 
     return (
       <div>

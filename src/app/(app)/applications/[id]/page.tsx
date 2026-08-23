@@ -14,6 +14,7 @@ import { JurySidePanel } from '@/components/JurySidePanel';
 import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
+import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { canManageApplication } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
@@ -35,6 +36,10 @@ export default async function ApplicationDetailPage({
   ]);
   const reviewers = allUsers;
   if (!app) notFound();
+
+  // nobody should have to press a button for the normal case — see ensureOrgSynopsisQueued for
+  // why this is safe to call on every view.
+  await ensureOrgSynopsisQueued(app);
 
   const pagerParams = new URLSearchParams();
   Object.entries(searchParams ?? {}).forEach(([key, value]) => {
