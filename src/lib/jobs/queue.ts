@@ -2,9 +2,8 @@ import { prisma } from '@/lib/db';
 import { scoreApplication } from '@/lib/scoring/runner';
 import { runMatcherForApplication } from '@/lib/matching/matcher';
 import { enrichApplication } from '@/lib/enrichment/runner';
-import { generateOrgSynopsis } from '@/lib/synopsis/runner';
 
-export type JobType = 'SCORE_APPLICATION' | 'MATCH_APPLICATION' | 'ENRICH_APPLICATION' | 'SYNOPSIZE_APPLICATION';
+export type JobType = 'SCORE_APPLICATION' | 'MATCH_APPLICATION' | 'ENRICH_APPLICATION';
 
 /**
  * Lightweight async job queue: a DB table instead of Redis/BullMQ, so the prototype stays
@@ -35,8 +34,6 @@ async function runJob(jobId: string, type: string, payload: string) {
     await runMatcherForApplication(applicationId);
   } else if (type === 'ENRICH_APPLICATION') {
     await enrichApplication(applicationId);
-  } else if (type === 'SYNOPSIZE_APPLICATION') {
-    await generateOrgSynopsis(applicationId);
   } else {
     throw new Error(`unknown job type: ${type}`);
   }

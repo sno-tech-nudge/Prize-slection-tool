@@ -237,16 +237,6 @@ model Application {
   opModelSummary String?
   opModelRaw     String?
 
-  // jury-facing AI-generated synthesis of the operating model + key metrics — a distilled read
-  // for external jury reviewers, auto-generated once an application's internal decision is set to
-  // YES (see the SYNOPSIZE_APPLICATION job, enqueued from setInternalDecisionAction), manually
-  // re-triggerable by an admin/reviewer if it fails or needs a refresh.
-  orgSynopsisStatus String? // PENDING | RUNNING | DONE | FAILED
-  orgSynopsisModel  String?
-  orgSynopsisRunAt  DateTime?
-  orgSynopsisError  String?
-  orgSynopsisText   String?
-
   fundersStatus  String?
   fundersModel   String?
   fundersRunAt   DateTime?

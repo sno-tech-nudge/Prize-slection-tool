@@ -3,7 +3,6 @@ import { Card, Badge, Tag } from '@/design-system';
 import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { RescoreButton } from '@/components/RescoreButton';
 import { ValidateOrgButton } from '@/components/ValidateOrgButton';
-import { RegenerateSynopsisButton } from '@/components/RegenerateSynopsisButton';
 import { SectionScoreInfo } from '@/components/SectionScoreInfo';
 import type { getApplicationDetail } from '@/lib/applications/queries';
 import type { User } from '@prisma/client';
@@ -146,29 +145,6 @@ export function ApplicationMainContent({
           <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
         </div>
       </Card>
-
-      {(app.orgSynopsisText || app.internalDecision === 'YES') && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)', gap: 'var(--space-3)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)' }}>organisation &amp; model synopsis</h2>
-            {user && !isJury && (
-              <RegenerateSynopsisButton applicationId={app.id} hasRun={app.orgSynopsisStatus === 'DONE' || app.orgSynopsisStatus === 'FAILED'} />
-            )}
-          </div>
-          {app.orgSynopsisText && (
-            <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
-              {app.orgSynopsisText}
-            </p>
-          )}
-          {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
-          {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && (
-            <p style={{ color: 'var(--delta-red)' }}>synopsis generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
-          )}
-          {!app.orgSynopsisText && (!app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
-            <p style={{ color: 'var(--text-secondary)' }}>not yet generated for this application.</p>
-          )}
-        </Card>
-      )}
 
       {(app.founders.length > 0 || app.funders.length > 0) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
