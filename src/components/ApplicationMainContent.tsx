@@ -157,9 +157,17 @@ export function ApplicationMainContent({
             )}
           </div>
           {app.orgSynopsisText && (
-            <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
-              {app.orgSynopsisText}
-            </p>
+            <>
+              <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
+                {app.orgSynopsisText}
+              </p>
+              {!isJury && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+                  every configured AI provider failed, so this is a template-built fallback, not a model-generated read
+                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}. regenerate once the provider issue clears for a real AI summary.
+                </p>
+              )}
+            </>
           )}
           {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
           {/* the raw provider error (rate limits, billing details) is only useful to whoever can

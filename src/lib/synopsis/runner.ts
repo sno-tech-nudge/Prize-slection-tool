@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { SYNOPSIS_SYSTEM_PROMPT, buildSynopsisPrompt } from './prompt';
+import { heuristicSynopsis } from './heuristic';
 
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
@@ -93,14 +94,12 @@ async function callGemini(userPrompt: string): Promise<string> {
 }
 
 /** Manually re-triggerable, and auto-enqueued (via the SYNOPSIZE_APPLICATION job) once an
- *  application's internal decision is set to YES — see setInternalDecisionAction. Groq primary,
- *  Gemini fallback, same provider pairing as the rest of the scoring pipeline; no web search
- *  involved, this only synthesises fields the applicant already submitted. */
+ *  application's internal decision is set to YES — see setInternalDecisionAction. Tries Groq,
+ *  then Gemini, then falls back to a deterministic template (heuristic.ts) if both AI providers
+ *  fail or neither is configured — same "never silently no-op, always show something real"
+ *  philosophy as scoring/heuristic.ts, since jury has no way to retry this themselves. FAILED is
+ *  reserved for a genuine bug (the heuristic itself throwing), not an AI provider outage. */
 export async function generateOrgSynopsis(applicationId: string): Promise<{ usedModel: string }> {
-  if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) {
-    throw new Error('Neither GROQ_API_KEY nor GEMINI_API_KEY is configured — the organisation & model synopsis needs one of them.');
-  }
-
   const currentStatus = (await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { orgSynopsisStatus: true } }))
     .orgSynopsisStatus;
   if (currentStatus === 'RUNNING') {
@@ -113,20 +112,31 @@ export async function generateOrgSynopsis(applicationId: string): Promise<{ used
     const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, include: { techUseCases: true } });
     const userPrompt = buildSynopsisPrompt(app);
 
-    let synopsis: string;
-    let usedModel: string;
+    let synopsis: string | undefined;
+    let usedModel: string | undefined;
+    let aiError: string | undefined;
+
     if (process.env.GROQ_API_KEY) {
       try {
         synopsis = await callGroq(userPrompt);
         usedModel = `groq/${GROQ_MODEL}`;
       } catch (err) {
-        if (!process.env.GEMINI_API_KEY) throw err;
-        synopsis = await callGemini(userPrompt);
-        usedModel = `gemini/${GEMINI_MODEL} (groq fallback)`;
+        aiError = `groq: ${err instanceof Error ? err.message : 'unknown error'}`;
       }
-    } else {
-      synopsis = await callGemini(userPrompt);
-      usedModel = `gemini/${GEMINI_MODEL}`;
+    }
+
+    if (!synopsis && process.env.GEMINI_API_KEY) {
+      try {
+        synopsis = await callGemini(userPrompt);
+        usedModel = process.env.GROQ_API_KEY ? `gemini/${GEMINI_MODEL} (groq fallback)` : `gemini/${GEMINI_MODEL}`;
+      } catch (err) {
+        aiError = [aiError, `gemini: ${err instanceof Error ? err.message : 'unknown error'}`].filter(Boolean).join(' · ');
+      }
+    }
+
+    if (!synopsis) {
+      synopsis = heuristicSynopsis(app);
+      usedModel = 'heuristic-fallback-v1';
     }
 
     await prisma.application.update({
@@ -135,12 +145,14 @@ export async function generateOrgSynopsis(applicationId: string): Promise<{ used
         orgSynopsisStatus: 'DONE',
         orgSynopsisModel: usedModel,
         orgSynopsisRunAt: new Date(),
-        orgSynopsisError: null,
+        // kept even on a successful (heuristic) result so an admin can see why the AI path was
+        // skipped, without that ever surfacing as a scary FAILED state to anyone.
+        orgSynopsisError: aiError ?? null,
         orgSynopsisText: synopsis.trim(),
       },
     });
 
-    return { usedModel };
+    return { usedModel: usedModel ?? 'unknown' };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'synopsis generation failed';
     await prisma.application.update({ where: { id: applicationId }, data: { orgSynopsisStatus: 'FAILED', orgSynopsisError: message } });
