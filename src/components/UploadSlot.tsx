@@ -1,6 +1,6 @@
 import { Button, Badge } from '@/design-system';
-import { uploadResourceAction, deleteResourceAction, MAX_UPLOAD_BYTES } from '@/lib/uploads/actions';
-import type { StoredUpload, UploadKind } from '@/lib/uploads/settingsUploads';
+import { uploadResourceAction, deleteResourceAction } from '@/lib/uploads/actions';
+import { MAX_UPLOAD_BYTES, type StoredUpload, type UploadKind } from '@/lib/uploads/settingsUploads';
 
 export function UploadSlot({
   kind,

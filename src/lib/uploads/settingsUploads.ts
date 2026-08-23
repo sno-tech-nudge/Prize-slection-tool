@@ -1,5 +1,10 @@
 import { prisma } from '@/lib/db';
 
+// kept comfortably under next.config.js's serverActions.bodySizeLimit (4.5mb) and typical
+// serverless request-body ceilings — large enough for a rubric CSV/PDF or a guidelines PDF that
+// isn't image-heavy.
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
 export type UploadKind = 'RUBRIC' | 'JURY_GUIDELINES';
 
 export interface StoredUpload {

@@ -3,12 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/session';
 import { assertRole, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
-import { saveUpload, deleteUpload, type UploadKind } from './settingsUploads';
-
-// kept comfortably under next.config.js's serverActions.bodySizeLimit (4.5mb) and typical
-// serverless request-body ceilings — large enough for a rubric CSV/PDF or a guidelines PDF that
-// isn't image-heavy.
-export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+import { saveUpload, deleteUpload, MAX_UPLOAD_BYTES, type UploadKind } from './settingsUploads';
 
 function isValidKind(value: unknown): value is UploadKind {
   return value === 'RUBRIC' || value === 'JURY_GUIDELINES';
