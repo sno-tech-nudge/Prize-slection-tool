@@ -147,10 +147,11 @@ export function ApplicationMainContent({
         </div>
       </Card>
 
+      <div id="section-ai-summary">
       {(app.orgSynopsisText || app.internalDecision === 'YES') && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)', gap: 'var(--space-3)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)' }}>organisation &amp; model synopsis</h2>
+            <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI summary</h2>
             {user && !isJury && (
               <RegenerateSynopsisButton applicationId={app.id} hasRun={app.orgSynopsisStatus === 'DONE' || app.orgSynopsisStatus === 'FAILED'} />
             )}
@@ -161,14 +162,18 @@ export function ApplicationMainContent({
             </p>
           )}
           {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
-          {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && (
-            <p style={{ color: 'var(--delta-red)' }}>synopsis generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
+          {/* the raw provider error (rate limits, billing details) is only useful to whoever can
+           *  act on it via the regenerate button above — jury/observer get the same neutral
+           *  message as the not-yet-generated state instead of technical noise they can't fix. */}
+          {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && !isJury && (
+            <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
           )}
-          {!app.orgSynopsisText && (!app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
-            <p style={{ color: 'var(--text-secondary)' }}>not yet generated for this application.</p>
+          {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? isJury : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
+            <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>
           )}
         </Card>
       )}
+      </div>
 
       {(app.founders.length > 0 || app.funders.length > 0) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
