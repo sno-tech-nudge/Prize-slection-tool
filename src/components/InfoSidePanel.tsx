@@ -1,19 +1,22 @@
 'use client';
 import React from 'react';
-import { X, type LucideIcon } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/design-system';
 
 /** Generic slide-out panel triggered by a button — same mechanism as RubricSidePanel and
  *  ReviewSidePanel, generalized so content-only panels (jury guidelines, a sample scorecard)
- *  don't each need their own copy of the open/close chrome. */
+ *  don't each need their own copy of the open/close chrome. `icon` takes an already-rendered
+ *  element (e.g. `<BookOpen size={14} />`), not a component reference — a bare lucide component
+ *  passed as a prop from a server component crashes with "functions cannot be passed to client
+ *  components", since it isn't a registered client-module reference. */
 export function InfoSidePanel({
   triggerLabel,
-  icon: Icon,
+  icon,
   title,
   children,
 }: {
   triggerLabel: string;
-  icon: LucideIcon;
+  icon: React.ReactNode;
   title: string;
   children: React.ReactNode;
 }) {
@@ -23,7 +26,7 @@ export function InfoSidePanel({
     <>
       <Button variant="secondary" onClick={() => setOpen(true)}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <Icon size={14} strokeLinejoin="miter" strokeLinecap="square" />
+          {icon}
           {triggerLabel}
         </span>
       </Button>

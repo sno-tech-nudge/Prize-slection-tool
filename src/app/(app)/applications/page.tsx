@@ -74,10 +74,18 @@ export default async function ApplicationsPage({
           subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench`}
           action={
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-              <InfoSidePanel triggerLabel="jury guidelines" icon={BookOpen} title="jury guidelines">
+              <InfoSidePanel
+                triggerLabel="jury guidelines"
+                icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
+                title="jury guidelines"
+              >
                 <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>guidelines coming soon.</p>
               </InfoSidePanel>
-              <InfoSidePanel triggerLabel="sample scorecard" icon={ClipboardList} title="sample scorecard">
+              <InfoSidePanel
+                triggerLabel="sample scorecard"
+                icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
+                title="sample scorecard"
+              >
                 <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
               </InfoSidePanel>
             </div>
