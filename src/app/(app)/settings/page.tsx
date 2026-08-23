@@ -29,6 +29,16 @@ export default async function SettingsPage() {
           </Link>
         </Card>
 
+        <Card>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>manage view</h2>
+          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+            control which application fields observer and jury roles can see, and upload rubric/guidelines documents.
+          </p>
+          <Link href="/settings/view" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+            manage view →
+          </Link>
+        </Card>
+
         <SupabaseSyncPanel configured={supabaseConfigured} />
 
         <AutomationPanel stats={automationStats} />
