@@ -75,7 +75,7 @@ export default async function ApplicationDetailPage({
           <>
             {app.pocFirstName} {app.pocLastName}
             {app.designation ? `, ${app.designation}` : ''}
-            {!isObserver && app.creatorRecordId && (
+            {!isObserver && !isJury && app.creatorRecordId && (
               <>
                 {' '}
                 · rec_id {app.creatorRecordId}
