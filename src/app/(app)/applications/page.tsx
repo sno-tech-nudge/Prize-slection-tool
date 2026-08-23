@@ -1,12 +1,15 @@
 import { Suspense } from 'react';
+import { BookOpen, ClipboardList } from 'lucide-react';
 import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
 import { JuryApplicationRow } from '@/components/JuryApplicationRow';
+import { JuryApplicationFilters } from '@/components/JuryApplicationFilters';
 import { ObserverApplicationRow } from '@/components/ObserverApplicationRow';
 import { ObserverApplicationFilters } from '@/components/ObserverApplicationFilters';
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
+import { InfoSidePanel } from '@/components/InfoSidePanel';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
@@ -24,10 +27,7 @@ const HEADERS = [
   'reviewer',
 ];
 
-// jury only ever sees their own bench's shortlisted applications, and only needs to know the
-// company, where it operates, its operating model and registration type, and their own verdict
-// — not the bench name or the internal/AI read. Kept to 5 columns on purpose.
-const JURY_HEADERS = ['organisation', 'state', 'operating model', 'registration type', 'your score'];
+const JURY_HEADERS = ['organisation', 'scoring status', 'total score', 'verdict', ''];
 
 // observer now also sees review status, decision status, and score (all read-only) alongside the
 // identifying/operational fields — reviewer and eligibility are still left out, internal working
@@ -48,15 +48,46 @@ export default async function ApplicationsPage({
   const rowQueryString = rowParams.toString() ? `?${rowParams.toString()}` : '';
 
   if (user?.role === 'JURY') {
-    const juryApplications = await listJuryApplications(user);
+    const unsortedJuryApplications = await listJuryApplications(user, {
+      q: searchParams.q,
+      scored: searchParams.scored,
+    });
+    // score is per-juror-scoped in the query above (at most one juryScores entry — this juror's
+    // own), so sorting on it is a plain in-memory sort rather than needing an aggregate.
+    const juryApplications =
+      searchParams.sort === 'score_desc' || searchParams.sort === 'score_asc'
+        ? [...unsortedJuryApplications].sort((a, b) => {
+            const scoreA = a.juryScores[0]?.composite ?? null;
+            const scoreB = b.juryScores[0]?.composite ?? null;
+            if (scoreA === null && scoreB === null) return 0;
+            if (scoreA === null) return 1;
+            if (scoreB === null) return -1;
+            return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
+          })
+        : unsortedJuryApplications;
+
     return (
       <div>
         <AngularBanner
           eyebrow="jury review · rapid re.gen challenge"
           title="applications"
-          subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench, alphabetical — double-click a row to open it`}
+          subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench`}
+          action={
+            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+              <InfoSidePanel triggerLabel="jury guidelines" icon={BookOpen} title="jury guidelines">
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>guidelines coming soon.</p>
+              </InfoSidePanel>
+              <InfoSidePanel triggerLabel="sample scorecard" icon={ClipboardList} title="sample scorecard">
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
+              </InfoSidePanel>
+            </div>
+          }
         />
         <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <Suspense>
+            <JuryApplicationFilters />
+          </Suspense>
+
           <Card padding="0" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -84,7 +115,7 @@ export default async function ApplicationsPage({
                 {juryApplications.length === 0 && (
                   <tr>
                     <td colSpan={JURY_HEADERS.length} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      no applications on your bench yet.
+                      {searchParams.q || searchParams.scored ? 'no applications match these filters.' : 'no applications on your bench yet.'}
                     </td>
                   </tr>
                 )}

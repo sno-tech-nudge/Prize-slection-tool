@@ -7,7 +7,15 @@ import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { submitJuryScoreAction } from '@/lib/applications/jury-actions';
 
-export function JuryScoringForm({ applicationId, existing }: { applicationId: string; existing?: JuryScore }) {
+export function JuryScoringForm({
+  applicationId,
+  existing,
+  onSubmitted,
+}: {
+  applicationId: string;
+  existing?: JuryScore;
+  onSubmitted?: () => void;
+}) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
   const existingScores = React.useMemo(() => {
@@ -36,6 +44,7 @@ export function JuryScoringForm({ applicationId, existing }: { applicationId: st
         try {
           await submitJuryScoreAction(formData);
           router.refresh();
+          onSubmitted?.();
         } finally {
           setPending(false);
         }

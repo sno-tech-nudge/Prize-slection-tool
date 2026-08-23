@@ -223,11 +223,16 @@ export async function listJuryQueue() {
  *  columns jury are meant to see (organisation, state, operating model, registration type, their
  *  own score — no bench name, no AI/int score). Accepts the same small filter set (name/state/
  *  operating model) as the internal jury oversight list. */
-export async function listJuryApplications(user: User | null, filters: { q?: string; state?: string; operatingModel?: string } = {}) {
+export async function listJuryApplications(
+  user: User | null,
+  filters: { q?: string; state?: string; operatingModel?: string; scored?: string } = {},
+) {
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
   if (filters.q) where.orgName = { contains: filters.q, mode: 'insensitive' };
   if (filters.state) where.statesOperating = { contains: filters.state };
   if (filters.operatingModel) where.operatingModelArchetype = { contains: filters.operatingModel };
+  if (filters.scored === 'YES' && user) where.juryScores = { some: { jurorId: user.id } };
+  if (filters.scored === 'NO' && user) where.juryScores = { none: { jurorId: user.id } };
 
   return prisma.application.findMany({
     where,
@@ -297,6 +302,7 @@ export async function getApplicationDetail(id: string, userId?: string) {
       stageTransitions: { include: { actor: true }, orderBy: { createdAt: 'asc' } },
       reviewAssignments: { include: { reviewer: true } },
       targetMatch: true,
+      bench: true,
       duplicates: true,
       outboxEmails: { orderBy: { createdAt: 'desc' } },
       comments: { include: { author: true }, orderBy: { createdAt: 'asc' } },

@@ -81,6 +81,12 @@ export default async function ApplicationDetailPage({
                 · rec_id {app.creatorRecordId}
               </>
             )}
+            {isJury && app.bench && (
+              <>
+                {' '}
+                · jury bench: {app.bench.name}
+              </>
+            )}
           </>
         }
         action={
@@ -187,7 +193,7 @@ export default async function ApplicationDetailPage({
         {!isObserver && (
         <div data-pdf-exclude="true">
           {isJury ? (
-            <JurySidePanel applicationId={app.id} myScore={myJuryScore} />
+            <JurySidePanel applicationId={app.id} orgName={app.orgName} myScore={myJuryScore} />
           ) : (
             <>
               {(isAdmin || user?.role === 'REVIEWER') && (
