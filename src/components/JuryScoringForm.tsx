@@ -74,29 +74,31 @@ export function JuryScoringForm({
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {JURY_RUBRIC_CRITERIA.map((c) => {
           const existingScore = existingByKey[c.key];
           return (
-            <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)', gap: 'var(--space-3)' }}>
-                <strong style={{ fontSize: 'var(--fs-small)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  {c.label}
+            <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)', paddingBottom: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)', gap: 'var(--space-3)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                  <strong style={{ fontSize: 'var(--fs-body)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{c.label}</strong>
                   <JurySectionInfo label={c.label} establishText={c.establishText} />
-                </strong>
-                <Input
-                  name={`criterion_${c.key}_score`}
-                  type="number"
-                  min={0}
-                  max={c.maxScore}
-                  step={1}
-                  required
-                  defaultValue={existingScore?.score !== undefined ? String(existingScore.score) : ''}
-                  containerStyle={{ width: 70, flexShrink: 0 }}
-                  helper={`/ ${c.maxScore}`}
-                />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexShrink: 0 }}>
+                  <Input
+                    name={`criterion_${c.key}_score`}
+                    type="number"
+                    min={0}
+                    max={c.maxScore}
+                    step={1}
+                    required
+                    defaultValue={existingScore?.score !== undefined ? String(existingScore.score) : ''}
+                    containerStyle={{ width: 64 }}
+                  />
+                  <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>/ {c.maxScore}</span>
+                </div>
               </div>
-              <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', margin: '0 0 var(--space-3)', paddingLeft: 'var(--space-4)' }}>
+              <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: '0 0 var(--space-3)', paddingLeft: 'var(--space-4)' }}>
                 {c.coreQuestions.map((q) => (
                   <li key={q}>{q}</li>
                 ))}

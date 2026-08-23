@@ -19,15 +19,17 @@ export function JurySectionInfo({ label, establishText }: { label: string; estab
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'none',
-          border: 'none',
+          width: 20,
+          height: 20,
+          background: 'var(--surface-canvas)',
+          border: '1px solid var(--border-strong)',
           padding: 0,
           cursor: 'pointer',
-          color: 'var(--text-muted)',
+          color: 'var(--text-secondary)',
           flexShrink: 0,
         }}
       >
-        <Info size={14} strokeLinejoin="miter" strokeLinecap="square" />
+        <Info size={13} strokeLinejoin="miter" strokeLinecap="square" />
       </button>
 
       <Dialog open={open} onClose={() => setOpen(false)} title={`what "${label}" establishes`} width={480}>
