@@ -65,6 +65,14 @@ function fixedWidth(px: number): React.CSSProperties {
   return { width: px, minWidth: 0, flexShrink: 0 };
 }
 
+// a thin vertical rule between logical filter groups (status/decision vs. attribute vs. search) —
+// purely a visual grouping cue, same wrapping flex row underneath so it never introduces
+// horizontal scrolling of its own; it just drops to the next line along with whatever group
+// follows it if the row runs out of width.
+function GroupDivider() {
+  return <div style={{ width: 1, height: FILTER_CONTROL_HEIGHT, background: 'var(--border-subtle)', flexShrink: 0 }} />;
+}
+
 export function ApplicationFilters({ options, isAdmin = false }: { options: ApplicationFilterOptions; isAdmin?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -89,14 +97,8 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
   const currentAssignedToMe = searchParams.get('assignedToMe') === '1';
 
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', rowGap: 'var(--space-2)', marginBottom: 'var(--space-6)', alignItems: 'center' }}>
-      <Input
-        placeholder="search by organisation name"
-        defaultValue={searchParams.get('q') ?? ''}
-        onChange={(e) => setParam('q', e.target.value)}
-        containerStyle={fixedWidth(180)}
-        style={compactFieldStyle}
-      />
+    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', rowGap: 'var(--space-3)', marginBottom: 'var(--space-6)', alignItems: 'center' }}>
+      {/* status & decision — where is this application in the pipeline */}
       <button
         type="button"
         onClick={() => setParam('assignedToMe', currentAssignedToMe ? '' : '1')}
@@ -111,13 +113,6 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
           </button>
         ))}
       </div>
-      <MultiSelect
-        label="solution category"
-        width={160}
-        selected={getMultiParam('category')}
-        onChange={(v) => setMultiParam('category', v)}
-        options={SOLUTION_CATEGORIES.map((c) => ({ value: c, label: SOLUTION_CATEGORY_LABEL[c] }))}
-      />
       <Select
         aria-label="filter by decision status"
         defaultValue={searchParams.get('internal') ?? ''}
@@ -131,6 +126,28 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         <option value="ECOSYSTEM_PARTNER">potential ecosystem partner</option>
         <option value="UNDECIDED">decision: undecided</option>
       </Select>
+      <Select
+        aria-label="filter by eligibility"
+        defaultValue={searchParams.get('eligible') ?? ''}
+        onChange={(e) => setParam('eligible', e.target.value)}
+        containerStyle={fixedWidth(140)}
+        style={compactSelectStyle}
+      >
+        <option value="">eligibility: all</option>
+        <option value="YES">eligible</option>
+        <option value="NO">ineligible</option>
+      </Select>
+
+      <GroupDivider />
+
+      {/* attributes — what kind of application this is */}
+      <MultiSelect
+        label="solution category"
+        width={160}
+        selected={getMultiParam('category')}
+        onChange={(v) => setMultiParam('category', v)}
+        options={SOLUTION_CATEGORIES.map((c) => ({ value: c, label: SOLUTION_CATEGORY_LABEL[c] }))}
+      />
       <MultiSelect
         label="registration type"
         width={150}
@@ -169,17 +186,6 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         </Select>
       )}
       <Select
-        aria-label="filter by eligibility"
-        defaultValue={searchParams.get('eligible') ?? ''}
-        onChange={(e) => setParam('eligible', e.target.value)}
-        containerStyle={fixedWidth(140)}
-        style={compactSelectStyle}
-      >
-        <option value="">eligibility: all</option>
-        <option value="YES">eligible</option>
-        <option value="NO">ineligible</option>
-      </Select>
-      <Select
         aria-label="sort by score"
         defaultValue={searchParams.get('sort') ?? ''}
         onChange={(e) => setParam('sort', e.target.value)}
@@ -190,6 +196,17 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         <option value="score_desc">score: high to low</option>
         <option value="score_asc">score: low to high</option>
       </Select>
+
+      <GroupDivider />
+
+      {/* search last — narrowing by name is the exception, not the default first move */}
+      <Input
+        placeholder="search by organisation name"
+        defaultValue={searchParams.get('q') ?? ''}
+        onChange={(e) => setParam('q', e.target.value)}
+        containerStyle={fixedWidth(220)}
+        style={compactFieldStyle}
+      />
     </div>
   );
 }
