@@ -3,10 +3,10 @@ import React from 'react';
 import { Info } from 'lucide-react';
 import { Dialog } from '@/design-system';
 
-/** The "i" button next to each jury rubric criterion heading — opens the criterion's "to
- *  establish that..." text from the jury rubric sheet, kept out of the always-visible form so the
- *  core questions (shown inline) stay the focus while scoring. */
-export function JurySectionInfo({ label, establishText }: { label: string; establishText: string }) {
+/** The "i" button next to each jury rubric criterion heading — opens the criterion's core
+ *  questions from the jury rubric sheet, kept out of the always-visible form so the "to establish
+ *  that..." text (shown inline) stays the focus while scoring. */
+export function JurySectionInfo({ label, coreQuestions }: { label: string; coreQuestions: string[] }) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -32,8 +32,14 @@ export function JurySectionInfo({ label, establishText }: { label: string; estab
         <Info size={13} strokeLinejoin="miter" strokeLinecap="square" />
       </button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} title={`what "${label}" establishes`} width={480}>
-        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)' }}>{establishText}</p>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`core questions — "${label}"`} width={480}>
+        <ul style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: 0, paddingLeft: 'var(--space-4)' }}>
+          {coreQuestions.map((q) => (
+            <li key={q} style={{ marginBottom: 'var(--space-2)' }}>
+              {q}
+            </li>
+          ))}
+        </ul>
       </Dialog>
     </>
   );

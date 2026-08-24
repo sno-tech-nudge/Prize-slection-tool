@@ -82,7 +82,7 @@ export function JuryScoringForm({
               <div style={{ display: 'flex', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)', gap: 'var(--space-3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
                   <strong style={{ fontSize: 'var(--fs-body)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{c.label}</strong>
-                  <JurySectionInfo label={c.label} establishText={c.establishText} />
+                  <JurySectionInfo label={c.label} coreQuestions={c.coreQuestions} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexShrink: 0 }}>
                   <Input
@@ -98,11 +98,9 @@ export function JuryScoringForm({
                   <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>/ {c.maxScore}</span>
                 </div>
               </div>
-              <ul style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: '0 0 var(--space-3)', paddingLeft: 'var(--space-4)' }}>
-                {c.coreQuestions.map((q) => (
-                  <li key={q}>{q}</li>
-                ))}
-              </ul>
+              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: '0 0 var(--space-3)' }}>
+                {c.establishText}
+              </p>
               <Textarea
                 name={`criterion_${c.key}_comment`}
                 label="comment"
