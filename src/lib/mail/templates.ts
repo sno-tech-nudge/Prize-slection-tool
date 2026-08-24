@@ -18,23 +18,16 @@ export interface StageEmailParams {
   formLink?: string;
 }
 
-// deliberately plain — no logo header, no coloured border, no branded footer. This used to wrap
-// every outbound email in a "the^delta prize" branded card (red top border, lowercase logo text,
-// a footer line), which read as a marketing template rather than a normal email from a person —
-// especially once the acceptance template started ending in a real human signature ("Warmly,
-// Sravya, ..."), the auto-appended branding underneath it looked like two signatures stacked on
-// top of each other. Just the paragraphs now, in a standard system font.
+// deliberately plain — no logo header, no coloured border, no branded footer, and (unlike the
+// first pass at this) no centred fixed-width table column either: that made every email render
+// as a narrow block floating in the middle of the reading pane with big empty gutters on both
+// sides, which is exactly the "styled template" look a real person's plain email never has. Just
+// the paragraphs, flowing at whatever width the email client's own reading pane gives them.
 function shell(bodyHtml: string): string {
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
-      <tr>
-        <td style="padding:0;">
-          ${bodyHtml}
-        </td>
-      </tr>
-    </table>
+  <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">
+    ${bodyHtml}
   </body>
 </html>`;
 }
