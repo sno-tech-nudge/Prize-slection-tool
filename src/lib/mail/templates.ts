@@ -18,20 +18,20 @@ export interface StageEmailParams {
   formLink?: string;
 }
 
+// deliberately plain — no logo header, no coloured border, no branded footer. This used to wrap
+// every outbound email in a "the^delta prize" branded card (red top border, lowercase logo text,
+// a footer line), which read as a marketing template rather than a normal email from a person —
+// especially once the acceptance template started ending in a real human signature ("Warmly,
+// Sravya, ..."), the auto-appended branding underneath it looked like two signatures stacked on
+// top of each other. Just the paragraphs now, in a standard system font.
 function shell(bodyHtml: string): string {
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#f0f0f0;font-family:'Mulish','Avenir Next',sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;">
+  <body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
       <tr>
-        <td style="padding:32px 40px;border-top:4px solid #b21010;">
-          <div style="font-weight:700;font-size:20px;color:#363d3f;text-transform:lowercase;margin-bottom:24px;">
-            the<span style="color:#b21010;">^</span>delta prize
-          </div>
+        <td style="padding:0;">
           ${bodyHtml}
-          <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e2e4e4;font-size:12px;color:#6e7475;">
-            the^delta prize · a the/nudge institute initiative
-          </div>
         </td>
       </tr>
     </table>
@@ -40,7 +40,7 @@ function shell(bodyHtml: string): string {
 }
 
 function paragraph(text: string): string {
-  return `<p style="font-weight:300;font-size:16px;line-height:1.65;color:#363d3f;margin:0 0 16px;">${text}</p>`;
+  return `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222222;margin:0 0 16px;">${text}</p>`;
 }
 
 export function renderStageEmail(template: StageEmailTemplate, params: StageEmailParams): { subject: string; body: string } {
