@@ -8,7 +8,7 @@ const CHALLENGE_NAME = process.env.CHALLENGE_NAME || 'the^delta prize · rapid r
 // CC'd on every outreach email — stage-transition (shortlisted/finalist/winner/rejection) and the
 // bulk acceptance/rejection templates alike, since approveAndSendOutboxEmail below is the one
 // choke point every send from the outreach page passes through.
-const OUTREACH_CC_EMAILS = ['sravya.jandhyala@thedelta.org.in', 'nisha.chawla@thenudge.org'];
+const OUTREACH_CC_EMAILS = ['sravya.jandhyala@thedelta.org.in', 'nisha.chawla@thedelta.org.in'];
 
 /** Queues any stage-transition email — rejection or confirmation (shortlisted/finalist/winner). */
 export async function enqueueStageEmail(applicationId: string, template: StageEmailTemplate, personalNote?: string) {
