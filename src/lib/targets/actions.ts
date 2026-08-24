@@ -5,51 +5,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { assertRole, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
 import { enqueueJobs } from '@/lib/jobs/queue';
-
-/** Proper RFC4180-ish CSV parser — the team's real "potential challengers" landscape sheet has
- *  quoted multi-line descriptions and quoted comma-separated model tags inside a single cell, so
- *  a naive split(',')/split('\n') corrupts those fields. Handles quoted fields, doubled `""` as a
- *  literal quote, and newlines (both bare and quoted) as row separators only outside quotes. */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"' && text[i + 1] === '"') {
-        field += '"';
-        i++;
-      } else if (c === '"') {
-        inQuotes = false;
-      } else {
-        field += c;
-      }
-      continue;
-    }
-    if (c === '"') {
-      inQuotes = true;
-    } else if (c === ',') {
-      row.push(field);
-      field = '';
-    } else if (c === '\r') {
-      // skip — paired \n (or a lone \r) below ends the row
-    } else if (c === '\n') {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-    } else {
-      field += c;
-    }
-  }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-  return rows;
-}
+import { parseCsv } from '@/lib/csv';
 
 function normalizeHeader(h: string): string {
   return h.toLowerCase().replace(/[^a-z0-9]/g, '');

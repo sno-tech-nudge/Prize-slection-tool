@@ -36,11 +36,11 @@ export default async function ManageViewSettingsPage() {
         <Card>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>rubric &amp; jury guidelines</h2>
           <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-            upload a rubric (csv or pdf) or jury guidelines (pdf) for reference. stored here for now — not yet shown on
-            any observer/jury page.
+            upload a rubric or jury guidelines document (csv or pdf only). shown on the jury applications list under
+            &ldquo;rubric&rdquo; and &ldquo;jury guidelines&rdquo; — a csv renders as a table, a pdf embeds inline.
           </p>
           <UploadSlot kind="RUBRIC" label="rubric" accept=".csv,.pdf" current={rubricUpload} />
-          <UploadSlot kind="JURY_GUIDELINES" label="jury guidelines" accept=".pdf" current={guidelinesUpload} />
+          <UploadSlot kind="JURY_GUIDELINES" label="jury guidelines" accept=".csv,.pdf" current={guidelinesUpload} />
         </Card>
       </div>
     </div>

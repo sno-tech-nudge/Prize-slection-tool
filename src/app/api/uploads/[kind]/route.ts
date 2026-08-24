@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
-import { assertRole, CAN_MANAGE_SETTINGS, ForbiddenError } from '@/lib/auth/guard';
 import { getUpload, type UploadKind } from '@/lib/uploads/settingsUploads';
 
 function isValidKind(value: string): value is UploadKind {
   return value === 'RUBRIC' || value === 'JURY_GUIDELINES';
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { kind: string } }) {
+/** Any signed-in role can fetch an uploaded rubric/guidelines file — this now backs the inline
+ *  pdf embed on the jury applications list (?disposition=inline), not just the admin "download to
+ *  verify" link in settings, so it can no longer be admin-only. Upload/delete stay
+ *  CAN_MANAGE_SETTINGS-gated in src/lib/uploads/actions.ts; this route is read-only. */
+export async function GET(req: NextRequest, { params }: { params: { kind: string } }) {
   const user = await getCurrentUser();
-  try {
-    assertRole(user, CAN_MANAGE_SETTINGS);
-  } catch (err) {
-    if (err instanceof ForbiddenError) return NextResponse.json({ error: err.message }, { status: 403 });
-    throw err;
-  }
+  if (!user) return NextResponse.json({ error: 'sign in required.' }, { status: 401 });
 
   if (!isValidKind(params.kind)) {
     return NextResponse.json({ error: 'kind must be RUBRIC or JURY_GUIDELINES.' }, { status: 400 });
@@ -23,11 +21,12 @@ export async function GET(_req: NextRequest, { params }: { params: { kind: strin
   const upload = await getUpload(params.kind);
   if (!upload) return NextResponse.json({ error: 'nothing uploaded yet.' }, { status: 404 });
 
+  const inline = req.nextUrl.searchParams.get('disposition') === 'inline';
   const bytes = Buffer.from(upload.dataBase64, 'base64');
   return new NextResponse(bytes, {
     headers: {
       'Content-Type': upload.mimeType,
-      'Content-Disposition': `attachment; filename="${upload.filename.replace(/"/g, '')}"`,
+      'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${upload.filename.replace(/"/g, '')}"`,
       'Content-Length': String(bytes.length),
     },
   });

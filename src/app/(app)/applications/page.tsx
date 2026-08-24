@@ -10,11 +10,13 @@ import { ObserverApplicationFilters } from '@/components/ObserverApplicationFilt
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
+import { UploadedDocumentView } from '@/components/UploadedDocumentView';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
 import { computeHumanComposite } from '@/lib/applications/reviewStatus';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
+import { getUpload } from '@/lib/uploads/settingsUploads';
 
 const HEADERS = [
   'organisation',
@@ -70,7 +72,11 @@ export default async function ApplicationsPage({
     // backfills any missing synopsis before the juror even opens an application — every
     // application on this list is already internalDecision: YES (that's the visibility gate), so
     // there's no per-app check to make here, just queue whatever's missing.
-    await Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a)));
+    const [, rubricUpload, guidelinesUpload] = await Promise.all([
+      Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a))),
+      getUpload('RUBRIC'),
+      getUpload('JURY_GUIDELINES'),
+    ]);
 
     return (
       <div>
@@ -85,14 +91,14 @@ export default async function ApplicationsPage({
                 icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
                 title="jury guidelines"
               >
-                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>guidelines coming soon.</p>
+                <UploadedDocumentView upload={guidelinesUpload} kind="JURY_GUIDELINES" />
               </InfoSidePanel>
               <InfoSidePanel
-                triggerLabel="sample scorecard"
+                triggerLabel="rubric"
                 icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                title="sample scorecard"
+                title="rubric"
               >
-                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
+                <UploadedDocumentView upload={rubricUpload} kind="RUBRIC" />
               </InfoSidePanel>
             </div>
           }
@@ -143,6 +149,7 @@ export default async function ApplicationsPage({
 
   if (user?.role === 'OBSERVER') {
     const observerApplications = await listApplications(searchParams, user);
+    await Promise.all(observerApplications.filter((a) => a.internalDecision === 'YES').map((a) => ensureOrgSynopsisQueued(a)));
     return (
       <div>
         <AngularBanner
@@ -212,6 +219,10 @@ export default async function ApplicationsPage({
           return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
         })
       : unsortedApplications;
+
+  // sweeps every YES-decided application on the admin/reviewer list too, so coverage isn't left
+  // depending on jury/observer happening to browse first.
+  await Promise.all(applications.filter((a) => a.internalDecision === 'YES').map((a) => ensureOrgSynopsisQueued(a)));
 
   return (
     <div>
