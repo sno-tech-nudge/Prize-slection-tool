@@ -91,14 +91,14 @@ export default async function ApplicationsPage({
                 icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
                 title="jury guidelines"
               >
-                <UploadedDocumentView upload={guidelinesUpload} kind="JURY_GUIDELINES" />
+                <UploadedDocumentView upload={guidelinesUpload} />
               </InfoSidePanel>
               <InfoSidePanel
                 triggerLabel="rubric"
                 icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
                 title="rubric"
               >
-                <UploadedDocumentView upload={rubricUpload} kind="RUBRIC" />
+                <UploadedDocumentView upload={rubricUpload} />
               </InfoSidePanel>
             </div>
           }

@@ -1,70 +1,32 @@
-import { parseCsv } from '@/lib/csv';
-import type { StoredUpload, UploadKind } from '@/lib/uploads/settingsUploads';
+import { extractPdfText, csvToReadableText } from '@/lib/uploads/extractText';
+import type { StoredUpload } from '@/lib/uploads/settingsUploads';
 
-/** Renders whatever an admin uploaded in /settings/view cleanly — a csv becomes a real table (not
- *  a raw text dump), a pdf embeds inline via the uploads API route. Server-rendered and passed as
- *  `children` into InfoSidePanel (a client component) — that's fine in RSC, only passing a raw
- *  function/component reference across that boundary is the thing that breaks. */
-export function UploadedDocumentView({ upload, kind }: { upload: StoredUpload | null; kind: UploadKind }) {
+/** Renders whatever an admin uploaded in /settings/view as plain text in the app's own reading
+ *  style — no raw table grid, no embedded pdf viewer, matching how every other long-form field in
+ *  this app (AI summary, internal reviewer remarks, etc.) is presented. A csv is converted to
+ *  "header: value" text per row; a pdf's text layer is extracted directly. Async server
+ *  component, passed as `children` into InfoSidePanel (a client component) — server-rendered
+ *  children crossing that boundary is fine, only a raw function/component reference isn't. */
+export async function UploadedDocumentView({ upload }: { upload: StoredUpload | null }) {
   if (!upload) {
     return <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>nothing uploaded yet.</p>;
   }
 
-  if (upload.mimeType === 'text/csv') {
-    const text = Buffer.from(upload.dataBase64, 'base64').toString('utf-8');
-    const rows = parseCsv(text).filter((r) => r.some((c) => c.trim().length > 0));
-    if (rows.length === 0) {
-      return <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>the uploaded csv has no rows.</p>;
-    }
-    const [header, ...body] = rows;
+  const buffer = Buffer.from(upload.dataBase64, 'base64');
+  let text: string;
+  try {
+    text = upload.mimeType === 'text/csv' ? csvToReadableText(buffer.toString('utf-8')) : await extractPdfText(buffer);
+  } catch {
     return (
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
-              {header.map((h, i) => (
-                <th
-                  key={i}
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    fontSize: 'var(--fs-caption)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 'var(--ls-wide)',
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {h || `column ${i + 1}`}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {body.map((r, ri) => (
-              <tr key={ri} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                {header.map((_, ci) => (
-                  <td
-                    key={ci}
-                    style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', verticalAlign: 'top' }}
-                  >
-                    {r[ci] ?? ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <p style={{ fontSize: 'var(--fs-small)', color: 'var(--delta-red)' }}>
+        could not read {upload.filename} — try re-uploading it from settings.
+      </p>
     );
   }
 
-  return (
-    <iframe
-      src={`/api/uploads/${kind}?disposition=inline`}
-      title={upload.filename}
-      width="100%"
-      height={640}
-      style={{ border: '1px solid var(--border-subtle)' }}
-    />
-  );
+  if (!text) {
+    return <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>{upload.filename} has no readable text.</p>;
+  }
+
+  return <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{text}</p>;
 }

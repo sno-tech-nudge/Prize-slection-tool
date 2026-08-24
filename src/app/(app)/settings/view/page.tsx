@@ -37,7 +37,8 @@ export default async function ManageViewSettingsPage() {
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>rubric &amp; jury guidelines</h2>
           <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
             upload a rubric or jury guidelines document (csv or pdf only). shown on the jury applications list under
-            &ldquo;rubric&rdquo; and &ldquo;jury guidelines&rdquo; — a csv renders as a table, a pdf embeds inline.
+            &ldquo;rubric&rdquo; and &ldquo;jury guidelines&rdquo; as plain text, matching the rest of the app&apos;s
+            reading style — a csv&apos;s rows are converted to text, a pdf&apos;s text is extracted directly.
           </p>
           <UploadSlot kind="RUBRIC" label="rubric" accept=".csv,.pdf" current={rubricUpload} />
           <UploadSlot kind="JURY_GUIDELINES" label="jury guidelines" accept=".csv,.pdf" current={guidelinesUpload} />
