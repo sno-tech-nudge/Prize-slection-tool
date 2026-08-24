@@ -39,7 +39,6 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
           templates={{
             acceptance: settings.emailTemplateAcceptance,
             rejection: settings.emailTemplateRejection,
-            query: settings.emailTemplateQuery,
           }}
           canManage={canSend}
         />

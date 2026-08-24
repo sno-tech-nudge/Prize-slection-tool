@@ -5,6 +5,11 @@ import { getSettings } from '@/lib/settings';
 
 const CHALLENGE_NAME = process.env.CHALLENGE_NAME || 'the^delta prize · rapid re.gen challenge';
 
+// CC'd on every outreach email — stage-transition (shortlisted/finalist/winner/rejection) and the
+// bulk acceptance/rejection templates alike, since approveAndSendOutboxEmail below is the one
+// choke point every send from the outreach page passes through.
+const OUTREACH_CC_EMAIL = 'sravya.jandhyala@thedelta.org.in';
+
 /** Queues any stage-transition email — rejection or confirmation (shortlisted/finalist/winner). */
 export async function enqueueStageEmail(applicationId: string, template: StageEmailTemplate, personalNote?: string) {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
@@ -85,7 +90,7 @@ export async function approveAndSendOutboxEmail(outboxId: string) {
   const mailer = getMailer();
   await prisma.outboxEmail.update({ where: { id: outboxId }, data: { status: 'APPROVED', approvedAt: new Date() } });
   const email = await prisma.outboxEmail.findUniqueOrThrow({ where: { id: outboxId } });
-  const result = await mailer.send({ to: email.to, subject: email.subject, body: email.body });
+  const result = await mailer.send({ to: email.to, subject: email.subject, body: email.body, cc: OUTREACH_CC_EMAIL });
   const updated = await prisma.outboxEmail.update({
     where: { id: outboxId },
     // record the provider actually used for THIS send attempt, not just whatever was configured

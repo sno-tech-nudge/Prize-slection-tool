@@ -43,7 +43,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
   const router = useRouter();
   const { push } = useToast();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
-  const [pending, setPending] = React.useState<'acceptance' | 'rejection' | 'query' | null>(null);
+  const [pending, setPending] = React.useState<'acceptance' | 'rejection' | null>(null);
   const [query, setQuery] = React.useState('');
 
   const filteredApplications = React.useMemo(() => {
@@ -85,9 +85,9 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
   // confirmation below; native confirm() is silently swallowed by CDP-automated browsers
   // (including the Claude Code preview pane), which made bulk actions look like dead buttons
   // when tested there.
-  const [confirmKind, setConfirmKind] = React.useState<'acceptance' | 'rejection' | 'query' | null>(null);
+  const [confirmKind, setConfirmKind] = React.useState<'acceptance' | 'rejection' | null>(null);
 
-  async function runBulk(kind: 'acceptance' | 'rejection' | 'query') {
+  async function runBulk(kind: 'acceptance' | 'rejection') {
     setConfirmKind(null);
     setPending(kind);
     try {
@@ -111,12 +111,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
     }
   }
 
-  const bulkVerb =
-    confirmKind === 'acceptance'
-      ? 'send an acceptance email'
-      : confirmKind === 'rejection'
-        ? 'send a rejection email'
-        : 'send a query email';
+  const bulkVerb = confirmKind === 'acceptance' ? 'send an acceptance email' : 'send a rejection email';
 
   return (
     <Card padding="0" style={{ overflowX: 'auto' }}>
@@ -148,9 +143,6 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
             </Button>
             <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => setConfirmKind('rejection')}>
               {pending === 'rejection' ? 'sending…' : 'bulk reject'}
-            </Button>
-            <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => setConfirmKind('query')}>
-              {pending === 'query' ? 'sending…' : 'bulk send (query)'}
             </Button>
           </div>
         </div>
@@ -235,7 +227,7 @@ function OutreachApplicationTableRow({
 }) {
   const router = useRouter();
   const { push } = useToast();
-  const [kind, setKind] = React.useState<'acceptance' | 'rejection' | 'query'>(app.internalDecision === 'YES' ? 'acceptance' : 'rejection');
+  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(app.internalDecision === 'YES' ? 'acceptance' : 'rejection');
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [preview, setPreview] = React.useState<{ subject: string; body: string } | null>(null);
@@ -322,10 +314,9 @@ function OutreachApplicationTableRow({
         {canSend && (
           <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <Select aria-label={`template for ${app.orgName}`} value={kind} onChange={(e) => setKind(e.target.value as 'acceptance' | 'rejection' | 'query')}>
+              <Select aria-label={`template for ${app.orgName}`} value={kind} onChange={(e) => setKind(e.target.value as 'acceptance' | 'rejection')}>
                 <option value="acceptance">acceptance</option>
                 <option value="rejection">rejection</option>
-                <option value="query">query</option>
               </Select>
               <Button variant="secondary" size="sm" onClick={openPreview}>
                 preview

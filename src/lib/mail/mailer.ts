@@ -2,6 +2,7 @@ export interface OutgoingEmail {
   to: string;
   subject: string;
   body: string; // rendered HTML
+  cc?: string;
 }
 
 export interface SendResult {
@@ -55,6 +56,9 @@ export class ResendMailer implements Mailer {
       return { status: 'FAILED', error: 'TEST_EMAIL_OVERRIDE required for non-stub sends in this prototype' };
     }
 
+    // suppressed under the same override — a test send should never CC a real inbox either.
+    const cc = process.env.TEST_EMAIL_OVERRIDE ? undefined : email.cc;
+
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -62,6 +66,7 @@ export class ResendMailer implements Mailer {
         body: JSON.stringify({
           from: 'the^delta prize <prize@thedelta.dev>',
           to,
+          ...(cc ? { cc } : {}),
           subject: email.subject,
           html: email.body,
         }),
@@ -101,6 +106,8 @@ export class GmailSmtpMailer implements Mailer {
     }
 
     const to = process.env.TEST_EMAIL_OVERRIDE || email.to;
+    // suppressed under the same override — a test send should never CC a real inbox either.
+    const cc = process.env.TEST_EMAIL_OVERRIDE ? undefined : email.cc;
 
     try {
       const nodemailer = await import('nodemailer');
@@ -114,6 +121,7 @@ export class GmailSmtpMailer implements Mailer {
       const info = await transporter.sendMail({
         from: `the^delta prize <${user}>`,
         to,
+        ...(cc ? { cc } : {}),
         subject: email.subject,
         html: email.body,
         text: htmlToPlainText(email.body),

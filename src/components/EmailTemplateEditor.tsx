@@ -7,15 +7,13 @@ import { updateEmailTemplateAction } from '@/lib/mail/actions';
 export interface EmailTemplateEditorData {
   acceptance: { subject: string; body: string };
   rejection: { subject: string; body: string };
-  query: { subject: string; body: string };
 }
 
-type TemplateKind = 'acceptance' | 'rejection' | 'query';
+type TemplateKind = 'acceptance' | 'rejection';
 
 const TABS: { kind: TemplateKind; label: string }[] = [
   { kind: 'acceptance', label: 'acceptance template' },
   { kind: 'rejection', label: 'rejection template' },
-  { kind: 'query', label: 'query template' },
 ];
 
 export function EmailTemplateEditor({ templates, canManage }: { templates: EmailTemplateEditorData; canManage: boolean }) {
