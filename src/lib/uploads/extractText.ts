@@ -11,17 +11,15 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
   }
 }
 
-/** Turns a rubric/guidelines csv into flowing text instead of a grid — each data row becomes a
- *  "header: value" block, blank cells dropped, rows separated by a blank line. Reads like a
- *  document, matching how the rest of the app presents free text rather than tabular data here. */
+/** Turns a rubric/guidelines csv into flowing text instead of a grid — just the cell content
+ *  itself, in reading order, no column-name labels attached. Each row's non-empty cells become
+ *  their own line; rows are separated by a blank line. */
 export function csvToReadableText(csvText: string): string {
   const rows = parseCsv(csvText).filter((r) => r.some((c) => c.trim().length > 0));
-  if (rows.length === 0) return '';
-  const [header, ...body] = rows;
-  return body
+  return rows
     .map((row) =>
-      header
-        .map((h, i) => (row[i]?.trim() ? `${h.trim() || `column ${i + 1}`}: ${row[i].trim()}` : null))
+      row
+        .map((c) => c.trim())
         .filter(Boolean)
         .join('\n'),
     )
