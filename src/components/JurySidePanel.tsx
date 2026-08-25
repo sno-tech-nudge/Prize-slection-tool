@@ -5,6 +5,7 @@ import { X, ClipboardCheck } from 'lucide-react';
 import { Card, Badge, Button } from '@/design-system';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { JuryScoringForm } from '@/components/JuryScoringForm';
+import { JURY_DECISION_QUESTION } from '@/lib/scoring/juryRubric';
 
 export interface JurySidePanelProps {
   applicationId: string;
@@ -66,9 +67,7 @@ export function JurySidePanel({ applicationId, orgName, myScore }: JurySidePanel
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
             <div>
               <h2 style={{ fontSize: 'var(--fs-h4)' }}>score {orgName}</h2>
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
-                score independently — only you can see your own verdict here.
-              </p>
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>{JURY_DECISION_QUESTION}</p>
             </div>
             <button
               type="button"

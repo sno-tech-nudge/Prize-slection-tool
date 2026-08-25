@@ -32,7 +32,7 @@ export function JurySectionInfo({ label, coreQuestions }: { label: string; coreQ
         <Info size={13} strokeLinejoin="miter" strokeLinecap="square" />
       </button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} title={`core questions — "${label}"`} width={480}>
+      <Dialog open={open} onClose={() => setOpen(false)} title={label} width={480}>
         <ul style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: 0, paddingLeft: 'var(--space-4)' }}>
           {coreQuestions.map((q) => (
             <li key={q} style={{ marginBottom: 'var(--space-2)' }}>

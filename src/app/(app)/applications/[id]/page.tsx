@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, AlertTriangle, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, BookOpen, ClipboardList } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
@@ -82,38 +82,46 @@ export default async function ApplicationDetailPage({
         title={app.orgName}
         subtitle={
           <>
-            {app.pocFirstName} {app.pocLastName}
-            {app.designation ? `, ${app.designation}` : ''}
+            {!isJury && (
+              <>
+                {app.pocFirstName} {app.pocLastName}
+                {app.designation ? `, ${app.designation}` : ''}
+              </>
+            )}
             {!isObserver && !isJury && app.creatorRecordId && (
               <>
                 {' '}
                 · rec_id {app.creatorRecordId}
               </>
             )}
-            {isJury && app.bench && (
-              <>
-                {' '}
-                · jury bench: {app.bench.name}
-              </>
-            )}
+            {isJury && app.bench && <>jury bench: {app.bench.name}</>}
           </>
         }
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
             {isJury && (
-              <InfoSidePanel
-                triggerLabel="jury guidelines"
-                icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                title="jury guidelines"
-              >
-                <UploadedDocumentView upload={guidelinesUpload} />
-              </InfoSidePanel>
+              <>
+                <InfoSidePanel
+                  triggerLabel="jury guidelines"
+                  icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
+                  title="jury guidelines"
+                >
+                  <UploadedDocumentView upload={guidelinesUpload} />
+                </InfoSidePanel>
+                <InfoSidePanel
+                  triggerLabel="sample scorecard"
+                  icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
+                  title="sample scorecard"
+                >
+                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
+                </InfoSidePanel>
+              </>
             )}
             {user && !hideInternalSections && canManage && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}
-            {!isObserver && <DownloadPdfButton filename={slugify(app.orgName)} />}
+            {!isObserver && !isJury && <DownloadPdfButton filename={slugify(app.orgName)} />}
           </div>
         }
       />
@@ -133,7 +141,7 @@ export default async function ApplicationDetailPage({
         </div>
       )}
 
-      {!isObserver && !eligibilityScreen.eligible && (
+      {!isObserver && !isJury && !eligibilityScreen.eligible && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <div style={{ background: 'var(--delta-red)', color: 'var(--text-inverse)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
             <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)' }}>
@@ -211,7 +219,15 @@ export default async function ApplicationDetailPage({
         {!isObserver && (
         <div data-pdf-exclude="true">
           {isJury ? (
-            <JurySidePanel applicationId={app.id} orgName={app.orgName} myScore={myJuryScore} />
+            <>
+              <JurySidePanel applicationId={app.id} orgName={app.orgName} myScore={myJuryScore} />
+              {app.humanReviews[0]?.comment && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
+                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
+                </Card>
+              )}
+            </>
           ) : (
             <>
               {(isAdmin || user?.role === 'REVIEWER') && (

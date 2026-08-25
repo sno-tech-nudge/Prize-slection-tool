@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ClipboardList } from 'lucide-react';
 import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
@@ -91,6 +91,13 @@ export default async function ApplicationsPage({
                 title="jury guidelines"
               >
                 <UploadedDocumentView upload={guidelinesUpload} />
+              </InfoSidePanel>
+              <InfoSidePanel
+                triggerLabel="sample scorecard"
+                icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
+                title="sample scorecard"
+              >
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
               </InfoSidePanel>
             </div>
           }
