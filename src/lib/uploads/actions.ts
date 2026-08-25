@@ -6,7 +6,7 @@ import { assertRole, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard';
 import { saveUpload, deleteUpload, MAX_UPLOAD_BYTES, type UploadKind } from './settingsUploads';
 
 function isValidKind(value: unknown): value is UploadKind {
-  return value === 'RUBRIC' || value === 'JURY_GUIDELINES';
+  return value === 'JURY_GUIDELINES';
 }
 
 // enforced server-side, not just via the file input's `accept` attribute (that's a UI hint only —

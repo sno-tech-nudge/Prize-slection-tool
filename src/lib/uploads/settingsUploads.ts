@@ -5,7 +5,12 @@ import { prisma } from '@/lib/db';
 // isn't image-heavy.
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-export type UploadKind = 'RUBRIC' | 'JURY_GUIDELINES';
+// the jury rubric is not a document upload — it's the actual scoring rubric built into the jury
+// scoring form and rendered read-only elsewhere (JuryRubricReadOnly.tsx), sourced from
+// JURY_RUBRIC_CRITERIA. A RUBRIC upload kind existed briefly but never actually fed that view (a
+// rubric needs one fixed, designed presentation, not a re-derived read of whatever file someone
+// uploaded) — removed rather than left as a setting that looked like it did something.
+export type UploadKind = 'JURY_GUIDELINES';
 
 export interface StoredUpload {
   filename: string;

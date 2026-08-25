@@ -3,19 +3,18 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getUpload, type UploadKind } from '@/lib/uploads/settingsUploads';
 
 function isValidKind(value: string): value is UploadKind {
-  return value === 'RUBRIC' || value === 'JURY_GUIDELINES';
+  return value === 'JURY_GUIDELINES';
 }
 
-/** Any signed-in role can fetch an uploaded rubric/guidelines file — this now backs the inline
- *  pdf embed on the jury applications list (?disposition=inline), not just the admin "download to
- *  verify" link in settings, so it can no longer be admin-only. Upload/delete stay
- *  CAN_MANAGE_SETTINGS-gated in src/lib/uploads/actions.ts; this route is read-only. */
+/** Any signed-in role can fetch the uploaded guidelines file — used for the admin "download to
+ *  verify" link in settings. Upload/delete stay CAN_MANAGE_SETTINGS-gated in
+ *  src/lib/uploads/actions.ts; this route is read-only. */
 export async function GET(req: NextRequest, { params }: { params: { kind: string } }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: 'sign in required.' }, { status: 401 });
 
   if (!isValidKind(params.kind)) {
-    return NextResponse.json({ error: 'kind must be RUBRIC or JURY_GUIDELINES.' }, { status: 400 });
+    return NextResponse.json({ error: 'kind must be JURY_GUIDELINES.' }, { status: 400 });
   }
 
   const upload = await getUpload(params.kind);
