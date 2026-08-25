@@ -128,6 +128,9 @@ export function ApplicationMainContent({
   const redFlags = latestEval ? parseRedFlags(latestEval.redFlags) : [];
   const eligibility = latestEval ? parseEligibility(latestEval.eligibility) : null;
   const embed = driveEmbedUrl(app.pitchDeckUrl);
+  // `isJury` above is actually "hide internal sections" (true for observer too) — these specific
+  // field-label swaps are only for the real jury role, per the jury view field-naming sheet.
+  const isRealJury = isJury && !isObserver;
 
   return (
     <div>
@@ -140,7 +143,10 @@ export function ApplicationMainContent({
           {!isObserver && !isJury && <Field label="rec_id" value={app.creatorRecordId} />}
           <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
           <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
-          <Field label="incorporated" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
+          <Field
+            label={isRealJury ? 'year of incorporation' : 'incorporated'}
+            value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined}
+          />
           <Field label="email" value={app.email} />
           <Field label="phone" value={app.phone} />
           <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
@@ -273,7 +279,7 @@ export function ApplicationMainContent({
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>registrations and governance</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <Field
-              label="legal registration type"
+              label={isRealJury ? 'legal registration' : 'legal registration type'}
               value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
             />
             <Field
@@ -333,11 +339,11 @@ export function ApplicationMainContent({
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>experience and impact</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />
+            <Field label={isRealJury ? 'years in regenerative agriculture' : 'years of experience in regenerative agriculture'} value={app.yearsExperience} />
             <Field label="farmers reached" value={app.farmersCount} />
-            <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />
+            <Field label={isRealJury ? 'smallholder farmers reached' : 'of which smallholder (≤2ha)'} value={app.smallholderFarmersCount} />
             <Field label="average land holding (ha)" value={app.avgLandHolding} />
-            <Field label="area under regenerative practice (ha)" value={app.areaUnderRegenPractice} />
+            <Field label={isRealJury ? 'area under regenerative agriculture' : 'area under regenerative practice (ha)'} value={app.areaUnderRegenPractice} />
             <Field label="villages / districts" value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)} />
             <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />
             <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
@@ -347,8 +353,8 @@ export function ApplicationMainContent({
           </div>
           <Field label="team training details" value={app.teamTrainingDescription} />
           <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />
-          <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />
-          <Field label="verified impacts" value={app.verifiedImpacts} />
+          <Field label={isRealJury ? 'geography coverage' : 'states / UTs of operation'} value={tagList(app.statesOperating, {})?.join(', ')} />
+          <Field label={isRealJury ? 'self reported impact' : 'verified impacts'} value={app.verifiedImpacts} />
           <Field label="planned use of prize funds" value={app.fundUsagePlan} />
           <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
           {app.reportLinks.length > 0 && (
