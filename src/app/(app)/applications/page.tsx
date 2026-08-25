@@ -11,6 +11,7 @@ import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
 import { UploadedDocumentView } from '@/components/UploadedDocumentView';
+import { JuryRubricReadOnly } from '@/components/JuryRubricReadOnly';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
@@ -72,9 +73,8 @@ export default async function ApplicationsPage({
     // backfills any missing synopsis before the juror even opens an application — every
     // application on this list is already internalDecision: YES (that's the visibility gate), so
     // there's no per-app check to make here, just queue whatever's missing.
-    const [, rubricUpload, guidelinesUpload] = await Promise.all([
+    const [, guidelinesUpload] = await Promise.all([
       Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a))),
-      getUpload('RUBRIC'),
       getUpload('JURY_GUIDELINES'),
     ]);
 
@@ -98,7 +98,7 @@ export default async function ApplicationsPage({
                 icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
                 title="rubric"
               >
-                <UploadedDocumentView upload={rubricUpload} />
+                <JuryRubricReadOnly />
               </InfoSidePanel>
             </div>
           }

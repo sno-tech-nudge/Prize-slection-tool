@@ -6,11 +6,7 @@ import { getFieldVisibility } from '@/lib/visibility/settings';
 import { getUpload } from '@/lib/uploads/settingsUploads';
 
 export default async function ManageViewSettingsPage() {
-  const [visibility, rubricUpload, guidelinesUpload] = await Promise.all([
-    getFieldVisibility(),
-    getUpload('RUBRIC'),
-    getUpload('JURY_GUIDELINES'),
-  ]);
+  const [visibility, guidelinesUpload] = await Promise.all([getFieldVisibility(), getUpload('JURY_GUIDELINES')]);
 
   return (
     <div>
@@ -34,14 +30,18 @@ export default async function ManageViewSettingsPage() {
         </Card>
 
         <Card>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>rubric &amp; jury guidelines</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>jury guidelines</h2>
           <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-            upload a rubric or jury guidelines document (csv or pdf only). shown on the jury applications list under
-            &ldquo;rubric&rdquo; and &ldquo;jury guidelines&rdquo; as plain text, matching the rest of the app&apos;s
-            reading style — a csv&apos;s rows are converted to text, a pdf&apos;s text is extracted directly.
+            upload a jury guidelines document (csv or pdf only). shown on the jury applications list and each
+            application page under &ldquo;jury guidelines&rdquo; as plain text — a csv&apos;s rows are converted to
+            text, a pdf&apos;s text is extracted directly.
           </p>
-          <UploadSlot kind="RUBRIC" label="rubric" accept=".csv,.pdf" current={rubricUpload} />
           <UploadSlot kind="JURY_GUIDELINES" label="jury guidelines" accept=".csv,.pdf" current={guidelinesUpload} />
+          <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-4)' }}>
+            the &ldquo;rubric&rdquo; jury sees is the actual scoring rubric built into the jury scoring form (heading,
+            weightage and info-button layout) — it&apos;s not a document upload, so there&apos;s no rubric file to
+            manage here.
+          </p>
         </Card>
       </div>
     </div>

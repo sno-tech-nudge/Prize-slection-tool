@@ -15,6 +15,7 @@ import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
 import { UploadedDocumentView } from '@/components/UploadedDocumentView';
+import { JuryRubricReadOnly } from '@/components/JuryRubricReadOnly';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
 import { getUpload } from '@/lib/uploads/settingsUploads';
@@ -54,7 +55,7 @@ export default async function ApplicationDetailPage({
   const isAdmin = user?.role === 'ADMIN';
   const isJury = user?.role === 'JURY';
   const isObserver = user?.role === 'OBSERVER';
-  const [rubricUpload, guidelinesUpload] = isJury ? await Promise.all([getUpload('RUBRIC'), getUpload('JURY_GUIDELINES')]) : [null, null];
+  const guidelinesUpload = isJury ? await getUpload('JURY_GUIDELINES') : null;
   // observers get the same "first four sections only, no AI evaluation / scraper checks / paper
   // score" treatment jury already gets — reusing the exact same gating rather than duplicating
   // it, since the two roles are meant to see an identical slice of the application record.
@@ -115,7 +116,7 @@ export default async function ApplicationDetailPage({
                   icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
                   title="rubric"
                 >
-                  <UploadedDocumentView upload={rubricUpload} />
+                  <JuryRubricReadOnly />
                 </InfoSidePanel>
               </>
             )}
