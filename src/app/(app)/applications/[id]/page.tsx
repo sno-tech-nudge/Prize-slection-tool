@@ -5,6 +5,7 @@ import { AngularBanner, Card, Badge } from '@/design-system';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
 import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
+import { ConsortiumButton } from '@/components/ConsortiumButton';
 import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
 import { ApplicationPagerKeys } from '@/components/ApplicationPagerKeys';
 import { ReviewSidePanel } from '@/components/ReviewSidePanel';
@@ -100,6 +101,7 @@ export default async function ApplicationDetailPage({
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
+            {app.isConsortium && <Badge tone="red">marked as consortium</Badge>}
             {isJury && (
               <>
                 <InfoSidePanel
@@ -244,6 +246,16 @@ export default async function ApplicationDetailPage({
                     only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
                   </p>
                   <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} canManage={canManage} />
+                </Card>
+              )}
+
+              {(isAdmin || user?.role === 'REVIEWER') && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>consortium</h2>
+                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
+                    purely informational — has no effect on stage, decision status, or jury visibility.
+                  </p>
+                  <ConsortiumButton applicationId={app.id} current={app.isConsortium} canManage={canManage} />
                 </Card>
               )}
 

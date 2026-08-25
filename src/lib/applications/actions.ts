@@ -198,6 +198,26 @@ export async function setInternalDecisionAction(formData: FormData) {
   revalidatePath('/dashboard');
 }
 
+/** Purely informational marker — independent of internalDecision, no effect on stage, pipeline,
+ *  or jury visibility. Same admin-or-assigned-reviewer rule as every other mutation on this page. */
+export async function setConsortiumAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_REVIEW);
+
+  const applicationId = String(formData.get('applicationId'));
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
+
+  const value = String(formData.get('value')) === 'YES';
+
+  await prisma.application.update({ where: { id: applicationId }, data: { isConsortium: value } });
+
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/applications');
+}
+
 /** Free-form internal discussion thread on an application — any signed-in user can post,
  *  separate from the formal HumanReview / JuryScore verdicts. */
 export async function postCommentAction(formData: FormData) {

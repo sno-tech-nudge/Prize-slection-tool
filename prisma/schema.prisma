@@ -280,6 +280,10 @@ model Application {
   // admin-only gate, independent of stageStatus — only applications marked "YES" here
   // are visible to jury (see visibleApplicationWhere / listJuryQueue). null = undecided.
   internalDecision String?
+  // independent of internalDecision — a reviewer/admin marker with no effect on stage, pipeline,
+  // or jury visibility, purely informational. Shown wherever the application appears (including
+  // to jury) only when true; never shown as an explicit "not marked" state to anyone.
+  isConsortium Boolean @default(false)
   // which jury bench this application is assigned to for jury review — null means it hasn't
   // been placed on a bench yet, so no juror sees it even if internalDecision is YES.
   benchId String?
