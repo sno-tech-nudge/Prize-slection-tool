@@ -23,16 +23,18 @@ export function JurySidePanel({ applicationId, orgName, myScore }: JurySidePanel
   return (
     <>
       <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>your jury score card</h2>
-        {myScore ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
-            <CompositeBadge score={myScore.composite} />
-            <Badge tone="outline">{myScore.verdict.toLowerCase()}</Badge>
-          </div>
-        ) : (
-          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>not yet scored.</p>
-        )}
-        <Button variant="cta" onClick={() => setOpen(true)}>
+        <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-4)' }}>your score</h2>
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          {myScore ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+              <CompositeBadge score={myScore.composite} />
+              <Badge tone="outline">{myScore.verdict.toLowerCase()}</Badge>
+            </div>
+          ) : (
+            <Badge tone="yellow">not yet scored</Badge>
+          )}
+        </div>
+        <Button variant="cta" onClick={() => setOpen(true)} style={{ width: '100%', justifyContent: 'center' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <ClipboardCheck size={14} strokeLinejoin="miter" strokeLinecap="square" />
             {myScore ? 'update your verdict' : 'start scoring'}
