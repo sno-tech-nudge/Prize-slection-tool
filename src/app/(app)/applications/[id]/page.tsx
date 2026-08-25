@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, AlertTriangle, BookOpen, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, BookOpen } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
@@ -15,7 +15,6 @@ import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
 import { UploadedDocumentView } from '@/components/UploadedDocumentView';
-import { JuryRubricReadOnly } from '@/components/JuryRubricReadOnly';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
 import { getUpload } from '@/lib/uploads/settingsUploads';
@@ -103,22 +102,13 @@ export default async function ApplicationDetailPage({
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
             {isJury && (
-              <>
-                <InfoSidePanel
-                  triggerLabel="jury guidelines"
-                  icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                  title="jury guidelines"
-                >
-                  <UploadedDocumentView upload={guidelinesUpload} />
-                </InfoSidePanel>
-                <InfoSidePanel
-                  triggerLabel="rubric"
-                  icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                  title="rubric"
-                >
-                  <JuryRubricReadOnly />
-                </InfoSidePanel>
-              </>
+              <InfoSidePanel
+                triggerLabel="jury guidelines"
+                icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
+                title="jury guidelines"
+              >
+                <UploadedDocumentView upload={guidelinesUpload} />
+              </InfoSidePanel>
             )}
             {user && !hideInternalSections && canManage && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />

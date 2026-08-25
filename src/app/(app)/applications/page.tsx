@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { BookOpen, ClipboardList } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
@@ -11,7 +11,6 @@ import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
 import { UploadedDocumentView } from '@/components/UploadedDocumentView';
-import { JuryRubricReadOnly } from '@/components/JuryRubricReadOnly';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
@@ -92,13 +91,6 @@ export default async function ApplicationsPage({
                 title="jury guidelines"
               >
                 <UploadedDocumentView upload={guidelinesUpload} />
-              </InfoSidePanel>
-              <InfoSidePanel
-                triggerLabel="rubric"
-                icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                title="rubric"
-              >
-                <JuryRubricReadOnly />
               </InfoSidePanel>
             </div>
           }
