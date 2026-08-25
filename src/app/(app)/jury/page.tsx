@@ -30,7 +30,7 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
   // as empty until that juror scores, instead of the columns only appearing once someone has.
   const jurorColumnCount = applications.reduce((max, a) => Math.max(max, a.bench?.jurors.length ?? 0), 0);
   const jurorHeaders = Array.from({ length: jurorColumnCount }, (_, i) => `j${i + 1}`);
-  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score'];
+  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score', 'verdict'];
 
   return (
     <div>

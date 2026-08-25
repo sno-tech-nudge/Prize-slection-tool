@@ -30,7 +30,7 @@ const HEADERS = [
   'reviewer',
 ];
 
-const JURY_HEADERS = ['organisation', 'scoring status', 'total score', 'verdict', ''];
+const JURY_HEADERS = ['organisation', 'scoring status', 'total score', 'verdict', 'bench decision', ''];
 
 // observer now also sees review status, decision status, and score (all read-only) alongside the
 // identifying/operational fields — reviewer and eligibility are still left out, internal working

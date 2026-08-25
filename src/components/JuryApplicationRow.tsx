@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CompositeBadge } from '@/components/StatusBadges';
+import { JuryConsensusBadge } from '@/components/JuryConsensusBadge';
 import { Badge, Button } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 
@@ -7,6 +8,7 @@ export interface JuryApplicationRowData {
   id: string;
   orgName: string;
   juryScores: { composite: number; verdict: string }[];
+  benchVerdicts: string[];
 }
 
 /** Organisation name and the "view application" action both link to the same place — a real
@@ -33,6 +35,9 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
         {myScore ? myScore.verdict.toLowerCase() : '—'}
+      </td>
+      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+        <JuryConsensusBadge verdicts={app.benchVerdicts} />
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <Link href={href} style={{ textDecoration: 'none' }}>

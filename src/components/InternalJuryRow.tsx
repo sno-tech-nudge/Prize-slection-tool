@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { CompositeBadge } from '@/components/StatusBadges';
+import { JuryConsensusBadge } from '@/components/JuryConsensusBadge';
 import { Badge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 
@@ -9,7 +10,7 @@ export interface InternalJuryRowData {
   orgName: string;
   bench: { name: string; jurors: { id: string; name: string }[] } | null;
   humanReviews: { composite: number }[];
-  juryScores: { jurorId: string; composite: number }[];
+  juryScores: { jurorId: string; composite: number; verdict: string; juror: { name: string } }[];
 }
 
 /** Same trimmed table + double-click-to-open pattern as the jury member's own applications
@@ -61,6 +62,12 @@ export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRo
       })}
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         {avgJuryScore !== null ? <CompositeBadge score={avgJuryScore} /> : <Badge tone="yellow">no scores yet</Badge>}
+      </td>
+      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+        <JuryConsensusBadge
+          verdicts={app.juryScores.map((s) => s.verdict)}
+          breakdown={app.juryScores.map((s) => ({ label: s.juror.name, verdict: s.verdict }))}
+        />
       </td>
     </tr>
   );
