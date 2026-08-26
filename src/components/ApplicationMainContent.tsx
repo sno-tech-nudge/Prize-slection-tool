@@ -154,7 +154,7 @@ export function ApplicationMainContent({
       </Card>
 
       <div id="section-ai-summary">
-      {(app.orgSynopsisText || app.internalDecision === 'YES') && (
+      {app.internalDecision === 'YES' && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)', gap: 'var(--space-3)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI summary</h2>
