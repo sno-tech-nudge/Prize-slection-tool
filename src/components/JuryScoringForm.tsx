@@ -180,7 +180,7 @@ export function JuryScoringForm({
     >
       <input type="hidden" name="applicationId" value={applicationId} />
 
-      <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', fontStyle: 'italic' }}>
+      <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', lineHeight: 'var(--lh-relaxed)', fontStyle: 'italic' }}>
         {JURY_FRAMING_QUESTION}
       </p>
 

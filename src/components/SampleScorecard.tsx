@@ -7,7 +7,7 @@ import { JurySectionInfo } from '@/components/JurySectionInfo';
 export function SampleScorecard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', fontStyle: 'italic', marginBottom: 'var(--space-4)' }}>
+      <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', lineHeight: 'var(--lh-relaxed)', fontStyle: 'italic', marginBottom: 'var(--space-4)' }}>
         {JURY_FRAMING_QUESTION}
       </p>
       {JURY_RUBRIC_CRITERIA.map((c, i) => (
