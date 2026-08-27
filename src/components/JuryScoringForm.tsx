@@ -3,7 +3,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { JuryScore } from '@prisma/client';
 import { Textarea, Radio, Input, Button, Dialog } from '@/design-system';
-import { JURY_RUBRIC_CRITERIA, JURY_DECISION_QUESTION, JURY_WINNING_MODEL_QUESTION, computeJuryComposite } from '@/lib/scoring/juryRubric';
+import { JURY_RUBRIC_CRITERIA, JURY_DECISION_QUESTION, JURY_WINNING_MODEL_QUESTION, JURY_FRAMING_QUESTION, computeJuryComposite } from '@/lib/scoring/juryRubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { JurySectionInfo } from '@/components/JurySectionInfo';
 import { submitJuryScoreAction, clearJuryScoreAction } from '@/lib/applications/jury-actions';
@@ -179,6 +179,10 @@ export function JuryScoringForm({
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
     >
       <input type="hidden" name="applicationId" value={applicationId} />
+
+      <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', fontStyle: 'italic' }}>
+        {JURY_FRAMING_QUESTION}
+      </p>
 
       {isStaleRubric && (
         <div

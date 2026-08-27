@@ -1,12 +1,15 @@
-import { JURY_RUBRIC_CRITERIA } from '@/lib/scoring/juryRubric';
+import { JURY_RUBRIC_CRITERIA, JURY_FRAMING_QUESTION } from '@/lib/scoring/juryRubric';
 import { JurySectionInfo } from '@/components/JurySectionInfo';
 
-/** A read-only preview of the real jury rubric — same criteria, numbering, and "i" button core
- *  questions as the actual scoring form, minus the score input and comment box, so a juror can
- *  see what they'll be asked to score before they start. */
+/** A read-only preview of the real jury rubric — same framing question, criteria, numbering, and
+ *  "i" button core questions as the actual scoring form, minus the score input and comment box,
+ *  so a juror can see what they'll be asked to score before they start. */
 export function SampleScorecard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', fontStyle: 'italic', marginBottom: 'var(--space-4)' }}>
+        {JURY_FRAMING_QUESTION}
+      </p>
       {JURY_RUBRIC_CRITERIA.map((c, i) => (
         <div
           key={c.key}

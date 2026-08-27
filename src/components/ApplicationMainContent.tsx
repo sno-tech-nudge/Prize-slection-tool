@@ -107,11 +107,13 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
 /** The whole "application record" left column — organisation profile through AI evaluation,
  *  scraper checks, human review score, and jury scores. Shared between the regular admin
  *  application page and the internal jury-dashboard page so both render identically; `isJury`
- *  controls whether the AI evaluation / scraper-data sections are shown (jury never sees them, on
- *  either page) — the application detail page also passes this true for OBSERVER-role viewers,
- *  since the two roles are meant to see an identical restricted slice there. `isObserver` is a
- *  separate, narrower flag for the handful of spots where observer diverges from jury (currently
- *  just the public-data enrichment card, which jury still sees but observer shouldn't). */
+ *  controls whether the AI evaluation / scraper-data / public-data enrichment sections are shown
+ *  (jury and observer never see them, on either page) — the application detail page passes this
+ *  true for OBSERVER-role viewers too, since the two roles are meant to see an identical
+ *  restricted slice there. `isRealJury` (`isJury && !isObserver`) narrows further to the actual
+ *  JURY role only, for the jury-view field trims (per the jury view field-naming sheet) that
+ *  don't apply to observer — observer keeps seeing the fuller application record beyond what
+ *  `isJury` alone hides. */
 export function ApplicationMainContent({
   app,
   isJury,
@@ -134,21 +136,29 @@ export function ApplicationMainContent({
 
   return (
     <div>
-      <SectionJumpNav excludeIds={isJury ? ['section-scoring', 'section-scraper'] : undefined} />
+      <SectionJumpNav
+        excludeIds={[
+          ...(isJury ? ['section-scoring', 'section-scraper'] : []),
+          ...(isRealJury ? ['section-model', 'section-tech-and-tools'] : []),
+        ]}
+        labelOverrides={isRealJury ? { 'section-organisation-profile': 'organisation details', 'section-experience-impact': 'metrics' } : undefined}
+      />
       <div id="section-organisation-profile">
       <Card accent style={{ marginBottom: 'var(--space-6)' }}>
         <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-          <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />
+          {!isRealJury && <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />}
           {!isObserver && !isJury && <Field label="rec_id" value={app.creatorRecordId} />}
           <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
-          <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
+          {!isRealJury && (
+            <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
+          )}
           <Field
             label={isRealJury ? 'year of incorporation' : 'incorporated'}
             value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined}
           />
-          <Field label="email" value={app.email} />
-          <Field label="phone" value={app.phone} />
+          {!isRealJury && <Field label="email" value={app.email} />}
+          {!isRealJury && <Field label="phone" value={app.phone} />}
           <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
         </div>
       </Card>
@@ -189,11 +199,11 @@ export function ApplicationMainContent({
       )}
       </div>
 
-      {(app.founders.length > 0 || app.funders.length > 0) && (
+      {(isRealJury ? app.founders.length > 0 : app.founders.length > 0 || app.funders.length > 0) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>founders &amp; funders</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>{isRealJury || app.funders.length === 0 ? 'founders' : 'founders & funders'}</h2>
           {app.founders.length > 0 && (
-            <div style={{ marginBottom: app.funders.length > 0 ? 'var(--space-6)' : 0 }}>
+            <div style={{ marginBottom: !isRealJury && app.funders.length > 0 ? 'var(--space-6)' : 0 }}>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 founders
               </div>
@@ -202,14 +212,15 @@ export function ApplicationMainContent({
                   <div key={f.id} style={{ fontSize: 'var(--fs-small)' }}>
                     <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
                       {f.fullName}
-                      {f.role && <span style={{ fontWeight: 'var(--fw-light)' as unknown as number, color: 'var(--text-secondary)' }}> · {f.role}</span>}
+                      {!isRealJury && f.role && <span style={{ fontWeight: 'var(--fw-light)' as unknown as number, color: 'var(--text-secondary)' }}> · {f.role}</span>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 'var(--space-1)' }}>
-                      {f.email ? (
-                        <a href={`mailto:${f.email}`} style={{ color: 'var(--delta-red)' }}>{f.email}</a>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>email not provided</span>
-                      )}
+                      {!isRealJury &&
+                        (f.email ? (
+                          <a href={`mailto:${f.email}`} style={{ color: 'var(--delta-red)' }}>{f.email}</a>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>email not provided</span>
+                        ))}
                       {f.linkedin ? (
                         <a href={f.linkedin} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)' }}>{f.linkedin}</a>
                       ) : (
@@ -221,7 +232,7 @@ export function ApplicationMainContent({
               </div>
             </div>
           )}
-          {app.funders.length > 0 && (
+          {!isRealJury && app.funders.length > 0 && (
             <div>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 funders
@@ -242,7 +253,7 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      {(app.problemAddressing || app.aboutSolution || app.valueChainFocus) && (
+      {!isRealJury && (app.problemAddressing || app.aboutSolution || app.valueChainFocus) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>problem and solution</h2>
           <Field label="problem addressing" value={app.problemAddressing} />
@@ -251,7 +262,7 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      {(app.waterEfficiencyFocus || app.smallMarginalFarmerPct !== null || app.areaHectaresRaw) && (
+      {!isRealJury && (app.waterEfficiencyFocus || app.smallMarginalFarmerPct !== null || app.areaHectaresRaw) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>impact and eligibility signals (AgWater cycle)</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -267,14 +278,16 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      {(app.legalRegistrationType ||
-        app.fcraStatus ||
-        app.annualOperatingBudget ||
-        app.cert12A ||
-        app.cert80G ||
-        app.csr1Registration ||
-        app.darpanRegistered ||
-        app.darpanIdNumber) && (
+      {(isRealJury
+        ? app.legalRegistrationType || app.annualOperatingBudget
+        : app.legalRegistrationType ||
+          app.fcraStatus ||
+          app.annualOperatingBudget ||
+          app.cert12A ||
+          app.cert80G ||
+          app.csr1Registration ||
+          app.darpanRegistered ||
+          app.darpanIdNumber) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>registrations and governance</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -286,19 +299,19 @@ export function ApplicationMainContent({
               label="annual operating budget"
               value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
             />
-            <Field label="FCRA registration" value={app.fcraStatus} />
-            <Field label="12A certificate" value={certStatus(app.cert12A)} />
-            <Field label="80G certificate" value={certStatus(app.cert80G)} />
-            <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />
-            <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />
-            <Field label="DARPAN registration number" value={app.darpanIdNumber} />
+            {!isRealJury && <Field label="FCRA registration" value={app.fcraStatus} />}
+            {!isRealJury && <Field label="12A certificate" value={certStatus(app.cert12A)} />}
+            {!isRealJury && <Field label="80G certificate" value={certStatus(app.cert80G)} />}
+            {!isRealJury && <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />}
+            {!isRealJury && <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />}
+            {!isRealJury && <Field label="DARPAN registration number" value={app.darpanIdNumber} />}
           </div>
         </Card>
       )}
       </div>
 
       <div id="section-model">
-      {(app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
+      {!isRealJury && (app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
           <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />
@@ -311,7 +324,7 @@ export function ApplicationMainContent({
       </div>
 
       <div id="section-tech-and-tools">
-      {(app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
+      {!isRealJury && (app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
           <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />
@@ -326,38 +339,54 @@ export function ApplicationMainContent({
       </div>
 
       <div id="section-experience-impact">
-      {(app.farmersCount !== null ||
-        app.yearsExperience !== null ||
-        app.verifiedImpacts ||
-        app.statesOperating ||
-        app.fundUsagePlan ||
-        app.reportLinks.length > 0 ||
-        app.villagesDistrictsRaw ||
-        app.otherDevelopmentAreas ||
-        app.teamTrainingDescription ||
-        app.heardAboutChallenge) && (
+      {(isRealJury
+        ? app.yearsExperience !== null ||
+          app.farmersCount !== null ||
+          app.smallholderFarmersCount !== null ||
+          app.avgLandHolding !== null ||
+          app.areaUnderRegenPractice !== null ||
+          app.statesOperating ||
+          app.verifiedImpacts
+        : app.farmersCount !== null ||
+          app.yearsExperience !== null ||
+          app.verifiedImpacts ||
+          app.statesOperating ||
+          app.fundUsagePlan ||
+          app.reportLinks.length > 0 ||
+          app.villagesDistrictsRaw ||
+          app.otherDevelopmentAreas ||
+          app.teamTrainingDescription ||
+          app.heardAboutChallenge) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>experience and impact</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>{isRealJury ? 'metrics' : 'experience and impact'}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <Field label={isRealJury ? 'years in regenerative agriculture' : 'years of experience in regenerative agriculture'} value={app.yearsExperience} />
             <Field label="farmers reached" value={app.farmersCount} />
             <Field label={isRealJury ? 'smallholder farmers reached' : 'of which smallholder (≤2ha)'} value={app.smallholderFarmersCount} />
             <Field label="average land holding (ha)" value={app.avgLandHolding} />
             <Field label={isRealJury ? 'area under regenerative agriculture' : 'area under regenerative practice (ha)'} value={app.areaUnderRegenPractice} />
-            <Field label="villages / districts" value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)} />
-            <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />
-            <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
-            <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />
-            <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />
-            <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
+            {!isRealJury && (
+              <Field label="villages / districts" value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)} />
+            )}
+            {!isRealJury && <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />}
+            {!isRealJury && (
+              <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
+            )}
+            {!isRealJury && <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />}
+            {!isRealJury && <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />}
+            {!isRealJury && (
+              <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
+            )}
           </div>
-          <Field label="team training details" value={app.teamTrainingDescription} />
-          <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />
+          {!isRealJury && <Field label="team training details" value={app.teamTrainingDescription} />}
+          {!isRealJury && <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />}
           <Field label={isRealJury ? 'geography coverage' : 'states / UTs of operation'} value={tagList(app.statesOperating, {})?.join(', ')} />
           <Field label={isRealJury ? 'self reported impact' : 'verified impacts'} value={app.verifiedImpacts} />
-          <Field label="planned use of prize funds" value={app.fundUsagePlan} />
-          <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
-          {app.reportLinks.length > 0 && (
+          {!isRealJury && <Field label="planned use of prize funds" value={app.fundUsagePlan} />}
+          {!isRealJury && (
+            <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
+          )}
+          {!isRealJury && app.reportLinks.length > 0 && (
             <div style={{ marginTop: 'var(--space-2)' }}>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
                 published reports / case studies
@@ -375,7 +404,7 @@ export function ApplicationMainContent({
       )}
       </div>
 
-      {!isObserver && app.enrichmentSummary && (
+      {!isJury && app.enrichmentSummary && (
         <Card style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>public-data enrichment</h2>

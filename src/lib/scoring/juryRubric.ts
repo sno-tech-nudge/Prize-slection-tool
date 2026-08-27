@@ -14,10 +14,21 @@ export interface JuryRubricCriterionDef {
   coreQuestions: string[];
 }
 
+/** The overall framing question the jury rubric sheet poses before the five scored criteria — the
+ *  challenge thresholds a winning model needs to break, shown as context above the scorecard. */
+export const JURY_FRAMING_QUESTION =
+  'Can this organisation deliver an integrated regenerative transition model capable of breaking the challenge thresholds: double + 0.3pp SOC, broader physical/chemical/biological soil improvement, 70% reduction in chemical use, and ≥25% net income across 5,000-10,000 SHFs / 5,000 ha within 3-5 contiguous blocks in a district?';
+
 /** The jury's own rubric — five weighted criteria (summing to 100), each scored and commented on
  *  as a single unit rather than broken into sub-criteria. Deliberately separate from
  *  RUBRIC_CRITERIA in rubric.ts, which stays the AI-scoring and human-review rubric — jury scoring
- *  uses only this one. */
+ *  uses only this one. Keys are kept stable across a wording/weighting refresh where the
+ *  underlying criterion is genuinely the same one, so an already-submitted score still carries
+ *  over cleanly; `robustness_of_model` and `ability_to_scale` got new keys because their
+ *  definitions were substantively restructured (merged/split from the old "model strength &
+ *  replicability" / "tech-enabled precision layer" pair), so an old score under those should
+ *  surface the "predates the current rubric" prompt to rescore, not silently carry over under a
+ *  changed meaning. */
 export const JURY_RUBRIC_CRITERIA: JuryRubricCriterionDef[] = [
   {
     key: 'farmer_pull_value_proposition',
@@ -32,16 +43,16 @@ export const JURY_RUBRIC_CRITERIA: JuryRubricCriterionDef[] = [
     ],
   },
   {
-    key: 'model_strength_replicability',
-    label: 'model strength & replicability',
+    key: 'robustness_of_model',
+    label: 'robustness of the model',
     maxScore: 30,
     establishText:
-      'The organisation has a coherent, end-to-end transition model that addresses the critical constraints to soil health and farmer economics through integrated, complementary interventions. The model is sufficiently adaptive and replicable to work across diverse farmer and farm contexts without losing efficacy.',
+      'The organisation has a coherent, end-to-end transition model that addresses the critical constraints to soil health and farmer economics through integrated, complementary interventions. The organisation uses diagnostics, data and technology to enable differentiated, adaptive interventions at farm level, translating farm-level variation into actionable decisions and continuous learning without creating an unsustainable delivery burden.',
     coreQuestions: [
       "From diagnosis to intervention to farmer practice change to soil and economic outcomes — what is the model's strengths? Where are the critical links?",
-      'What are the most important dependencies or failure points in the model, and how do you manage this?',
+      'How do you determine what a particular farm or farmer needs, and how does that translate into a differentiated intervention rather than a standard package?',
       'What needs to remain consistent for the model to work, what can adapt to context?',
-      'Do you have substantial unrestricted / programmatic funding that you can put towards hitting the thresholds of this challenge, w/o any capital provided by this Challenge?',
+      'How are diagnosis, advisory, implementation, monitoring, adaptation or market intelligence connected within the model?',
     ],
   },
   {
@@ -57,15 +68,15 @@ export const JURY_RUBRIC_CRITERIA: JuryRubricCriterionDef[] = [
     ],
   },
   {
-    key: 'tech_enabled_precision_layer',
-    label: 'tech-enabled precision layer',
+    key: 'ability_to_scale',
+    label: 'ability to scale',
     maxScore: 20,
     establishText:
-      'The organisation uses diagnostics, data and technology to enable differentiated, adaptive interventions at farm level, translating farm-level variation into actionable decisions and continuous learning without creating an unsustainable delivery burden.',
+      'The model is sufficiently adaptive and replicable to work across diverse farmer and farm contexts without losing efficacy, and the organisation has the technological and economical capacity to reach population-scale.',
     coreQuestions: [
-      'How do you determine what a particular farm or farmer needs, and how does that translate into a differentiated intervention rather than a standard package?',
-      'How are diagnosis, advisory, implementation, monitoring, adaptation or market intelligence connected within the model?',
-      'What role does technology play that is genuinely consequential to the quality, precision or adaptability of this model?',
+      "What is the cost per hectare OR cost per farmer of your solution currently? What's the marginal cost of your Nth farmer versus your 1st, does cost per farmer fall, stay flat, or rise as you scale?",
+      'What is the single biggest operational bottleneck to hitting your scale target?',
+      'Do you have substantial unrestricted / programmatic funding that you can put towards hitting the thresholds of this challenge, w/o any capital provided by this Challenge?',
     ],
   },
   {
