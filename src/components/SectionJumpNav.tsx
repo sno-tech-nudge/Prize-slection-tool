@@ -6,6 +6,9 @@ const SECTIONS = [
   { id: 'section-model', label: 'model' },
   { id: 'section-tech-and-tools', label: 'tech and tools' },
   { id: 'section-experience-impact', label: 'experience & impact' },
+  // only ever rendered on the jury's own view — see the excludeIds passed from
+  // ApplicationMainContent, which drops this for every other role.
+  { id: 'section-internal-reviewer-remarks', label: 'internal reviewer remarks' },
   { id: 'section-scoring', label: 'scoring & evaluation' },
   { id: 'section-scraper', label: 'scraper data' },
 ];

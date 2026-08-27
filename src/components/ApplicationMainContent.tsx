@@ -104,16 +104,114 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
   );
 }
 
+/** The real JURY role's entire application view, deliberately separate from the shared tree below
+ *  rather than threaded through it with per-field conditionals — per the jury view field sheet,
+ *  jury sees exactly four sections (organisation details, application synopsis, metrics, plus
+ *  "internal reviewer remarks" rendered by the page itself in the sidebar) and nothing else. A
+ *  dedicated component makes that a closed list: a new field added to the shared admin/reviewer
+ *  tree can't leak into jury's view by accident. Observer is NOT this — observer still gets the
+ *  fuller shared tree below, just with AI evaluation/scraper/scoring hidden. */
+function JuryApplicationView({ app }: { app: ApplicationDetail }) {
+  return (
+    <div>
+      <SectionJumpNav
+        excludeIds={['section-model', 'section-tech-and-tools', 'section-scoring', 'section-scraper']}
+        labelOverrides={{
+          'section-organisation-profile': 'organisation details',
+          'section-experience-impact': 'metrics',
+          'section-ai-summary': 'application synopsis',
+        }}
+      />
+
+      <div id="section-organisation-profile">
+        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <Field label="organisation name" value={app.orgName} />
+            <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
+            <Field label="year of incorporation" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
+            <Field
+              label="legal registration"
+              value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
+            />
+            <Field
+              label="annual operating budget"
+              value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
+            />
+            <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
+          </div>
+          {app.founders.length > 0 && (
+            <div style={{ marginTop: 'var(--space-2)' }}>
+              <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+                founders
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                {app.founders.map((f) => (
+                  <div key={f.id} style={{ fontSize: 'var(--fs-small)' }}>
+                    <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>{f.fullName}</div>
+                    <div style={{ marginTop: 'var(--space-1)' }}>
+                      {f.linkedin ? (
+                        <a href={f.linkedin} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)' }}>{f.linkedin}</a>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>LinkedIn not provided</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div id="section-ai-summary">
+        {app.internalDecision === 'YES' && (
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
+            {app.orgSynopsisText && (
+              <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{app.orgSynopsisText}</p>
+            )}
+            {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
+            {!app.orgSynopsisText && app.orgSynopsisStatus !== 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>}
+          </Card>
+        )}
+      </div>
+
+      <div id="section-experience-impact">
+        {(app.yearsExperience !== null ||
+          app.farmersCount !== null ||
+          app.smallholderFarmersCount !== null ||
+          app.avgLandHolding !== null ||
+          app.areaUnderRegenPractice !== null ||
+          app.statesOperating ||
+          app.verifiedImpacts) && (
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <Field label="years in regenerative agriculture" value={app.yearsExperience} />
+              <Field label="farmers reached" value={app.farmersCount} />
+              <Field label="smallholder farmers reached" value={app.smallholderFarmersCount} />
+              <Field label="area under regenerative agriculture" value={app.areaUnderRegenPractice} />
+              <Field label="average land holding (ha)" value={app.avgLandHolding} />
+              <Field label="geography coverage" value={tagList(app.statesOperating, {})?.join(', ')} />
+              <Field label="self reported impact" value={app.verifiedImpacts} />
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** The whole "application record" left column — organisation profile through AI evaluation,
  *  scraper checks, human review score, and jury scores. Shared between the regular admin
  *  application page and the internal jury-dashboard page so both render identically; `isJury`
  *  controls whether the AI evaluation / scraper-data / public-data enrichment sections are shown
  *  (jury and observer never see them, on either page) — the application detail page passes this
  *  true for OBSERVER-role viewers too, since the two roles are meant to see an identical
- *  restricted slice there. `isRealJury` (`isJury && !isObserver`) narrows further to the actual
- *  JURY role only, for the jury-view field trims (per the jury view field-naming sheet) that
- *  don't apply to observer — observer keeps seeing the fuller application record beyond what
- *  `isJury` alone hides. */
+ *  restricted slice there. The real JURY role (`isJury && !isObserver`) doesn't render any of this
+ *  — see JuryApplicationView above, a fully separate closed-list view per the jury view field
+ *  sheet. Observer still gets everything below, just with `isJury`'s usual internal-only cuts. */
 export function ApplicationMainContent({
   app,
   isJury,
@@ -125,40 +223,33 @@ export function ApplicationMainContent({
   isObserver?: boolean;
   user: User | null;
 }) {
+  if (isJury && !isObserver) {
+    return <JuryApplicationView app={app} />;
+  }
+
   const latestEval = app.aiEvaluations[0];
   const criteria = latestEval ? parseCriteria(latestEval.criteria) : [];
   const redFlags = latestEval ? parseRedFlags(latestEval.redFlags) : [];
   const eligibility = latestEval ? parseEligibility(latestEval.eligibility) : null;
   const embed = driveEmbedUrl(app.pitchDeckUrl);
-  // `isJury` above is actually "hide internal sections" (true for observer too) — these specific
-  // field-label swaps are only for the real jury role, per the jury view field-naming sheet.
-  const isRealJury = isJury && !isObserver;
 
   return (
     <div>
-      <SectionJumpNav
-        excludeIds={[
-          ...(isJury ? ['section-scoring', 'section-scraper'] : []),
-          ...(isRealJury ? ['section-model', 'section-tech-and-tools'] : []),
-        ]}
-        labelOverrides={isRealJury ? { 'section-organisation-profile': 'organisation details', 'section-experience-impact': 'metrics' } : undefined}
-      />
+      <SectionJumpNav excludeIds={isJury ? ['section-internal-reviewer-remarks', 'section-scoring', 'section-scraper'] : ['section-internal-reviewer-remarks']} />
       <div id="section-organisation-profile">
       <Card accent style={{ marginBottom: 'var(--space-6)' }}>
         <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-          {!isRealJury && <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />}
+          <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />
           {!isObserver && !isJury && <Field label="rec_id" value={app.creatorRecordId} />}
           <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
-          {!isRealJury && (
-            <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
-          )}
+          <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
           <Field
-            label={isRealJury ? 'year of incorporation' : 'incorporated'}
+            label="incorporated"
             value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined}
           />
-          {!isRealJury && <Field label="email" value={app.email} />}
-          {!isRealJury && <Field label="phone" value={app.phone} />}
+          <Field label="email" value={app.email} />
+          <Field label="phone" value={app.phone} />
           <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
         </div>
       </Card>
@@ -187,8 +278,8 @@ export function ApplicationMainContent({
           )}
           {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
           {/* the raw provider error (rate limits, billing details) is only useful to whoever can
-           *  act on it via the regenerate button above — jury/observer get the same neutral
-           *  message as the not-yet-generated state instead of technical noise they can't fix. */}
+           *  act on it via the regenerate button above — observer gets the same neutral message as
+           *  the not-yet-generated state instead of technical noise they can't fix. */}
           {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && !isJury && (
             <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
           )}
@@ -199,11 +290,11 @@ export function ApplicationMainContent({
       )}
       </div>
 
-      {(isRealJury ? app.founders.length > 0 : app.founders.length > 0 || app.funders.length > 0) && (
+      {(app.founders.length > 0 || app.funders.length > 0) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>{isRealJury || app.funders.length === 0 ? 'founders' : 'founders & funders'}</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>founders &amp; funders</h2>
           {app.founders.length > 0 && (
-            <div style={{ marginBottom: !isRealJury && app.funders.length > 0 ? 'var(--space-6)' : 0 }}>
+            <div style={{ marginBottom: app.funders.length > 0 ? 'var(--space-6)' : 0 }}>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 founders
               </div>
@@ -212,15 +303,14 @@ export function ApplicationMainContent({
                   <div key={f.id} style={{ fontSize: 'var(--fs-small)' }}>
                     <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>
                       {f.fullName}
-                      {!isRealJury && f.role && <span style={{ fontWeight: 'var(--fw-light)' as unknown as number, color: 'var(--text-secondary)' }}> · {f.role}</span>}
+                      {f.role && <span style={{ fontWeight: 'var(--fw-light)' as unknown as number, color: 'var(--text-secondary)' }}> · {f.role}</span>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 'var(--space-1)' }}>
-                      {!isRealJury &&
-                        (f.email ? (
-                          <a href={`mailto:${f.email}`} style={{ color: 'var(--delta-red)' }}>{f.email}</a>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>email not provided</span>
-                        ))}
+                      {f.email ? (
+                        <a href={`mailto:${f.email}`} style={{ color: 'var(--delta-red)' }}>{f.email}</a>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>email not provided</span>
+                      )}
                       {f.linkedin ? (
                         <a href={f.linkedin} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)' }}>{f.linkedin}</a>
                       ) : (
@@ -232,7 +322,7 @@ export function ApplicationMainContent({
               </div>
             </div>
           )}
-          {!isRealJury && app.funders.length > 0 && (
+          {app.funders.length > 0 && (
             <div>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 funders
@@ -253,7 +343,7 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      {!isRealJury && (app.problemAddressing || app.aboutSolution || app.valueChainFocus) && (
+      {(app.problemAddressing || app.aboutSolution || app.valueChainFocus) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>problem and solution</h2>
           <Field label="problem addressing" value={app.problemAddressing} />
@@ -262,7 +352,7 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      {!isRealJury && (app.waterEfficiencyFocus || app.smallMarginalFarmerPct !== null || app.areaHectaresRaw) && (
+      {(app.waterEfficiencyFocus || app.smallMarginalFarmerPct !== null || app.areaHectaresRaw) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>impact and eligibility signals (AgWater cycle)</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -278,40 +368,38 @@ export function ApplicationMainContent({
         </Card>
       )}
 
-      {(isRealJury
-        ? app.legalRegistrationType || app.annualOperatingBudget
-        : app.legalRegistrationType ||
-          app.fcraStatus ||
-          app.annualOperatingBudget ||
-          app.cert12A ||
-          app.cert80G ||
-          app.csr1Registration ||
-          app.darpanRegistered ||
-          app.darpanIdNumber) && (
+      {(app.legalRegistrationType ||
+        app.fcraStatus ||
+        app.annualOperatingBudget ||
+        app.cert12A ||
+        app.cert80G ||
+        app.csr1Registration ||
+        app.darpanRegistered ||
+        app.darpanIdNumber) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>registrations and governance</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <Field
-              label={isRealJury ? 'legal registration' : 'legal registration type'}
+              label="legal registration type"
               value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
             />
             <Field
               label="annual operating budget"
               value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
             />
-            {!isRealJury && <Field label="FCRA registration" value={app.fcraStatus} />}
-            {!isRealJury && <Field label="12A certificate" value={certStatus(app.cert12A)} />}
-            {!isRealJury && <Field label="80G certificate" value={certStatus(app.cert80G)} />}
-            {!isRealJury && <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />}
-            {!isRealJury && <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />}
-            {!isRealJury && <Field label="DARPAN registration number" value={app.darpanIdNumber} />}
+            <Field label="FCRA registration" value={app.fcraStatus} />
+            <Field label="12A certificate" value={certStatus(app.cert12A)} />
+            <Field label="80G certificate" value={certStatus(app.cert80G)} />
+            <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />
+            <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />
+            <Field label="DARPAN registration number" value={app.darpanIdNumber} />
           </div>
         </Card>
       )}
       </div>
 
       <div id="section-model">
-      {!isRealJury && (app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
+      {(app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
           <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />
@@ -324,7 +412,7 @@ export function ApplicationMainContent({
       </div>
 
       <div id="section-tech-and-tools">
-      {!isRealJury && (app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
+      {(app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
           <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />
@@ -339,54 +427,38 @@ export function ApplicationMainContent({
       </div>
 
       <div id="section-experience-impact">
-      {(isRealJury
-        ? app.yearsExperience !== null ||
-          app.farmersCount !== null ||
-          app.smallholderFarmersCount !== null ||
-          app.avgLandHolding !== null ||
-          app.areaUnderRegenPractice !== null ||
-          app.statesOperating ||
-          app.verifiedImpacts
-        : app.farmersCount !== null ||
-          app.yearsExperience !== null ||
-          app.verifiedImpacts ||
-          app.statesOperating ||
-          app.fundUsagePlan ||
-          app.reportLinks.length > 0 ||
-          app.villagesDistrictsRaw ||
-          app.otherDevelopmentAreas ||
-          app.teamTrainingDescription ||
-          app.heardAboutChallenge) && (
+      {(app.farmersCount !== null ||
+        app.yearsExperience !== null ||
+        app.verifiedImpacts ||
+        app.statesOperating ||
+        app.fundUsagePlan ||
+        app.reportLinks.length > 0 ||
+        app.villagesDistrictsRaw ||
+        app.otherDevelopmentAreas ||
+        app.teamTrainingDescription ||
+        app.heardAboutChallenge) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>{isRealJury ? 'metrics' : 'experience and impact'}</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>experience and impact</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            <Field label={isRealJury ? 'years in regenerative agriculture' : 'years of experience in regenerative agriculture'} value={app.yearsExperience} />
+            <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />
             <Field label="farmers reached" value={app.farmersCount} />
-            <Field label={isRealJury ? 'smallholder farmers reached' : 'of which smallholder (≤2ha)'} value={app.smallholderFarmersCount} />
+            <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />
             <Field label="average land holding (ha)" value={app.avgLandHolding} />
-            <Field label={isRealJury ? 'area under regenerative agriculture' : 'area under regenerative practice (ha)'} value={app.areaUnderRegenPractice} />
-            {!isRealJury && (
-              <Field label="villages / districts" value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)} />
-            )}
-            {!isRealJury && <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />}
-            {!isRealJury && (
-              <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
-            )}
-            {!isRealJury && <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />}
-            {!isRealJury && <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />}
-            {!isRealJury && (
-              <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
-            )}
+            <Field label="area under regenerative practice (ha)" value={app.areaUnderRegenPractice} />
+            <Field label="villages / districts" value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)} />
+            <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />
+            <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
+            <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />
+            <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />
+            <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
           </div>
-          {!isRealJury && <Field label="team training details" value={app.teamTrainingDescription} />}
-          {!isRealJury && <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />}
-          <Field label={isRealJury ? 'geography coverage' : 'states / UTs of operation'} value={tagList(app.statesOperating, {})?.join(', ')} />
-          <Field label={isRealJury ? 'self reported impact' : 'verified impacts'} value={app.verifiedImpacts} />
-          {!isRealJury && <Field label="planned use of prize funds" value={app.fundUsagePlan} />}
-          {!isRealJury && (
-            <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
-          )}
-          {!isRealJury && app.reportLinks.length > 0 && (
+          <Field label="team training details" value={app.teamTrainingDescription} />
+          <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />
+          <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />
+          <Field label="verified impacts" value={app.verifiedImpacts} />
+          <Field label="planned use of prize funds" value={app.fundUsagePlan} />
+          <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
+          {app.reportLinks.length > 0 && (
             <div style={{ marginTop: 'var(--space-2)' }}>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
                 published reports / case studies
@@ -404,7 +476,7 @@ export function ApplicationMainContent({
       )}
       </div>
 
-      {!isJury && app.enrichmentSummary && (
+      {!isObserver && app.enrichmentSummary && (
         <Card style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>public-data enrichment</h2>

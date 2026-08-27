@@ -201,12 +201,14 @@ export default async function ApplicationDetailPage({
           {isJury ? (
             <>
               <JurySidePanel applicationId={app.id} myScore={myJuryScore} />
-              {app.humanReviews[0]?.comment && (
-                <Card style={{ marginBottom: 'var(--space-6)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
-                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
-                </Card>
-              )}
+              <div id="section-internal-reviewer-remarks">
+                {app.humanReviews[0]?.comment && (
+                  <Card style={{ marginBottom: 'var(--space-6)' }}>
+                    <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
+                    <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
+                  </Card>
+                )}
+              </div>
             </>
           ) : (
             <>
