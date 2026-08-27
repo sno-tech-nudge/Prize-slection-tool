@@ -34,12 +34,37 @@ export async function submitJuryScoreAction(formData: FormData) {
   });
   const composite = computeJuryComposite(scoreMap);
 
+  // a straight replace, never a merge or average with whatever was there before — the same
+  // single row (unique on applicationId+jurorId) just gets its fields overwritten, so an updated
+  // score always reflects only the juror's latest submission, and any average computed from
+  // juryScores elsewhere (bench avg, oversight view) picks that up automatically since it's
+  // computed live from the current rows, never cached.
   await prisma.juryScore.upsert({
     where: { applicationId_jurorId: { applicationId, jurorId: user.id } },
     create: { applicationId, jurorId: user.id, criteria: JSON.stringify(criteria), composite, verdict, comment },
     update: { criteria: JSON.stringify(criteria), composite, verdict, comment, submittedAt: new Date() },
   });
 
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/applications');
+  revalidatePath(`/jury/${applicationId}`);
+  revalidatePath('/jury');
+}
+
+/** Wipes this juror's own score for an application back to "not yet scored" — used by the
+ *  scorecard's "clear scorecard" action (confirmed in-app before this runs). deleteMany rather
+ *  than delete so clearing a scorecard that was never actually submitted (only drafted locally)
+ *  is a safe no-op instead of throwing. */
+export async function clearJuryScoreAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_JURY_SCORE);
+
+  const applicationId = String(formData.get('applicationId'));
+
+  await prisma.juryScore.deleteMany({ where: { applicationId, jurorId: user.id } });
+
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/applications');
   revalidatePath(`/jury/${applicationId}`);
   revalidatePath('/jury');
 }

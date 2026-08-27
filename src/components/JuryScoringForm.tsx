@@ -2,13 +2,38 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { JuryScore } from '@prisma/client';
-import { Textarea, Radio, Input, Button } from '@/design-system';
+import { Textarea, Radio, Input, Button, Dialog } from '@/design-system';
 import { JURY_RUBRIC_CRITERIA, JURY_DECISION_QUESTION, JURY_WINNING_MODEL_QUESTION, computeJuryComposite } from '@/lib/scoring/juryRubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { JurySectionInfo } from '@/components/JurySectionInfo';
-import { submitJuryScoreAction } from '@/lib/applications/jury-actions';
+import { submitJuryScoreAction, clearJuryScoreAction } from '@/lib/applications/jury-actions';
 
 const COMMENT_BOX_ROWS = 2;
+
+/** In-progress scores/comments are only ever held in React state, so a juror who closes the panel
+ *  mid-way (accidental navigation, tab close, session hiccup) loses everything typed so far —
+ *  this mirrors it into localStorage as they score, the same safety net ReviewScoringForm gives
+ *  reviewers, and clears it once actually submitted or explicitly cleared. */
+interface JuryDraft {
+  scores: Record<string, number>;
+  criterionComments: Record<string, string>;
+  verdict: 'YES' | 'NO';
+  comment: string;
+}
+
+function draftKeyFor(applicationId: string): string {
+  return `delta-jury-draft:${applicationId}`;
+}
+
+function loadDraft(applicationId: string): JuryDraft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(draftKeyFor(applicationId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Auto-grows to fit its own typed content, same as ReviewScoringForm's CriterionCommentBox — so
  *  a longer comment never sits clipped or scrolling inside a fixed-height box below the scoring
@@ -47,7 +72,7 @@ export function JuryScoringForm({
 }) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
-  const [verdict, setVerdict] = React.useState<'YES' | 'NO'>(existing?.verdict === 'YES' ? 'YES' : 'NO');
+  const [confirmClear, setConfirmClear] = React.useState(false);
 
   const existingByKey = React.useMemo(() => {
     if (!existing) return {};
@@ -67,7 +92,19 @@ export function JuryScoringForm({
   const carriedOverCount = [...existingCriteriaKeys].filter((k) => currentKeys.has(k)).length;
   const isStaleRubric = !!existing && existingCriteriaKeys.size > 0 && carriedOverCount < currentKeys.size;
 
+  // a draft saved under a since-changed rubric has keys that don't line up with the current
+  // criteria — trusting it would silently reproduce the exact "mostly blank" confusion a rubric
+  // change causes, instead of falling back to the real saved score below.
+  const draft = React.useMemo(() => {
+    const d = loadDraft(applicationId);
+    if (!d) return null;
+    const draftKeys = Object.keys(d.scores ?? {});
+    const hasForeignKeys = draftKeys.some((k) => !currentKeys.has(k));
+    return hasForeignKeys ? null : d;
+  }, [applicationId, currentKeys]);
+
   const [scores, setScores] = React.useState<Record<string, number>>(() => {
+    if (draft) return draft.scores;
     const init: Record<string, number> = {};
     for (const c of JURY_RUBRIC_CRITERIA) {
       const s = existingByKey[c.key]?.score;
@@ -76,12 +113,20 @@ export function JuryScoringForm({
     return init;
   });
   const [criterionComments, setCriterionComments] = React.useState<Record<string, string>>(() => {
+    if (draft) return draft.criterionComments;
     const init: Record<string, string> = {};
     for (const c of JURY_RUBRIC_CRITERIA) {
       init[c.key] = existingByKey[c.key]?.comment ?? '';
     }
     return init;
   });
+  const [verdict, setVerdict] = React.useState<'YES' | 'NO'>(draft?.verdict ?? (existing?.verdict === 'YES' ? 'YES' : 'NO'));
+  const [comment, setComment] = React.useState(draft?.comment ?? existing?.comment ?? '');
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(draftKeyFor(applicationId), JSON.stringify({ scores, criterionComments, verdict, comment }));
+  }, [applicationId, scores, criterionComments, verdict, comment]);
 
   const answeredCount = Object.keys(scores).length;
   const allCriteriaScored = answeredCount === JURY_RUBRIC_CRITERIA.length;
@@ -100,12 +145,31 @@ export function JuryScoringForm({
     setScores((prev) => ({ ...prev, [key]: clamped }));
   }
 
+  async function handleClear() {
+    setConfirmClear(false);
+    setPending(true);
+    try {
+      const formData = new FormData();
+      formData.set('applicationId', applicationId);
+      await clearJuryScoreAction(formData);
+      window.localStorage.removeItem(draftKeyFor(applicationId));
+      setScores({});
+      setCriterionComments({});
+      setVerdict('NO');
+      setComment('');
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <form
       action={async (formData) => {
         setPending(true);
         try {
           await submitJuryScoreAction(formData);
+          window.localStorage.removeItem(draftKeyFor(applicationId));
           router.refresh();
           onSubmitted?.();
         } finally {
@@ -212,7 +276,9 @@ export function JuryScoringForm({
         />
       </div>
 
-      {verdict === 'YES' && <Textarea name="comment" label={JURY_WINNING_MODEL_QUESTION} rows={3} defaultValue={existing?.comment ?? ''} />}
+      {verdict === 'YES' && (
+        <Textarea name="comment" label={JURY_WINNING_MODEL_QUESTION} rows={3} value={comment} onChange={(e) => setComment(e.target.value)} />
+      )}
 
       {!allCriteriaScored && (
         <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>
@@ -220,9 +286,33 @@ export function JuryScoringForm({
         </p>
       )}
 
-      <Button type="submit" variant="cta" disabled={pending || !allCriteriaScored}>
-        {pending ? 'saving…' : !allCriteriaScored ? 'score every criterion to continue' : existing ? 'update verdict' : 'submit verdict'}
-      </Button>
+      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+        <Button type="submit" variant="cta" disabled={pending || !allCriteriaScored} style={{ flex: 1 }}>
+          {pending ? 'saving…' : !allCriteriaScored ? 'score every criterion to continue' : existing ? 'update verdict' : 'submit verdict'}
+        </Button>
+        <Button type="button" variant="ghost" disabled={pending} onClick={() => setConfirmClear(true)}>
+          clear scorecard
+        </Button>
+      </div>
+
+      <Dialog
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        title="clear scorecard"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmClear(false)}>
+              cancel
+            </Button>
+            <Button variant="cta" size="sm" onClick={handleClear}>
+              clear scorecard
+            </Button>
+          </>
+        }
+      >
+        this clears every score and comment on this scorecard{existing ? ', including your already-submitted verdict' : ''} and resets
+        it back to blank. this can&apos;t be undone.
+      </Dialog>
     </form>
   );
 }
