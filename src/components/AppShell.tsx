@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, Gavel, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, Gavel, BookOpen, type LucideIcon } from 'lucide-react';
 import type { User } from '@prisma/client';
 import { ROLE_LABEL, type UserRoleValue as UserRole } from '@/lib/constants';
 import { Logo, Badge } from '@/design-system';
@@ -16,12 +16,16 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   roles: UserRole[];
+  /** opens in a new browser tab instead of navigating this one — for jury guidelines, so a juror
+   *  can keep the guidelines open in one tab while scoring in another. */
+  newTab?: boolean;
 }
 
 // the 4 core modules — the whole day-to-day workflow
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
   { href: '/applications', label: 'applications', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER', 'JURY'] },
+  { href: '/jury-guidelines', label: 'jury guidelines', icon: BookOpen, roles: ['JURY'], newTab: true },
   { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER'] },
 ];
@@ -68,6 +72,8 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
                 <Link
                   key={it.href}
                   href={it.href}
+                  target={it.newTab ? '_blank' : undefined}
+                  rel={it.newTab ? 'noopener noreferrer' : undefined}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',

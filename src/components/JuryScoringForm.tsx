@@ -3,10 +3,38 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { JuryScore } from '@prisma/client';
 import { Textarea, Radio, Input, Button } from '@/design-system';
-import { JURY_RUBRIC_CRITERIA, JURY_DECISION_QUESTION, JURY_WINNING_MODEL_QUESTION } from '@/lib/scoring/juryRubric';
+import { JURY_RUBRIC_CRITERIA, JURY_DECISION_QUESTION, JURY_WINNING_MODEL_QUESTION, computeJuryComposite } from '@/lib/scoring/juryRubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { JurySectionInfo } from '@/components/JurySectionInfo';
 import { submitJuryScoreAction } from '@/lib/applications/jury-actions';
+
+const COMMENT_BOX_ROWS = 2;
+
+/** Auto-grows to fit its own typed content, same as ReviewScoringForm's CriterionCommentBox — so
+ *  a longer comment never sits clipped or scrolling inside a fixed-height box below the scoring
+ *  row. */
+function CriterionCommentBox({ name, value, onChange }: { name: string; value: string; onChange: (value: string) => void }) {
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <Textarea
+      ref={ref}
+      name={name}
+      label="comment"
+      rows={COMMENT_BOX_ROWS}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{ resize: 'none', overflow: 'hidden' }}
+    />
+  );
+}
 
 export function JuryScoringForm({
   applicationId,
@@ -30,16 +58,47 @@ export function JuryScoringForm({
   // every score submitted before this five-criterion rubric replaced the old fourteen-criterion
   // one), none of its stored values will match anything in the CURRENT rubric — reloading it is
   // expected to look entirely blank, not a data-loss bug. Surfaced as a warning rather than
-  // silently pretending the score is complete (each score input below is also `required`, so it
-  // can't be re-submitted half-blank and silently overwrite the original composite with a
-  // deflated one).
+  // silently pretending the score is complete.
   const existingCriteriaKeys = React.useMemo(() => {
     if (!existing) return new Set<string>();
     return new Set(parseCriteria(existing.criteria).map((c) => c.key));
   }, [existing]);
-  const currentKeys = new Set(JURY_RUBRIC_CRITERIA.map((c) => c.key));
+  const currentKeys = React.useMemo(() => new Set(JURY_RUBRIC_CRITERIA.map((c) => c.key)), []);
   const carriedOverCount = [...existingCriteriaKeys].filter((k) => currentKeys.has(k)).length;
   const isStaleRubric = !!existing && existingCriteriaKeys.size > 0 && carriedOverCount < currentKeys.size;
+
+  const [scores, setScores] = React.useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    for (const c of JURY_RUBRIC_CRITERIA) {
+      const s = existingByKey[c.key]?.score;
+      if (s !== undefined) init[c.key] = s;
+    }
+    return init;
+  });
+  const [criterionComments, setCriterionComments] = React.useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const c of JURY_RUBRIC_CRITERIA) {
+      init[c.key] = existingByKey[c.key]?.comment ?? '';
+    }
+    return init;
+  });
+
+  const answeredCount = Object.keys(scores).length;
+  const allCriteriaScored = answeredCount === JURY_RUBRIC_CRITERIA.length;
+  const liveComposite = computeJuryComposite(scores);
+
+  function setScore(key: string, raw: string, maxScore: number) {
+    if (raw === '') {
+      setScores((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    const clamped = Math.max(0, Math.min(Number(raw), maxScore));
+    setScores((prev) => ({ ...prev, [key]: clamped }));
+  }
 
   return (
     <form
@@ -74,42 +133,68 @@ export function JuryScoringForm({
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {JURY_RUBRIC_CRITERIA.map((c) => {
-          const existingScore = existingByKey[c.key];
-          return (
-            <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)', paddingBottom: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)', gap: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                  <strong style={{ fontSize: 'var(--fs-body)', fontWeight: 'var(--fw-bold)' as unknown as number }}>{c.label}</strong>
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          background: 'var(--surface-card)',
+          border: '1px solid var(--border-strong)',
+          padding: 'var(--space-4)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)' }}>
+            current score
+          </div>
+          <div style={{ fontSize: 'var(--fs-h2)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--delta-red)' }}>
+            {liveComposite} / 100
+          </div>
+        </div>
+        <div style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', textAlign: 'right' }}>
+          {answeredCount} / {JURY_RUBRIC_CRITERIA.length} criteria scored
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+        {JURY_RUBRIC_CRITERIA.map((c, i) => (
+          <div key={c.key} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <strong style={{ fontSize: 'var(--fs-body)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+                    {i + 1}. {c.label}
+                  </strong>
                   <JurySectionInfo label={c.label} coreQuestions={c.coreQuestions} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexShrink: 0 }}>
-                  <Input
-                    name={`criterion_${c.key}_score`}
-                    type="number"
-                    min={0}
-                    max={c.maxScore}
-                    step={1}
-                    required
-                    defaultValue={existingScore?.score !== undefined ? String(existingScore.score) : ''}
-                    containerStyle={{ width: 64 }}
-                  />
-                  <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>/ {c.maxScore}</span>
-                </div>
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: 'var(--space-1) 0 0' }}>
+                  {c.establishText}
+                </p>
               </div>
-              <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: '0 0 var(--space-3)' }}>
-                {c.establishText}
-              </p>
-              <Textarea
-                name={`criterion_${c.key}_comment`}
-                label="comment"
-                rows={2}
-                defaultValue={existingScore?.comment ?? ''}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexShrink: 0 }}>
+                <Input
+                  name={`criterion_${c.key}_score`}
+                  type="number"
+                  min={0}
+                  max={c.maxScore}
+                  step={1}
+                  value={scores[c.key] !== undefined ? String(scores[c.key]) : ''}
+                  onChange={(e) => setScore(c.key, e.target.value, c.maxScore)}
+                  containerStyle={{ width: 70 }}
+                />
+                <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>/ {c.maxScore}</span>
+              </div>
             </div>
-          );
-        })}
+            <CriterionCommentBox
+              name={`criterion_${c.key}_comment`}
+              value={criterionComments[c.key] ?? ''}
+              onChange={(v) => setCriterionComments((prev) => ({ ...prev, [c.key]: v }))}
+            />
+          </div>
+        ))}
       </div>
 
       <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
@@ -129,8 +214,14 @@ export function JuryScoringForm({
 
       {verdict === 'YES' && <Textarea name="comment" label={JURY_WINNING_MODEL_QUESTION} rows={3} defaultValue={existing?.comment ?? ''} />}
 
-      <Button type="submit" variant="cta" disabled={pending}>
-        {pending ? 'saving…' : existing ? 'update verdict' : 'submit verdict'}
+      {!allCriteriaScored && (
+        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>
+          score all {JURY_RUBRIC_CRITERIA.length} criteria before submitting — {JURY_RUBRIC_CRITERIA.length - answeredCount} still blank.
+        </p>
+      )}
+
+      <Button type="submit" variant="cta" disabled={pending || !allCriteriaScored}>
+        {pending ? 'saving…' : !allCriteriaScored ? 'score every criterion to continue' : existing ? 'update verdict' : 'submit verdict'}
       </Button>
     </form>
   );

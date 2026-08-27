@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, AlertTriangle, BookOpen, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { StageActionBar } from '@/components/StageActionBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
@@ -14,11 +14,8 @@ import { CommentThread } from '@/components/CommentThread';
 import { JurySidePanel } from '@/components/JurySidePanel';
 import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
-import { InfoSidePanel } from '@/components/InfoSidePanel';
-import { UploadedDocumentView } from '@/components/UploadedDocumentView';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
-import { getUpload } from '@/lib/uploads/settingsUploads';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { canManageApplication } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
@@ -55,7 +52,6 @@ export default async function ApplicationDetailPage({
   const isAdmin = user?.role === 'ADMIN';
   const isJury = user?.role === 'JURY';
   const isObserver = user?.role === 'OBSERVER';
-  const guidelinesUpload = isJury ? await getUpload('JURY_GUIDELINES') : null;
   // observers get the same "first four sections only, no AI evaluation / scraper checks / paper
   // score" treatment jury already gets — reusing the exact same gating rather than duplicating
   // it, since the two roles are meant to see an identical slice of the application record.
@@ -101,25 +97,7 @@ export default async function ApplicationDetailPage({
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
             {app.targetMatch && <Badge tone="red">target wishlist match</Badge>}
-            {app.isConsortium && <Badge tone="red">marked as consortium</Badge>}
-            {isJury && (
-              <>
-                <InfoSidePanel
-                  triggerLabel="jury guidelines"
-                  icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                  title="jury guidelines"
-                >
-                  <UploadedDocumentView upload={guidelinesUpload} />
-                </InfoSidePanel>
-                <InfoSidePanel
-                  triggerLabel="sample scorecard"
-                  icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                  title="sample scorecard"
-                >
-                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
-                </InfoSidePanel>
-              </>
-            )}
+            {app.isConsortium && <Badge tone="red">consortium application</Badge>}
             {user && !hideInternalSections && canManage && (
               <ReviewSidePanel applicationId={app.id} orgName={app.orgName} existing={myReview} />
             )}

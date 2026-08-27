@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { BookOpen, ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { AngularBanner, Card } from '@/design-system';
 import { ApplicationFilters } from '@/components/ApplicationFilters';
 import { ApplicationRow } from '@/components/ApplicationRow';
@@ -10,13 +10,11 @@ import { ObserverApplicationFilters } from '@/components/ObserverApplicationFilt
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
-import { UploadedDocumentView } from '@/components/UploadedDocumentView';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
 import { computeHumanComposite } from '@/lib/applications/reviewStatus';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
-import { getUpload } from '@/lib/uploads/settingsUploads';
 
 const HEADERS = [
   'organisation',
@@ -30,7 +28,7 @@ const HEADERS = [
   'reviewer',
 ];
 
-const JURY_HEADERS = ['organisation', 'scoring status', 'total score', 'verdict', 'bench decision', ''];
+const JURY_HEADERS = ['organisation', 'scoring status', 'total score', 'bench decision', ''];
 
 // observer now also sees review status, decision status, and score (all read-only) alongside the
 // identifying/operational fields — reviewer and eligibility are still left out, internal working
@@ -72,10 +70,7 @@ export default async function ApplicationsPage({
     // backfills any missing synopsis before the juror even opens an application — every
     // application on this list is already internalDecision: YES (that's the visibility gate), so
     // there's no per-app check to make here, just queue whatever's missing.
-    const [, guidelinesUpload] = await Promise.all([
-      Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a))),
-      getUpload('JURY_GUIDELINES'),
-    ]);
+    await Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a)));
 
     return (
       <div>
@@ -85,13 +80,6 @@ export default async function ApplicationsPage({
           subtitle={`${juryApplications.length} application${juryApplications.length === 1 ? '' : 's'} on your bench`}
           action={
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-              <InfoSidePanel
-                triggerLabel="jury guidelines"
-                icon={<BookOpen size={14} strokeLinejoin="miter" strokeLinecap="square" />}
-                title="jury guidelines"
-              >
-                <UploadedDocumentView upload={guidelinesUpload} />
-              </InfoSidePanel>
               <InfoSidePanel
                 triggerLabel="sample scorecard"
                 icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}

@@ -33,9 +33,6 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         {myScore ? <CompositeBadge score={myScore.composite} /> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-        {myScore ? myScore.verdict.toLowerCase() : '—'}
-      </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <JuryConsensusBadge verdicts={app.benchVerdicts} />
       </td>
