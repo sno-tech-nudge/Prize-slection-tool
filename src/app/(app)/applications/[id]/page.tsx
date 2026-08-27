@@ -8,6 +8,7 @@ import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
 import { ConsortiumButton } from '@/components/ConsortiumButton';
 import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
 import { ApplicationPagerKeys } from '@/components/ApplicationPagerKeys';
+import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { ReviewSidePanel } from '@/components/ReviewSidePanel';
 import { PersonalNotes } from '@/components/PersonalNotes';
 import { CommentThread } from '@/components/CommentThread';
@@ -66,6 +67,10 @@ export default async function ApplicationDetailPage({
   return (
     <div>
       <ApplicationPagerKeys prevId={adjacent.prevId} nextId={adjacent.nextId} queryString={pagerQueryString} />
+      {/* jury's "internal reviewer remarks" section reads straight from a HumanReview a reviewer
+       *  can update at any time while a juror already has this exact page open — poll so an
+       *  update on the reviewer side shows up here without the juror needing to manually reload. */}
+      {isJury && <LiveRefreshTicker />}
       {user && (
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <Link href={`/applications${pagerQueryString}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
