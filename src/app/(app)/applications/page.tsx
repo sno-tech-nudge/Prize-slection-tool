@@ -10,6 +10,7 @@ import { ObserverApplicationFilters } from '@/components/ObserverApplicationFilt
 import { ExportCsvButton } from '@/components/ExportCsvButton';
 import { RubricSidePanel } from '@/components/RubricSidePanel';
 import { InfoSidePanel } from '@/components/InfoSidePanel';
+import { SampleScorecard } from '@/components/SampleScorecard';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listApplications, listJuryApplications, getApplicationFilterOptions, type ApplicationListFilters } from '@/lib/applications/queries';
@@ -85,7 +86,7 @@ export default async function ApplicationsPage({
                 icon={<ClipboardList size={14} strokeLinejoin="miter" strokeLinecap="square" />}
                 title="sample scorecard"
               >
-                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>sample scorecard coming soon.</p>
+                <SampleScorecard />
               </InfoSidePanel>
             </div>
           }
