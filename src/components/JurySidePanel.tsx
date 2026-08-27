@@ -9,7 +9,6 @@ import { JURY_DECISION_QUESTION } from '@/lib/scoring/juryRubric';
 
 export interface JurySidePanelProps {
   applicationId: string;
-  orgName: string;
   myScore?: JuryScore;
 }
 
@@ -18,7 +17,7 @@ export interface JurySidePanelProps {
  *  same pattern as ReviewSidePanel for reviewers/admin. Jury only ever sees their own score — no
  *  other jurors' verdicts, scores, or comments are shown here at any point, blind or otherwise,
  *  so there's no cross-juror influence on an independent read. */
-export function JurySidePanel({ applicationId, orgName, myScore }: JurySidePanelProps) {
+export function JurySidePanel({ applicationId, myScore }: JurySidePanelProps) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -66,7 +65,7 @@ export function JurySidePanel({ applicationId, orgName, myScore }: JurySidePanel
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
             <div>
-              <h2 style={{ fontSize: 'var(--fs-h4)' }}>score {orgName}</h2>
+              <h2 style={{ fontSize: 'var(--fs-h4)' }}>scorecard</h2>
               <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>{JURY_DECISION_QUESTION}</p>
             </div>
             <button

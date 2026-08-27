@@ -200,7 +200,7 @@ export default async function ApplicationDetailPage({
         <div data-pdf-exclude="true">
           {isJury ? (
             <>
-              <JurySidePanel applicationId={app.id} orgName={app.orgName} myScore={myJuryScore} />
+              <JurySidePanel applicationId={app.id} myScore={myJuryScore} />
               {app.humanReviews[0]?.comment && (
                 <Card style={{ marginBottom: 'var(--space-6)' }}>
                   <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
