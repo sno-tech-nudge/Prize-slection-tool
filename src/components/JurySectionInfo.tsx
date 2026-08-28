@@ -19,17 +19,15 @@ export function JurySectionInfo({ label, coreQuestions }: { label: string; coreQ
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 20,
-          height: 20,
-          background: 'var(--surface-canvas)',
-          border: '1px solid var(--border-strong)',
+          background: 'none',
+          border: 'none',
           padding: 0,
           cursor: 'pointer',
-          color: 'var(--text-secondary)',
+          color: 'var(--delta-red)',
           flexShrink: 0,
         }}
       >
-        <Info size={13} strokeLinejoin="miter" strokeLinecap="square" />
+        <Info size={16} strokeLinejoin="miter" strokeLinecap="square" />
       </button>
 
       <Dialog open={open} onClose={() => setOpen(false)} title={label} width={480}>
