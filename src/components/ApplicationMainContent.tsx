@@ -3,7 +3,6 @@ import { Card, Badge, Tag } from '@/design-system';
 import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { RescoreButton } from '@/components/RescoreButton';
 import { ValidateOrgButton } from '@/components/ValidateOrgButton';
-import { RegenerateSynopsisButton } from '@/components/RegenerateSynopsisButton';
 import { SectionScoreInfo } from '@/components/SectionScoreInfo';
 import type { getApplicationDetail } from '@/lib/applications/queries';
 import type { User } from '@prisma/client';
@@ -267,12 +266,7 @@ export function ApplicationMainContent({
       <div id="section-ai-summary">
       {app.internalDecision === 'YES' && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)', gap: 'var(--space-3)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)' }}>organisation synopsis</h2>
-            {user && !isJury && (
-              <RegenerateSynopsisButton applicationId={app.id} hasRun={app.orgSynopsisStatus === 'DONE' || app.orgSynopsisStatus === 'FAILED'} />
-            )}
-          </div>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>organisation synopsis</h2>
           {app.orgSynopsisText && (
             <>
               <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
@@ -281,7 +275,7 @@ export function ApplicationMainContent({
               {!isJury && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
                 <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
                   every configured AI provider failed, so this is a template-built fallback, not a model-generated read
-                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}. regenerate once the provider issue clears for a real organisation synopsis.
+                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}.
                 </p>
               )}
             </>
