@@ -3,7 +3,7 @@ import type { StoredUpload } from '@/lib/uploads/settingsUploads';
 
 /** Renders whatever an admin uploaded in /settings/view as plain text in the app's own reading
  *  style — no raw table grid, no embedded pdf viewer, matching how every other long-form field in
- *  this app (organisation synopsis, internal reviewer remarks, etc.) is presented. A csv is converted to
+ *  this app (application synopsis, internal reviewer remarks, etc.) is presented. A csv is converted to
  *  "header: value" text per row; a pdf's text layer is extracted directly. Async server
  *  component, passed as `children` into InfoSidePanel (a client component) — server-rendered
  *  children crossing that boundary is fine, only a raw function/component reference isn't. */

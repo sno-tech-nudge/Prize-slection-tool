@@ -2,7 +2,7 @@
 
 const SECTIONS = [
   { id: 'section-organisation-profile', label: 'organisation details' },
-  { id: 'section-ai-summary', label: 'organisation synopsis' },
+  { id: 'section-ai-summary', label: 'application synopsis' },
   { id: 'section-model', label: 'model' },
   { id: 'section-tech-and-tools', label: 'tech and tools' },
   { id: 'section-experience-impact', label: 'metrics' },

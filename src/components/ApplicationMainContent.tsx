@@ -105,7 +105,7 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
 
 /** The real JURY role's entire application view, deliberately separate from the shared tree below
  *  rather than threaded through it with per-field conditionals — per the jury view field sheet,
- *  jury sees exactly four sections (organisation details, organisation synopsis, metrics, plus
+ *  jury sees exactly four sections (organisation details, application synopsis, metrics, plus
  *  "internal reviewer remarks" rendered by the page itself in the sidebar) and nothing else. A
  *  dedicated component makes that a closed list: a new field added to the shared admin/reviewer
  *  tree can't leak into jury's view by accident. Observer is NOT this — observer still gets the
@@ -159,7 +159,7 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
       <div id="section-ai-summary">
         {app.internalDecision === 'YES' && (
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>organisation synopsis</h2>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
             {app.orgSynopsisText && (
               <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{app.orgSynopsisText}</p>
             )}
@@ -186,8 +186,8 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
               <Field label="area under regenerative agriculture" value={app.areaUnderRegenPractice} />
               <Field label="average land holding (ha)" value={app.avgLandHolding} />
               <Field label="geography coverage" value={tagList(app.statesOperating, {})?.join(', ')} />
-              <Field label="self reported impact" value={app.verifiedImpacts} />
             </div>
+            <Field label="self reported impact" value={app.verifiedImpacts} />
           </Card>
         )}
       </div>
@@ -260,7 +260,7 @@ export function ApplicationMainContent({
       <div id="section-ai-summary">
       {app.internalDecision === 'YES' && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>organisation synopsis</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
           {app.orgSynopsisText && (
             <>
               <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
