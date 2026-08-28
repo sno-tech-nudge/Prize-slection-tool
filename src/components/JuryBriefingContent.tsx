@@ -3,7 +3,7 @@ import { Card } from '@/design-system';
 const THRESHOLDS = [
   {
     title: 'soil health',
-    points: ['double soil organic carbon levels', 'improve earthworm density by 2–3× and microbial activity ≥20%'],
+    points: ['improve SOC by ≥0.3 pp and restore N:P:K balance to optimal levels', 'improve earthworm density by 2–3× and microbial activity ≥20%'],
   },
   {
     title: 'farmer income & adoption',
@@ -13,40 +13,31 @@ const THRESHOLDS = [
 
 const FUNNEL = [
   { n: '341', label: 'applications' },
-  { n: '50', label: 'interviewed now', active: true },
-  { n: '15', label: 'shortlist' },
-  { n: '8', label: 'final cohort' },
+  { n: '50', label: 'jury round', active: true },
+  { n: '15', label: 'field evaluations' },
+  { n: '8', label: 'cohort' },
 ];
 
 const AGENDA = [
   { time: '0–2 min', label: 'intro & settling in' },
   { time: '2–12 min', label: 'organisation presentation' },
-  { time: '12–42 min', label: 'jury Q&A (30 min)' },
-  { time: '42–45 min', label: 'close' },
+  { time: '12–45 min', label: 'jury Q&A' },
+  { time: '+10 min', label: 'post-interview discussion & scoring', plus: true },
 ];
 
 const GUIDELINES = [
   'review the synopsis and internal reviewer remarks for each assigned organisation beforehand. the remarks flag specific areas for further probing which you may draw on during your interview time.',
   'evaluate against the challenge, not legacy or adjacent work. the problem statement is the core of this process — assess organisations on their potential to meet and surpass it, not on the size or track record of the organisation itself. we are not simply looking for the biggest players with numbers already in hand, but for models with the potential to effect change at the India level.',
   'look for differentiators. keep a lens on organisations pushing the boundaries of the field, not just executing a known playbook well.',
-  'time is held for both the presenter and the jury bench. the interview format allocates fixed time to presentation and to Q&A — please follow the time cues given by the the^delta team member facilitating the session, so every applicant gets a fair and consistent hearing.',
-  'consult with fellow jurors before scoring. at the end of each interview, we encourage the jury to briefly discuss the organisation together before individually submitting scores.',
 ];
 
 const GUIDELINES_FLAGGED = 'applicant materials, scores, and jury deliberations are confidential. please don’t share synopses, reviewer remarks, scores, or discussion outside the panel.';
 
-const CLARIFICATIONS_FLAGGED =
-  'this is a narrowing round, not a final decision. it narrows 50 organisations to 15, ahead of the final cohort of 8 — not the final cohort selection. deeper diligence (data quality, partnership scrutiny, on-ground fit) happens in later stages.';
-
-const CLARIFICATIONS = [
-  'model, not project. assess alignment with the problem statement, not deliverables or milestones.',
-  "financials aren't an ask. they signal operating scale and how the grant would accelerate (not fund) the work but no commercials expected at this stage.",
-  'no day-1 scale requirement. orgs start with ≥150 farmers for baselining and expand progressively.',
-  'impact assessment is sample-based. assessments run on samples (~150–300 farmers for economics, ~50 farms for soil) — you may check the applicant’s monitoring approach supports this, not universal measurement.',
-  'this accelerates existing work. the ₹30L support grant is results-based financing to accelerate existing programmes/teams/partnerships — not to fund a new pilot from scratch.',
-  'technology is a plus, not mandatory. tech (soil testing, biologicals, advisory, remote sensing, etc.) can strengthen a bid but its absence shouldn’t count against an applicant.',
-  'partnerships welcome, one lead accountable. partnership-led models are encouraged, but one eligible non-profit/CSO must be the accountable lead applicant.',
-  'outcomes are a direction, not a guarantee. applicants aren’t expected to guarantee every outcome in 2 years — look for a promising model, credible science-based pathway, and ambition/capability to scale.',
+const FIT_TEST = [
+  'proposing to work in geographies with average SOC of 0.3 pp or below',
+  'working with smallholder farmers (SHFs)',
+  'working across crops grown at scale in India',
+  'clear that this is a competition — a prize — and not a project proposal',
 ];
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -89,10 +80,11 @@ function PointList({ points, flagged }: { points: string[]; flagged?: string }) 
   );
 }
 
-/** The real jury briefing content — challenge statement, thresholds, timeline, guidelines, and
- *  clarifications — for the /jury-guidelines page. Static, hand-authored content (not an admin
- *  upload), rendered with this app's own design tokens rather than the original document's own
- *  styling, so it reads consistently with every other page a juror sees. */
+/** The real jury briefing content — challenge statement, thresholds, selection process/interview
+ *  agenda, jury guidelines, and a quick contextual-fit check — for the /jury-guidelines page.
+ *  Static, hand-authored content (not an admin upload), rendered with this app's own design
+ *  tokens rather than the original document's own styling, so it reads consistently with every
+ *  other page a juror sees. */
 export function JuryBriefingContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
@@ -141,7 +133,7 @@ export function JuryBriefingContent() {
       </Card>
 
       <Card accent>
-        <SectionHeading>timeline</SectionHeading>
+        <SectionHeading>selection process</SectionHeading>
         <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', marginTop: 0 }}>
           341 applications were received. this round interviews the top 50 shortlisted organisations, narrowing to a top 15
           who advance toward the final cohort of 8.
@@ -169,13 +161,25 @@ export function JuryBriefingContent() {
           ))}
         </div>
 
-        <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginTop: 'var(--space-6)', marginBottom: 'var(--space-3)' }}>
+        <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginTop: 'var(--space-6)', marginBottom: 'var(--space-1)' }}>
           jury interview agenda
         </div>
+        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', margin: '0 0 var(--space-3)' }}>
+          45 minutes per organisation, followed by 10 minutes for the jury to discuss and score.
+        </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)' }}>
           {AGENDA.map((a) => (
-            <div key={a.time} style={{ border: '1px solid var(--border-subtle)', padding: 'var(--space-3)' }}>
-              <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--delta-red)', marginBottom: 'var(--space-1)' }}>{a.time}</div>
+            <div
+              key={a.time}
+              style={{
+                border: a.plus ? '1px dashed var(--border-strong)' : '1px solid var(--border-subtle)',
+                background: a.plus ? 'var(--surface-canvas)' : 'transparent',
+                padding: 'var(--space-3)',
+              }}
+            >
+              <div style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number, color: a.plus ? 'var(--text-secondary)' : 'var(--delta-red)', marginBottom: 'var(--space-1)' }}>
+                {a.time}
+              </div>
               <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)' }}>{a.label}</div>
             </div>
           ))}
@@ -188,15 +192,21 @@ export function JuryBriefingContent() {
       </Card>
 
       <Card accent>
-        <SectionHeading>clarifications for the jury</SectionHeading>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: 'var(--space-4)', background: 'var(--surface-canvas)', border: '1px solid var(--delta-red)', marginBottom: 'var(--space-3)' }}>
-            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-              <span style={{ color: 'var(--delta-red)', flexShrink: 0 }}>·</span>
-              <p style={{ margin: 0, fontSize: 'var(--fs-small)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)' }}>{CLARIFICATIONS_FLAGGED}</p>
-            </div>
+        <SectionHeading>a quick check</SectionHeading>
+        <div style={{ border: '1px solid var(--border-subtle)', padding: 'var(--space-4)' }}>
+          <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--delta-red)', marginBottom: 'var(--space-2)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
+            contextual fit test
           </div>
-          <PointList points={CLARIFICATIONS} />
+          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', margin: '0 0 var(--space-3)' }}>
+            a simple test you can run with each organisation — are they:
+          </p>
+          <ol style={{ margin: 0, paddingLeft: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)' }}>
+            {FIT_TEST.map((p) => (
+              <li key={p} style={{ marginBottom: 'var(--space-1)' }}>
+                {p}
+              </li>
+            ))}
+          </ol>
         </div>
       </Card>
 
