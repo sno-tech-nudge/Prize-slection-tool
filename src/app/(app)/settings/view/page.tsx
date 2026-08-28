@@ -30,13 +30,12 @@ export default async function ManageViewSettingsPage() {
         </Card>
 
         <Card>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>jury guidelines</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>jury guide</h2>
           <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-            upload a jury guidelines document (csv or pdf only). shown on the jury applications list and each
-            application page under &ldquo;jury guidelines&rdquo; as plain text — a csv&apos;s rows are converted to
-            text, a pdf&apos;s text is extracted directly.
+            upload a jury guide document (csv or pdf only) for reference — a csv&apos;s rows are converted to text, a
+            pdf&apos;s text is extracted directly.
           </p>
-          <UploadSlot kind="JURY_GUIDELINES" label="jury guidelines" accept=".csv,.pdf" current={guidelinesUpload} />
+          <UploadSlot kind="JURY_GUIDELINES" label="jury guide" accept=".csv,.pdf" current={guidelinesUpload} />
           <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-4)' }}>
             the &ldquo;rubric&rdquo; jury sees is the actual scoring rubric built into the jury scoring form (heading,
             weightage and info-button layout) — it&apos;s not a document upload, so there&apos;s no rubric file to

@@ -16,7 +16,7 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   roles: UserRole[];
-  /** opens in a new browser tab instead of navigating this one — for jury guidelines, so a juror
+  /** opens in a new browser tab instead of navigating this one — for the jury guide, so a juror
    *  can keep the guidelines open in one tab while scoring in another. */
   newTab?: boolean;
 }
@@ -25,7 +25,7 @@ interface NavItem {
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
   { href: '/applications', label: 'applications', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER', 'JURY'] },
-  { href: '/jury-guidelines', label: 'jury guidelines', icon: BookOpen, roles: ['JURY'], newTab: true },
+  { href: '/jury-guide', label: 'jury guide', icon: BookOpen, roles: ['JURY'], newTab: true },
   { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER'] },
 ];

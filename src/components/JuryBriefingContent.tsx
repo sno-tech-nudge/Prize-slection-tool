@@ -81,7 +81,7 @@ function PointList({ points, flagged }: { points: string[]; flagged?: string }) 
 }
 
 /** The real jury briefing content — challenge statement, thresholds, selection process/interview
- *  agenda, jury guidelines, and a quick contextual-fit check — for the /jury-guidelines page.
+ *  agenda, the jury guide, and a quick contextual-fit check — for the /jury-guide page.
  *  Static, hand-authored content (not an admin upload), rendered with this app's own design
  *  tokens rather than the original document's own styling, so it reads consistently with every
  *  other page a juror sees. */
@@ -187,7 +187,7 @@ export function JuryBriefingContent() {
       </Card>
 
       <Card accent>
-        <SectionHeading>jury guidelines</SectionHeading>
+        <SectionHeading>jury guide</SectionHeading>
         <PointList points={GUIDELINES} flagged={GUIDELINES_FLAGGED} />
       </Card>
 
