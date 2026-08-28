@@ -113,13 +113,7 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
 function JuryApplicationView({ app }: { app: ApplicationDetail }) {
   return (
     <div>
-      <SectionJumpNav
-        excludeIds={['section-model', 'section-tech-and-tools', 'section-scoring', 'section-scraper']}
-        labelOverrides={{
-          'section-organisation-profile': 'organisation details',
-          'section-experience-impact': 'metrics',
-        }}
-      />
+      <SectionJumpNav excludeIds={['section-model', 'section-tech-and-tools', 'section-scoring', 'section-scraper']} />
 
       <div id="section-organisation-profile">
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
@@ -247,7 +241,7 @@ export function ApplicationMainContent({
       <SectionJumpNav excludeIds={isJury ? ['section-internal-reviewer-remarks', 'section-scoring', 'section-scraper'] : ['section-internal-reviewer-remarks']} />
       <div id="section-organisation-profile">
       <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation</h2>
+        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
           <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />
           {!isObserver && !isJury && <Field label="rec_id" value={app.creatorRecordId} />}
@@ -442,7 +436,7 @@ export function ApplicationMainContent({
         app.teamTrainingDescription ||
         app.heardAboutChallenge) && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>experience and impact</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />
             <Field label="farmers reached" value={app.farmersCount} />

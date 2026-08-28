@@ -1,11 +1,11 @@
 'use client';
 
 const SECTIONS = [
-  { id: 'section-organisation-profile', label: 'organisation profile' },
+  { id: 'section-organisation-profile', label: 'organisation details' },
   { id: 'section-ai-summary', label: 'organisation synopsis' },
   { id: 'section-model', label: 'model' },
   { id: 'section-tech-and-tools', label: 'tech and tools' },
-  { id: 'section-experience-impact', label: 'experience & impact' },
+  { id: 'section-experience-impact', label: 'metrics' },
   // only ever rendered on the jury's own view — see the excludeIds passed from
   // ApplicationMainContent, which drops this for every other role.
   { id: 'section-internal-reviewer-remarks', label: 'internal reviewer remarks' },
@@ -13,18 +13,14 @@ const SECTIONS = [
   { id: 'section-scraper', label: 'scraper data' },
 ];
 
-/** Quick-jump nav mirroring the real application form's own step names (organisation profile /
- *  model / tech and tools / experience & impact) — everything stays visible on one page (this is
- *  the "very detailed view", nothing hidden), these buttons just scroll to the right spot.
- *  `excludeIds` drops entries whose target section isn't rendered for the current viewer (jury
- *  don't get scoring & evaluation / scraper data, so those jump buttons would go nowhere).
- *  `labelOverrides` renames an entry's label without changing its target id — used for the real
- *  JURY role, whose trimmed field set reads better under "organisation details" / "metrics" than
- *  the admin-facing "organisation profile" / "experience & impact" names. */
-export function SectionJumpNav({ excludeIds, labelOverrides }: { excludeIds?: string[]; labelOverrides?: Record<string, string> } = {}) {
-  const sections = (excludeIds ? SECTIONS.filter((s) => !excludeIds.includes(s.id)) : SECTIONS).map((s) =>
-    labelOverrides?.[s.id] ? { ...s, label: labelOverrides[s.id] } : s,
-  );
+/** Quick-jump nav — same section names for every role that sees a given section (jury and
+ *  admin/reviewer both call these "organisation details" / "metrics" now), everything stays
+ *  visible on one page (this is the "very detailed view", nothing hidden), these buttons just
+ *  scroll to the right spot. `excludeIds` drops entries whose target section isn't rendered for
+ *  the current viewer (jury don't get scoring & evaluation / scraper data, so those jump buttons
+ *  would go nowhere). */
+export function SectionJumpNav({ excludeIds }: { excludeIds?: string[] } = {}) {
+  const sections = excludeIds ? SECTIONS.filter((s) => !excludeIds.includes(s.id)) : SECTIONS;
   return (
     <div
       style={{
