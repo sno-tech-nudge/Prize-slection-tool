@@ -106,7 +106,7 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
 
 /** The real JURY role's entire application view, deliberately separate from the shared tree below
  *  rather than threaded through it with per-field conditionals — per the jury view field sheet,
- *  jury sees exactly four sections (organisation details, application synopsis, metrics, plus
+ *  jury sees exactly four sections (organisation details, organisation synopsis, metrics, plus
  *  "internal reviewer remarks" rendered by the page itself in the sidebar) and nothing else. A
  *  dedicated component makes that a closed list: a new field added to the shared admin/reviewer
  *  tree can't leak into jury's view by accident. Observer is NOT this — observer still gets the
@@ -119,7 +119,6 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
         labelOverrides={{
           'section-organisation-profile': 'organisation details',
           'section-experience-impact': 'metrics',
-          'section-ai-summary': 'application synopsis',
         }}
       />
 
@@ -167,7 +166,7 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
       <div id="section-ai-summary">
         {app.internalDecision === 'YES' && (
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>organisation synopsis</h2>
             {app.orgSynopsisText && (
               <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{app.orgSynopsisText}</p>
             )}
@@ -269,7 +268,7 @@ export function ApplicationMainContent({
       {app.internalDecision === 'YES' && (
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)', gap: 'var(--space-3)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI summary</h2>
+            <h2 style={{ fontSize: 'var(--fs-h3)' }}>organisation synopsis</h2>
             {user && !isJury && (
               <RegenerateSynopsisButton applicationId={app.id} hasRun={app.orgSynopsisStatus === 'DONE' || app.orgSynopsisStatus === 'FAILED'} />
             )}
@@ -282,7 +281,7 @@ export function ApplicationMainContent({
               {!isJury && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
                 <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
                   every configured AI provider failed, so this is a template-built fallback, not a model-generated read
-                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}. regenerate once the provider issue clears for a real AI summary.
+                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}. regenerate once the provider issue clears for a real organisation synopsis.
                 </p>
               )}
             </>
