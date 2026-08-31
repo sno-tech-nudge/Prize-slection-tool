@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Send, RefreshCw, Globe, type LucideIcon } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, Globe, FileText, type LucideIcon } from 'lucide-react';
 import { Card, Button, Badge, Input, useToast } from '@/design-system';
 import {
   scoreAllUnscoredAction,
@@ -10,6 +10,7 @@ import {
   reassignAllInRotationOrderAction,
   reassignReviewerAction,
   reassignJurorAction,
+  regenerateAllSynopsesAction,
 } from '@/lib/automation/actions';
 import { Users, ArrowRightLeft } from 'lucide-react';
 
@@ -80,6 +81,7 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
   const [reassigning, setReassigning] = React.useState(false);
   const [movingAssignments, setMovingAssignments] = React.useState(false);
   const [movingJuror, setMovingJuror] = React.useState(false);
+  const [regeneratingSynopses, setRegeneratingSynopses] = React.useState(false);
   const jobsInFlight = stats.jobStats.PENDING + stats.jobStats.RUNNING;
 
   async function runScore() {
@@ -89,6 +91,17 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
       router.refresh();
     } finally {
       setScoring(false);
+    }
+  }
+
+  async function runRegenerateSynopses() {
+    setRegeneratingSynopses(true);
+    try {
+      const { queued } = await regenerateAllSynopsesAction();
+      push('queued', `${queued} application synopsis regeneration${queued === 1 ? '' : 's'} queued — drains over the next few minutes.`, 'success');
+      router.refresh();
+    } finally {
+      setRegeneratingSynopses(false);
     }
   }
 
@@ -214,6 +227,16 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
         </span>
         <Button variant="secondary" size="sm" disabled={reassigning} onClick={runReassign}>
           {reassigning ? 'reassigning…' : 're-run rotation'}
+        </Button>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4) 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
+          <FileText size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
+          application synopsis — regenerate every yes-marked application under the current prompt
+        </span>
+        <Button variant="secondary" size="sm" disabled={regeneratingSynopses} onClick={runRegenerateSynopses}>
+          {regeneratingSynopses ? 'queuing…' : 'regenerate all synopses'}
         </Button>
       </div>
 

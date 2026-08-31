@@ -62,6 +62,31 @@ export async function enrichAllAction() {
   return { queued };
 }
 
+/** Re-queues the organisation & model synopsis for every YES-decided application, regardless of
+ *  whether one already exists — unlike scoreAllUnscoredAction (which only targets applications
+ *  with none yet), this is meant to force a rewrite of already-generated text after a prompt
+ *  change, so "already has one" is not a reason to skip it. Drained the same way every other job
+ *  is — the client-side ticker polling /api/jobs/tick — so this needs nothing beyond the admin
+ *  clicking the button once on the live site. */
+export async function regenerateAllSynopsesAction() {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const applications = await prisma.application.findMany({
+    where: { isDuplicateOf: null, internalDecision: 'YES' },
+    select: { id: true },
+  });
+
+  const queued = await enqueueJobs(
+    'SYNOPSIZE_APPLICATION',
+    applications.map((a) => a.id),
+  );
+
+  revalidatePath('/dashboard');
+  revalidatePath('/applications');
+  return { queued };
+}
+
 export async function rerunMatcherAction() {
   const user = await getCurrentUser();
   assertRole(user, CAN_MANAGE_SETTINGS);
