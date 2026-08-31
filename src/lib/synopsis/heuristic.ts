@@ -10,9 +10,17 @@ function labels(raw: string | null, map: Record<string, string>): string | null 
 
 // keeps a clause to one short fragment, matching the AI-generated version's length budget — a
 // template fallback that ran on for full sentences would look inconsistent next to the real thing.
+// Cuts at the last complete word within maxLen, never mid-word, and never appends a visible
+// cutoff marker like "…" — a shortened fragment should read as a deliberately short, complete
+// thought, not as a longer one that got cut off (this raw slice() used to be exactly what
+// produced mid-word cutoffs like "transiti…." whenever the AI providers failed and this fallback
+// actually ran).
 function truncate(text: string, maxLen = 110): string {
   const trimmed = text.trim().replace(/\.$/, '');
-  return trimmed.length > maxLen ? `${trimmed.slice(0, maxLen - 1).trim()}…` : trimmed;
+  if (trimmed.length <= maxLen) return trimmed;
+  const cut = trimmed.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim();
 }
 
 /** Deterministic, template-based fallback used when every configured AI provider fails (rate

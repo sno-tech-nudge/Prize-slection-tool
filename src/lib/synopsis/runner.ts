@@ -2,7 +2,13 @@ import { prisma } from '@/lib/db';
 import { SYNOPSIS_SYSTEM_PROMPT, buildSynopsisPrompt } from './prompt';
 import { heuristicSynopsis } from './heuristic';
 
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+// llama-3.3-70b-versatile was deprecated by Groq on 2026-06-17 for free/developer tiers — a
+// hardcoded default pointing at a dead model silently fails every call (404 model_not_found) and
+// falls back to the heuristic template with zero visible error, which is exactly what was
+// producing the truncated ("...") synopsis bullets — the heuristic's own truncate() helper, not
+// the AI prompt, was the actual source. Groq's own migration guidance for 3.3 70b is
+// openai/gpt-oss-120b.
+const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
 function extractJson(text: string): unknown {

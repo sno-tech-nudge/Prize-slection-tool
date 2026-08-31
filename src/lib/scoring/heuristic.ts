@@ -129,5 +129,11 @@ function excerptFor(app: ApplicationForHeuristic, key: string): string {
     (t): t is string => !!t && t.trim().length > 3,
   );
   const text = candidates[0] ?? '';
-  return text ? text.slice(0, 140) + (text.length > 140 ? '…' : '') : 'no evidence provided';
+  if (!text) return 'no evidence provided';
+  if (text.length <= 140) return text;
+  // cut at the last complete word within 140 chars — a raw slice() here used to cut mid-word
+  // whenever this heuristic fallback actually ran (e.g. every AI provider failing).
+  const cut = text.slice(0, 140);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim();
 }
