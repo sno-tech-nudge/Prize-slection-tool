@@ -42,7 +42,11 @@ async function callGroq(userPrompt: string): Promise<string> {
   async function attempt(extra?: string): Promise<string> {
     const res = await groqRequest({
       model: GROQ_MODEL,
-      max_tokens: 700,
+      // generous headroom over the ~150-210 word target (roughly 200-280 tokens for the text
+      // itself) — a tight limit here is exactly what was causing the API to cut the completion
+      // off mid-word before the model finished writing, which no prompt instruction can prevent
+      // since the model never gets the chance to finish.
+      max_tokens: 1200,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYNOPSIS_SYSTEM_PROMPT },
@@ -74,7 +78,7 @@ async function callGemini(userPrompt: string): Promise<string> {
         body: JSON.stringify({
           system_instruction: { parts: [{ text: SYNOPSIS_SYSTEM_PROMPT }] },
           contents: [{ role: 'user', parts: [{ text: extra ? `${userPrompt}\n\n${extra}` : userPrompt }] }],
-          generationConfig: { responseMimeType: 'application/json' },
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 1200 },
         }),
       },
     );
