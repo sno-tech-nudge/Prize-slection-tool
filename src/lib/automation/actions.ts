@@ -228,7 +228,7 @@ export async function reassignJurorAction(formData: FormData): Promise<{ movedBe
 }
 
 export async function getAutomationStats() {
-  const [totalApps, scoredApps, matchedTargets, totalTargets, queuedOutbox, sentOutbox, jobStats, sitesToEnrich, enrichedApps, settings] =
+  const [totalApps, scoredApps, matchedTargets, totalTargets, queuedOutbox, sentOutbox, jobStats, sitesToEnrich, enrichedApps, settings, synopsisJobsInFlight] =
     await Promise.all([
       prisma.application.count({ where: { isDuplicateOf: null } }),
       prisma.application.count({ where: { isDuplicateOf: null, aiEvaluations: { some: {} } } }),
@@ -240,6 +240,10 @@ export async function getAutomationStats() {
       prisma.application.count({ where: { isDuplicateOf: null, website: { not: null } } }),
       prisma.application.count({ where: { isDuplicateOf: null, website: { not: null }, enrichmentSummary: { not: null } } }),
       getSettings(),
+      // a type-specific in-flight count — the generic jobStats/jobsInFlight badge conflates every
+      // job type, so it can't answer "is the synopsis regeneration batch actually done yet" on its
+      // own once other job types are also queued.
+      prisma.job.count({ where: { type: 'SYNOPSIZE_APPLICATION', status: { in: ['PENDING', 'RUNNING'] } } }),
     ]);
   return {
     totalApps,
@@ -252,5 +256,6 @@ export async function getAutomationStats() {
     sitesToEnrich,
     enrichedApps,
     autoSendRejections: settings.autoSendRejections,
+    synopsisJobsInFlight,
   };
 }

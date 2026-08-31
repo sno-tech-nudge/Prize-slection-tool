@@ -25,6 +25,7 @@ export interface AutomationStats {
   jobStats: { PENDING: number; RUNNING: number; DONE: number; FAILED: number };
   sitesToEnrich: number;
   enrichedApps: number;
+  synopsisJobsInFlight: number;
 }
 
 function TaskRow({
@@ -235,9 +236,14 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
           <FileText size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
           application synopsis — regenerate every yes-marked application under the current prompt
         </span>
-        <Button variant="secondary" size="sm" disabled={regeneratingSynopses} onClick={runRegenerateSynopses}>
-          {regeneratingSynopses ? 'queuing…' : 'regenerate all synopses'}
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          {stats.synopsisJobsInFlight > 0 && (
+            <Badge tone="yellow">{stats.synopsisJobsInFlight} remaining</Badge>
+          )}
+          <Button variant="secondary" size="sm" disabled={regeneratingSynopses} onClick={runRegenerateSynopses}>
+            {regeneratingSynopses ? 'queuing…' : 'regenerate all synopses'}
+          </Button>
+        </div>
       </div>
 
       <form
