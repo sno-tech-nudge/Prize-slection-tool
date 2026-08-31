@@ -16,57 +16,41 @@ function truncate(text: string, maxLen = 110): string {
 }
 
 /** Deterministic, template-based fallback used when every configured AI provider fails (rate
- *  limit, exhausted billing, or no key at all) — so jury always sees a real, judgeable paragraph
- *  rather than an error or an indefinite "not available yet.", the same philosophy as
- *  scoring/heuristic.ts's fallback for the AI evaluation. Built only from fields the applicant
- *  actually filled in; a field left blank is skipped, never guessed at. One flowing paragraph
- *  with the concrete numbers included, same format the AI-generated synopsis uses. */
+ *  limit, exhausted billing, or no key at all) — so jury always sees a real snapshot rather than
+ *  an error or an indefinite "not available yet.", the same philosophy as scoring/heuristic.ts's
+ *  fallback for the AI evaluation. Built only from fields the applicant actually filled in; a
+ *  field left blank is skipped, never guessed at. Opening sentence + up to 5 bullets, no metrics —
+ *  same shape as the AI-generated snapshot. */
 export function heuristicSynopsis(app: ApplicationForHeuristicSynopsis): string {
   const modelLabel = labels(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL);
   const practices = labels(app.regenerativePractices, REGEN_PRACTICE_LABEL);
   const crops = labels(app.primaryCrops, CROP_TYPE_LABEL);
   const states = labels(app.statesOperating, {});
 
-  const sentences: string[] = [];
-
-  const modelSentence = [
-    modelLabel ? `${app.orgName} operates as ${modelLabel.toLowerCase()}` : app.orgName,
-    states ? `in ${states}` : null,
-    app.yearsExperience != null ? `with ${app.yearsExperience} years of experience in regenerative agriculture` : null,
-  ]
+  const opener = [modelLabel ? `operates as ${modelLabel.toLowerCase()}` : null, states ? `in ${states.toLowerCase()}` : null]
     .filter(Boolean)
     .join(' ');
-  if (modelSentence) sentences.push(`${modelSentence}.`);
 
-  if (app.operatingModelDescription) sentences.push(`${truncate(app.operatingModelDescription, 200)}.`);
-
-  const practiceSentence = [
-    practices ? `Regenerative practices in use include ${practices.toLowerCase()}` : null,
-    crops ? `across crops such as ${crops.toLowerCase()}` : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  if (practiceSentence) sentences.push(`${practiceSentence}.`);
-
-  const reachSentence = [
-    app.farmersCount != null ? `${app.farmersCount} farmers reached` : null,
-    app.areaUnderRegenPractice != null ? `${app.areaUnderRegenPractice} hectares under regenerative practice` : null,
-  ]
-    .filter(Boolean)
-    .join(' and ');
-  if (reachSentence) sentences.push(`${reachSentence} so far.`);
-
-  if (app.adoptionHurdle) sentences.push(`The main adoption barrier addressed is ${truncate(app.adoptionHurdle, 150).toLowerCase()}.`);
-
-  if (app.techUseCases.length > 0) sentences.push(`Technology is used for ${truncate(app.techUseCases.map((t) => t.description).join('; '), 150).toLowerCase()}.`);
-
-  if (app.otherDevelopmentAreas) sentences.push(`Beyond agriculture, the organisation also works on ${truncate(app.otherDevelopmentAreas, 150).toLowerCase()}.`);
-
-  if (app.fundUsagePlan) sentences.push(`Prize funds are planned for ${truncate(app.fundUsagePlan, 150).toLowerCase()}.`);
-
-  if (sentences.length === 0) {
+  if (!opener && !app.operatingModelDescription) {
     return `${app.orgName} has not provided enough detail across the operating model fields yet to summarise.`;
   }
 
-  return sentences.join(' ');
+  const opening = opener ? `${app.orgName} ${opener}.` : `${app.orgName}.`;
+
+  const bullets: string[] = [];
+
+  if (app.operatingModelDescription) bullets.push(`model: ${truncate(app.operatingModelDescription, 150)}.`);
+
+  const approach = [practices ? `uses ${practices.toLowerCase()}` : null, crops ? `across ${crops.toLowerCase()}` : null].filter(Boolean).join(' ');
+  if (approach) bullets.push(`regenerative approach: ${approach}.`);
+
+  if (app.adoptionHurdle) bullets.push(`adoption barrier: ${truncate(app.adoptionHurdle, 150)}.`);
+
+  if (app.techUseCases.length > 0) bullets.push(`technology: ${truncate(app.techUseCases.map((t) => t.description).join('; '), 150)}.`);
+
+  if (app.fundUsagePlan) bullets.push(`proposed scale-up: ${truncate(app.fundUsagePlan, 150)}.`);
+
+  if (bullets.length === 0) return opening;
+
+  return [opening, ...bullets.slice(0, 5).map((b) => `• ${b}`)].join('\n');
 }
