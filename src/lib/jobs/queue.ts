@@ -42,8 +42,41 @@ async function runJob(jobId: string, type: string, payload: string) {
   }
 }
 
+// how long a job can sit at RUNNING before it's treated as abandoned — comfortably longer than
+// any single job (scoring, enrichment, a synopsis call with Groq's rate-limit retry/backoff)
+// should ever take, so a real in-progress job is never falsely reclaimed.
+const STALE_RUNNING_MS = 3 * 60 * 1000;
+const MAX_ATTEMPTS = 3;
+
+/** Resets jobs stuck at RUNNING from a prior tick whose serverless invocation was killed
+ *  mid-request (a timeout during a slow external API call, most likely) before it could reach
+ *  either the success or catch branch below — nothing else ever revisits a RUNNING job, since
+ *  processPendingJobs only ever claims PENDING ones, so without this a killed tick's job stays
+ *  "in flight" forever and the queue-depth badge never reaches zero. Retried up to MAX_ATTEMPTS
+ *  (attempts is already incremented on every claim) before being given up on as FAILED. */
+async function reclaimStaleRunningJobs(): Promise<void> {
+  const staleCutoff = new Date(Date.now() - STALE_RUNNING_MS);
+  const stale = await prisma.job.findMany({
+    where: { status: 'RUNNING', startedAt: { lt: staleCutoff } },
+    select: { id: true, attempts: true },
+  });
+
+  for (const job of stale) {
+    if (job.attempts >= MAX_ATTEMPTS) {
+      await prisma.job.updateMany({
+        where: { id: job.id, status: 'RUNNING' },
+        data: { status: 'FAILED', finishedAt: new Date(), error: `abandoned — stuck at RUNNING past ${MAX_ATTEMPTS} attempts` },
+      });
+    } else {
+      await prisma.job.updateMany({ where: { id: job.id, status: 'RUNNING' }, data: { status: 'PENDING' } });
+    }
+  }
+}
+
 /** Claims and runs up to `limit` pending jobs. Returns how many ran and how many failed. */
 export async function processPendingJobs(limit = 3): Promise<{ ran: number; failed: number }> {
+  await reclaimStaleRunningJobs();
+
   const pending = await prisma.job.findMany({
     where: { status: 'PENDING' },
     orderBy: { createdAt: 'asc' },
