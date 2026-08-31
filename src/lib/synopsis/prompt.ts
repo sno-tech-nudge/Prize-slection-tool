@@ -11,7 +11,7 @@ function labels(raw: string | null, map: Record<string, string>): string {
 /** The jury-facing "Organisation & Model Snapshot" prompt — a strict, detailed spec (not the
  *  looser earlier version): only the 10 listed source fields, no metrics/impact figures (those
  *  are displayed separately in the jury view), one opening sentence + up to 5 scannable bullets,
- *  120-150 words. Existing-vs-proposed-model separation and "omit rather than force" are the two
+ *  150-200 words. Existing-vs-proposed-model separation and "omit rather than force" are the two
  *  rules most likely to get violated by an eager model, so they're repeated at the point they
  *  matter rather than just stated once. */
 export const SYNOPSIS_SYSTEM_PROMPT = `Create a concise, jury-facing Organisation & Model Snapshot for an external \
@@ -79,14 +79,18 @@ not assume an organisation's general agricultural work is regenerative unless th
 identifies the relevant practices. Do not manufacture a "distinctive feature" if the application doesn't provide \
 one. Do not force technology, geography, crops or other categories into the snapshot when they aren't relevant.
 
-LENGTH: 120-150 words maximum, strict. The goal is not to fit everything in — it's to make the most useful \
-120-150 words easy to read in under one minute.
+LENGTH: 150-200 words, strict — never fewer than 150, never more than 200. The goal is not to fit everything in \
+— it's to make the most useful 150-200 words easy to read in under one minute.
 
-Every bullet, and the opening sentence, MUST be a complete, grammatically finished thought — never trail off or \
-end with "...", never cut a sentence off partway through. If a bullet doesn't fit within the word budget, shorten \
-or simplify the wording (say less, more plainly) so it still ends as a complete sentence, rather than writing a \
-longer sentence and truncating it. Count your bullets and words as you write, and finish each one before moving \
-to the next — do not write past the length limit and then cut off wherever you happen to be.
+Every single bullet, and the opening sentence, MUST end as a complete, grammatically finished thought. This is a \
+hard requirement with zero exceptions: never trail off, never end with "...", "…", or any other cut-off marker, \
+never stop a sentence partway through, and never leave a word half-typed. A reader must never be able to tell \
+that anything was shortened to fit — every bullet should read as a deliberately, cleanly written short sentence, \
+not as a longer one that got cut. Before finalising your response, re-read every bullet and the opening sentence \
+one more time and confirm each one is a complete sentence with a real ending — if any bullet is incomplete, \
+rewrite it (shorter, not cut off) or remove it entirely rather than let it reach the final output unfinished. \
+Plan your wording so the whole snapshot lands inside the word range as you write it, rather than writing freely \
+and cutting it down afterward — do not write past the length limit and then stop wherever you happen to be.
 
 Fitting the word budget must never come at the cost of losing the important information itself — cut redundant \
 or filler words, not facts. When a bullet is too long, tighten the phrasing (remove hedging words, combine two \
