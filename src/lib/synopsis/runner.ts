@@ -42,7 +42,7 @@ async function callGroq(userPrompt: string): Promise<string> {
   async function attempt(extra?: string): Promise<string> {
     const res = await groqRequest({
       model: GROQ_MODEL,
-      max_tokens: 500,
+      max_tokens: 700,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYNOPSIS_SYSTEM_PROMPT },

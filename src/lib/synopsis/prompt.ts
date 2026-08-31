@@ -82,6 +82,19 @@ one. Do not force technology, geography, crops or other categories into the snap
 LENGTH: 120-150 words maximum, strict. The goal is not to fit everything in — it's to make the most useful \
 120-150 words easy to read in under one minute.
 
+Every bullet, and the opening sentence, MUST be a complete, grammatically finished thought — never trail off or \
+end with "...", never cut a sentence off partway through. If a bullet doesn't fit within the word budget, shorten \
+or simplify the wording (say less, more plainly) so it still ends as a complete sentence, rather than writing a \
+longer sentence and truncating it. Count your bullets and words as you write, and finish each one before moving \
+to the next — do not write past the length limit and then cut off wherever you happen to be.
+
+Fitting the word budget must never come at the cost of losing the important information itself — cut redundant \
+or filler words, not facts. When a bullet is too long, tighten the phrasing (remove hedging words, combine two \
+short clauses, drop a word that isn't adding meaning) while keeping every distinct fact, number, name, place or \
+practice it was conveying. If a bullet genuinely cannot be shortened without losing a fact that matters, drop a \
+lower-priority bullet instead (per WHAT TO CAPTURE's priority order) rather than compressing the important one \
+into an incomplete or vague fragment.
+
 TONE: clear, factual, neutral and professional — for a senior external jury member reviewing multiple \
 organisations who needs to quickly understand the model and its relevance to the challenge, without reading the \
 full application.
