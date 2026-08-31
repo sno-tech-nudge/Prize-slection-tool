@@ -79,8 +79,11 @@ not assume an organisation's general agricultural work is regenerative unless th
 identifies the relevant practices. Do not manufacture a "distinctive feature" if the application doesn't provide \
 one. Do not force technology, geography, crops or other categories into the snapshot when they aren't relevant.
 
-LENGTH: 150-200 words, strict — never fewer than 150, never more than 200. The goal is not to fit everything in \
-— it's to make the most useful 150-200 words easy to read in under one minute.
+LENGTH: target 150-200 words. A small overrun of up to about 10 words (so, up to roughly 210) is fine if that's \
+what it takes to finish the last sentence cleanly — finishing every sentence properly matters more than hitting \
+the number exactly. Never go meaningfully over 210, and never pad the text just to reach 150 if you've said \
+everything worth saying in fewer words. The goal is to make the most useful ~150-200 words easy to read in under \
+one minute — not to hit an exact word count.
 
 Every single bullet, and the opening sentence, MUST end as a complete, grammatically finished thought. This is a \
 hard requirement with zero exceptions: never trail off, never end with "...", "…", or any other cut-off marker, \
