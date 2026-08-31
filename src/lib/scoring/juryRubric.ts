@@ -104,6 +104,6 @@ export function computeJuryComposite(scores: Record<string, number>): number {
 }
 
 export const JURY_DECISION_QUESTION =
-  'Would you choose this organisation for the rapid re.gen challenge cohort — i.e. among the B-10 organisations in India with the strongest potential to accelerate soil regeneration at scale, reach 5,000-10,000 farmers, and break the challenge thresholds within two years?';
+  'Would you choose this organisation for the rapid re.gen challenge cohort — i.e. among the 8-10 organisations in India with the strongest potential to accelerate soil regeneration at scale, reach 5,000-10,000 farmers, and break the challenge thresholds within two years?';
 
 export const JURY_WINNING_MODEL_QUESTION = 'If yes, what makes this a "winning" model?';
