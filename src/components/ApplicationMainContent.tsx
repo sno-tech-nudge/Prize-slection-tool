@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Card, Badge, Tag } from '@/design-system';
 import { SectionJumpNav } from '@/components/SectionJumpNav';
@@ -6,6 +7,7 @@ import { ValidateOrgButton } from '@/components/ValidateOrgButton';
 import { SectionScoreInfo } from '@/components/SectionScoreInfo';
 import type { getApplicationDetail } from '@/lib/applications/queries';
 import type { User } from '@prisma/client';
+import type { FieldVisibilityConfig } from '@/lib/visibility/settings';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { computeConsensus } from '@/lib/applications/consensus';
@@ -91,7 +93,7 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
   if (!values || values.length === 0) return null;
   return (
     <div style={{ marginBottom: 'var(--space-4)' }}>
-      <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
+      <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
         {label}
       </div>
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
@@ -106,33 +108,43 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
 /** The real JURY role's entire application view, deliberately separate from the shared tree below
  *  rather than threaded through it with per-field conditionals — per the jury view field sheet,
  *  jury sees exactly four sections (organisation details, application synopsis, metrics, plus
- *  "internal reviewer remarks" rendered by the page itself in the sidebar) and nothing else. A
- *  dedicated component makes that a closed list: a new field added to the shared admin/reviewer
- *  tree can't leak into jury's view by accident. Observer is NOT this — observer still gets the
- *  fuller shared tree below, just with AI evaluation/scraper/scoring hidden. */
-function JuryApplicationView({ app }: { app: ApplicationDetail }) {
-  return (
-    <div>
-      <SectionJumpNav excludeIds={['section-model', 'section-tech-and-tools', 'section-scoring', 'section-scraper']} />
+ *  "internal reviewer remarks") and nothing else. A dedicated component makes that a closed list:
+ *  a new field added to the shared admin/reviewer tree can't leak into jury's view by accident.
+ *  Observer is NOT this — observer still gets the fuller shared tree below, just with AI
+ *  evaluation/scraper/scoring hidden. `visibility.jury` narrows which of these ~15 fields actually
+ *  render, per admin's /settings/view configuration; `order` controls which of the 4 cards render
+ *  first, same source. */
+function JuryApplicationView({ app, visibility, order }: { app: ApplicationDetail; visibility: FieldVisibilityConfig; order: string[] }) {
+  const jv = (key: string) => visibility.jury[key] === true;
 
-      <div id="section-organisation-profile">
+  const sections: Record<string, () => React.ReactNode> = {
+    organisationDetails: () => (
+      <div id="section-organisation-profile" key="organisationDetails">
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <Field label="organisation name" value={app.orgName} />
-            <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
-            <Field label="year of incorporation" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
-            <Field
-              label="legal registration"
-              value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
-            />
-            <Field
-              label="annual operating budget"
-              value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
-            />
-            <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
+            {jv('website') && (
+              <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
+            )}
+            {jv('incorporationDate') && (
+              <Field label="year of incorporation" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
+            )}
+            {jv('legalRegistrationType') && (
+              <Field
+                label="legal registration"
+                value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
+              />
+            )}
+            {jv('annualOperatingBudget') && (
+              <Field
+                label="annual operating budget"
+                value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
+              />
+            )}
+            {jv('teamSize') && <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />}
           </div>
-          {app.founders.length > 0 && (
+          {jv('founders') && app.founders.length > 0 && (
             <div style={{ marginTop: 'var(--space-2)' }}>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 founders
@@ -155,9 +167,12 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
           )}
         </Card>
       </div>
+    ),
 
-      <div id="section-ai-summary">
-        {app.internalDecision === 'YES' && (
+    applicationSynopsis: () => {
+      if (!jv('orgSynopsis') || app.internalDecision !== 'YES') return null;
+      return (
+        <div id="section-ai-summary" key="applicationSynopsis">
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
             {app.orgSynopsisText && (
@@ -166,42 +181,69 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
             {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
             {!app.orgSynopsisText && app.orgSynopsisStatus !== 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>}
           </Card>
-        )}
-      </div>
+        </div>
+      );
+    },
 
-      <div id="section-experience-impact">
-        {(app.yearsExperience !== null ||
-          app.farmersCount !== null ||
-          app.smallholderFarmersCount !== null ||
-          app.avgLandHolding !== null ||
-          app.areaUnderRegenPractice !== null ||
-          app.statesOperating ||
-          app.verifiedImpacts) && (
+    metrics: () => {
+      const anyVisible =
+        (jv('yearsExperience') && app.yearsExperience !== null) ||
+        (jv('farmersCount') && app.farmersCount !== null) ||
+        (jv('smallholderFarmersCount') && app.smallholderFarmersCount !== null) ||
+        (jv('avgLandHolding') && app.avgLandHolding !== null) ||
+        (jv('areaUnderRegenPractice') && app.areaUnderRegenPractice !== null) ||
+        (jv('statesOperating') && app.statesOperating) ||
+        (jv('verifiedImpacts') && app.verifiedImpacts);
+      if (!anyVisible) return null;
+      return (
+        <div id="section-experience-impact" key="metrics">
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <Field label="years in regenerative agriculture" value={app.yearsExperience} />
-              <Field label="farmers reached" value={app.farmersCount} />
-              <Field label="smallholder farmers reached" value={app.smallholderFarmersCount} />
-              <Field label="area under regenerative agriculture" value={app.areaUnderRegenPractice} />
-              <Field label="average land holding (ha)" value={app.avgLandHolding} />
-              <Field label="geography coverage" value={tagList(app.statesOperating, {})?.join(', ')} />
+              {jv('yearsExperience') && <Field label="years in regenerative agriculture" value={app.yearsExperience} />}
+              {jv('farmersCount') && <Field label="farmers reached" value={app.farmersCount} />}
+              {jv('smallholderFarmersCount') && <Field label="smallholder farmers reached" value={app.smallholderFarmersCount} />}
+              {jv('areaUnderRegenPractice') && <Field label="area under regenerative agriculture" value={app.areaUnderRegenPractice} />}
+              {jv('avgLandHolding') && <Field label="average land holding (ha)" value={app.avgLandHolding} />}
+              {jv('statesOperating') && <Field label="geography coverage" value={tagList(app.statesOperating, {})?.join(', ')} />}
             </div>
-            <Field label="self reported impact" value={app.verifiedImpacts} />
+            {jv('verifiedImpacts') && <Field label="self reported impact" value={app.verifiedImpacts} />}
           </Card>
-        )}
-      </div>
+        </div>
+      );
+    },
 
-      <div id="section-internal-reviewer-remarks">
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
-          {app.humanReviews[0]?.comment ? (
-            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
-          ) : (
-            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
-          )}
-        </Card>
-      </div>
+    internalReview: () => {
+      if (!jv('internalReviewerRemarks')) return null;
+      return (
+        <div id="section-internal-reviewer-remarks" key="internalReview">
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
+            {app.humanReviews[0]?.comment ? (
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
+            ) : (
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
+            )}
+          </Card>
+        </div>
+      );
+    },
+  };
+
+  const excludeIds = [
+    'section-model',
+    'section-tech-and-tools',
+    'section-scoring',
+    'section-scraper',
+    ...(jv('internalReviewerRemarks') ? [] : ['section-internal-reviewer-remarks']),
+  ];
+
+  return (
+    <div>
+      <SectionJumpNav excludeIds={excludeIds} />
+      {order.map((key) => (
+        <Fragment key={key}>{sections[key]?.()}</Fragment>
+      ))}
     </div>
   );
 }
@@ -214,20 +256,24 @@ function JuryApplicationView({ app }: { app: ApplicationDetail }) {
  *  true for OBSERVER-role viewers too, since the two roles are meant to see an identical
  *  restricted slice there. The real JURY role (`isJury && !isObserver`) doesn't render any of this
  *  — see JuryApplicationView above, a fully separate closed-list view per the jury view field
- *  sheet. Observer still gets everything below, just with `isJury`'s usual internal-only cuts. */
+ *  sheet. Observer still gets everything below, gated field-by-field and section-ordered by
+ *  `visibility` (admin's /settings/view config) — admin/reviewer are never gated or reordered by
+ *  it, since `ov()` below only consults `visibility` when `isObserver` is true. */
 export function ApplicationMainContent({
   app,
   isJury,
   isObserver = false,
   user,
+  visibility,
 }: {
   app: ApplicationDetail;
   isJury: boolean;
   isObserver?: boolean;
   user: User | null;
+  visibility: FieldVisibilityConfig;
 }) {
   if (isJury && !isObserver) {
-    return <JuryApplicationView app={app} />;
+    return <JuryApplicationView app={app} visibility={visibility} order={visibility.jurySectionOrder} />;
   }
 
   const latestEval = app.aiEvaluations[0];
@@ -236,63 +282,73 @@ export function ApplicationMainContent({
   const eligibility = latestEval ? parseEligibility(latestEval.eligibility) : null;
   const embed = driveEmbedUrl(app.pitchDeckUrl);
 
-  return (
-    <div>
-      <SectionJumpNav excludeIds={isJury ? ['section-internal-reviewer-remarks', 'section-scoring', 'section-scraper'] : ['section-internal-reviewer-remarks']} />
-      <div id="section-organisation-profile">
-      <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-          <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />
-          {!isObserver && !isJury && <Field label="rec_id" value={app.creatorRecordId} />}
-          <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
-          <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />
-          <Field
-            label="incorporated"
-            value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined}
-          />
-          <Field label="email" value={app.email} />
-          <Field label="phone" value={app.phone} />
-          <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />
-        </div>
-      </Card>
+  // admin/reviewer always see every field, unrestricted — visibility only narrows observer.
+  const ov = (key: string) => !isObserver || visibility.observer[key] === true;
 
-      <div id="section-ai-summary">
-      {app.internalDecision === 'YES' && (
+  const sections: Record<string, () => React.ReactNode> = {
+    organisation: () => (
+      <div id="section-organisation-profile" key="organisation">
         <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
-          {app.orgSynopsisText && (
-            <>
-              <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
-                {app.orgSynopsisText}
-              </p>
-              {!isJury && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
-                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
-                  every configured AI provider failed, so this is a template-built fallback, not a model-generated read
-                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}.
-                </p>
-              )}
-            </>
-          )}
-          {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
-          {/* the raw provider error (rate limits, billing details) is only useful to whoever can
-           *  act on it via the regenerate button above — observer gets the same neutral message as
-           *  the not-yet-generated state instead of technical noise they can't fix. */}
-          {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && !isJury && (
-            <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
-          )}
-          {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? isJury : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
-            <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>
-          )}
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            {ov('orgType') && <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />}
+            {!isObserver && !isJury && ov('recId') && <Field label="rec_id" value={app.creatorRecordId} />}
+            {ov('website') && <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />}
+            {ov('linkedinUrl') && <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />}
+            {ov('incorporationDate') && (
+              <Field label="incorporated" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
+            )}
+            {ov('email') && <Field label="email" value={app.email} />}
+            {ov('phone') && <Field label="phone" value={app.phone} />}
+            {ov('teamSize') && <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />}
+          </div>
         </Card>
-      )}
       </div>
+    ),
 
-      {(app.founders.length > 0 || app.funders.length > 0) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+    synopsis: () => {
+      if (!ov('orgSynopsis') || app.internalDecision !== 'YES') return null;
+      return (
+        <div id="section-ai-summary" key="synopsis">
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
+            {app.orgSynopsisText && (
+              <>
+                <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
+                  {app.orgSynopsisText}
+                </p>
+                {!isJury && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
+                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+                    every configured AI provider failed, so this is a template-built fallback, not a model-generated read
+                    {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}.
+                  </p>
+                )}
+              </>
+            )}
+            {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
+            {/* the raw provider error (rate limits, billing details) is only useful to whoever can
+             *  act on it via the regenerate button above — observer gets the same neutral message as
+             *  the not-yet-generated state instead of technical noise they can't fix. */}
+            {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && !isJury && (
+              <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
+            )}
+            {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? isJury : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
+              <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>
+            )}
+          </Card>
+        </div>
+      );
+    },
+
+    foundersFunders: () => {
+      const showFounders = ov('founders') && app.founders.length > 0;
+      const showFunders = ov('funders') && app.funders.length > 0;
+      if (!showFounders && !showFunders) return null;
+      return (
+        <Card accent key="foundersFunders" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>founders &amp; funders</h2>
-          {app.founders.length > 0 && (
-            <div style={{ marginBottom: app.funders.length > 0 ? 'var(--space-6)' : 0 }}>
+          {showFounders && (
+            <div style={{ marginBottom: showFunders ? 'var(--space-6)' : 0 }}>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 founders
               </div>
@@ -320,7 +376,7 @@ export function ApplicationMainContent({
               </div>
             </div>
           )}
-          {app.funders.length > 0 && (
+          {showFunders && (
             <div>
               <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
                 funders
@@ -339,143 +395,196 @@ export function ApplicationMainContent({
             </div>
           )}
         </Card>
-      )}
+      );
+    },
 
-      {(app.problemAddressing || app.aboutSolution || app.valueChainFocus) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+    problemSolution: () => {
+      const anyVisible = (ov('problemAddressing') && app.problemAddressing) || (ov('aboutSolution') && app.aboutSolution) || (ov('valueChainFocus') && app.valueChainFocus);
+      if (!anyVisible) return null;
+      return (
+        <Card accent key="problemSolution" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>problem and solution</h2>
-          <Field label="problem addressing" value={app.problemAddressing} />
-          <Field label="about the solution" value={app.aboutSolution} />
-          <TagGroup label="value chain focus" values={app.valueChainFocus?.split(';').map((v) => v.trim()).filter(Boolean)} />
+          {ov('problemAddressing') && <Field label="problem addressing" value={app.problemAddressing} />}
+          {ov('aboutSolution') && <Field label="about the solution" value={app.aboutSolution} />}
+          {ov('valueChainFocus') && <TagGroup label="value chain focus" values={app.valueChainFocus?.split(';').map((v) => v.trim()).filter(Boolean)} />}
         </Card>
-      )}
+      );
+    },
 
-      {(app.waterEfficiencyFocus || app.smallMarginalFarmerPct !== null || app.areaHectaresRaw) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+    agwaterLegacy: () => {
+      const anyVisible =
+        (ov('waterEfficiencyFocus') && app.waterEfficiencyFocus) ||
+        (ov('smallMarginalFarmerPct') && app.smallMarginalFarmerPct !== null) ||
+        (ov('areaHectaresRaw') && app.areaHectaresRaw);
+      if (!anyVisible) return null;
+      return (
+        <Card accent key="agwaterLegacy" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>impact and eligibility signals (AgWater cycle)</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            <Field label="beneficiaries" value={app.beneficiaries} />
-            <Field label="small/marginal farmer share" value={app.smallMarginalFarmerPct !== null ? `${app.smallMarginalFarmerPct}%` : undefined} />
-            <Field label="area under coverage" value={app.areaHectaresRaw} />
-            <Field label="TRL" value={app.trl} />
-            <Field label="water-use efficiency focus" value={app.waterEfficiencyFocus} />
-            <Field label="water efficiency estimate" value={app.waterEfficiencyEstimate} />
-            <Field label="crop production focus" value={app.cropProductionFocus} />
-            <Field label="focus crops" value={app.focusCrops} />
+            {ov('beneficiaries') && <Field label="beneficiaries" value={app.beneficiaries} />}
+            {ov('smallMarginalFarmerPct') && <Field label="small/marginal farmer share" value={app.smallMarginalFarmerPct !== null ? `${app.smallMarginalFarmerPct}%` : undefined} />}
+            {ov('areaHectaresRaw') && <Field label="area under coverage" value={app.areaHectaresRaw} />}
+            {ov('trl') && <Field label="TRL" value={app.trl} />}
+            {ov('waterEfficiencyFocus') && <Field label="water-use efficiency focus" value={app.waterEfficiencyFocus} />}
+            {ov('waterEfficiencyEstimate') && <Field label="water efficiency estimate" value={app.waterEfficiencyEstimate} />}
+            {ov('cropProductionFocus') && <Field label="crop production focus" value={app.cropProductionFocus} />}
+            {ov('focusCrops') && <Field label="focus crops" value={app.focusCrops} />}
           </div>
         </Card>
-      )}
+      );
+    },
 
-      {(app.legalRegistrationType ||
-        app.fcraStatus ||
-        app.annualOperatingBudget ||
-        app.cert12A ||
-        app.cert80G ||
-        app.csr1Registration ||
-        app.darpanRegistered ||
-        app.darpanIdNumber) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+    registrationsGovernance: () => {
+      const anyVisible =
+        (ov('legalRegistrationType') && app.legalRegistrationType) ||
+        (ov('fcraStatus') && app.fcraStatus) ||
+        (ov('annualOperatingBudget') && app.annualOperatingBudget) ||
+        (ov('cert12A') && app.cert12A) ||
+        (ov('cert80G') && app.cert80G) ||
+        (ov('csr1Registration') && app.csr1Registration) ||
+        (ov('darpanRegistered') && app.darpanRegistered) ||
+        (ov('darpanIdNumber') && app.darpanIdNumber);
+      if (!anyVisible) return null;
+      return (
+        <Card accent key="registrationsGovernance" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>registrations and governance</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            <Field
-              label="legal registration type"
-              value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
-            />
-            <Field
-              label="annual operating budget"
-              value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
-            />
-            <Field label="FCRA registration" value={app.fcraStatus} />
-            <Field label="12A certificate" value={certStatus(app.cert12A)} />
-            <Field label="80G certificate" value={certStatus(app.cert80G)} />
-            <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />
-            <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />
-            <Field label="DARPAN registration number" value={app.darpanIdNumber} />
+            {ov('legalRegistrationType') && (
+              <Field
+                label="legal registration type"
+                value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
+              />
+            )}
+            {ov('annualOperatingBudget') && (
+              <Field
+                label="annual operating budget"
+                value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
+              />
+            )}
+            {ov('fcraStatus') && <Field label="FCRA registration" value={app.fcraStatus} />}
+            {ov('cert12A') && <Field label="12A certificate" value={certStatus(app.cert12A)} />}
+            {ov('cert80G') && <Field label="80G certificate" value={certStatus(app.cert80G)} />}
+            {ov('csr1Registration') && <Field label="CSR-1 registration" value={certStatus(app.csr1Registration)} />}
+            {ov('darpanRegistered') && <Field label="NITI Aayog DARPAN ID" value={certStatus(app.darpanRegistered, 'yellow')} />}
+            {ov('darpanIdNumber') && <Field label="DARPAN registration number" value={app.darpanIdNumber} />}
           </div>
         </Card>
-      )}
-      </div>
+      );
+    },
 
-      <div id="section-model">
-      {(app.operatingModelArchetype || app.operatingModelDescription || app.primaryCrops || app.regenerativePractices || app.adoptionHurdle) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
-          <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />
-          <Field label="how it works in practice" value={app.operatingModelDescription} />
-          <TagGroup label="primary crops" values={tagList(app.primaryCrops, CROP_TYPE_LABEL)} />
-          <TagGroup label="regenerative practices" values={tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)} />
-          <Field label="biggest adoption hurdle" value={app.adoptionHurdle} />
-        </Card>
-      )}
-      </div>
+    model: () => {
+      const anyVisible =
+        (ov('operatingModelArchetype') && app.operatingModelArchetype) ||
+        (ov('operatingModelDescription') && app.operatingModelDescription) ||
+        (ov('primaryCrops') && app.primaryCrops) ||
+        (ov('regenerativePractices') && app.regenerativePractices) ||
+        (ov('adoptionHurdle') && app.adoptionHurdle);
+      if (!anyVisible) return null;
+      return (
+        <div id="section-model" key="model">
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
+            {ov('operatingModelArchetype') && <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />}
+            {ov('operatingModelDescription') && <Field label="how it works in practice" value={app.operatingModelDescription} />}
+            {ov('primaryCrops') && <TagGroup label="primary crops" values={tagList(app.primaryCrops, CROP_TYPE_LABEL)} />}
+            {ov('regenerativePractices') && <TagGroup label="regenerative practices" values={tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)} />}
+            {ov('adoptionHurdle') && <Field label="biggest adoption hurdle" value={app.adoptionHurdle} />}
+          </Card>
+        </div>
+      );
+    },
 
-      <div id="section-tech-and-tools">
-      {(app.techTools || app.otherTools || app.techToolsInternal !== null || app.techUseCases.length > 0) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
-          <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />
-          <Field label="tools developed internally" value={app.techToolsInternal === null ? undefined : app.techToolsInternal ? 'yes' : 'no'} />
-          <Field label="other tools" value={app.otherTools} />
-          <Field
-            label="top tech use cases"
-            value={app.techUseCases.length ? app.techUseCases.map((t) => t.description).join('; ') : undefined}
-          />
-        </Card>
-      )}
-      </div>
+    techTools: () => {
+      const anyVisible = (ov('techTools') && app.techTools) || (ov('otherTools') && app.otherTools) || (ov('techTools') && app.techToolsInternal !== null) || (ov('techUseCases') && app.techUseCases.length > 0);
+      if (!anyVisible) return null;
+      return (
+        <div id="section-tech-and-tools" key="techTools">
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
+            {ov('techTools') && <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />}
+            {ov('techTools') && <Field label="tools developed internally" value={app.techToolsInternal === null ? undefined : app.techToolsInternal ? 'yes' : 'no'} />}
+            {ov('otherTools') && <Field label="other tools" value={app.otherTools} />}
+            {ov('techUseCases') && (
+              <Field
+                label="top tech use cases"
+                value={app.techUseCases.length ? app.techUseCases.map((t) => t.description).join('; ') : undefined}
+              />
+            )}
+          </Card>
+        </div>
+      );
+    },
 
-      <div id="section-experience-impact">
-      {(app.farmersCount !== null ||
-        app.yearsExperience !== null ||
-        app.verifiedImpacts ||
-        app.statesOperating ||
-        app.fundUsagePlan ||
-        app.reportLinks.length > 0 ||
-        app.villagesDistrictsRaw ||
-        app.otherDevelopmentAreas ||
-        app.teamTrainingDescription ||
-        app.heardAboutChallenge) && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />
-            <Field label="farmers reached" value={app.farmersCount} />
-            <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />
-            <Field label="average land holding (ha)" value={app.avgLandHolding} />
-            <Field label="area under regenerative practice (ha)" value={app.areaUnderRegenPractice} />
-            <Field label="villages / districts" value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)} />
-            <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />
-            <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
-            <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />
-            <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />
-            <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
-          </div>
-          <Field label="team training details" value={app.teamTrainingDescription} />
-          <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />
-          <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />
-          <Field label="verified impacts" value={app.verifiedImpacts} />
-          <Field label="planned use of prize funds" value={app.fundUsagePlan} />
-          <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
-          {app.reportLinks.length > 0 && (
-            <div style={{ marginTop: 'var(--space-2)' }}>
-              <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
-                published reports / case studies
-              </div>
-              {app.reportLinks.map((r) => (
-                <div key={r.id}>
-                  <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}>
-                    {r.url}
-                  </a>
-                </div>
-              ))}
+    experienceImpact: () => {
+      const anyVisible =
+        (ov('farmersCount') && app.farmersCount !== null) ||
+        (ov('yearsExperience') && app.yearsExperience !== null) ||
+        (ov('verifiedImpacts') && app.verifiedImpacts) ||
+        (ov('statesOperating') && app.statesOperating) ||
+        (ov('fundUsagePlan') && app.fundUsagePlan) ||
+        (ov('reportLinks') && app.reportLinks.length > 0) ||
+        (ov('villagesDistricts') && app.villagesDistrictsRaw) ||
+        (ov('otherDevelopmentAreas') && app.otherDevelopmentAreas) ||
+        (ov('teamTrainingDescription') && app.teamTrainingDescription) ||
+        (ov('heardAboutChallenge') && app.heardAboutChallenge);
+      if (!anyVisible) return null;
+      return (
+        <div id="section-experience-impact" key="experienceImpact">
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              {ov('yearsExperience') && <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />}
+              {ov('farmersCount') && <Field label="farmers reached" value={app.farmersCount} />}
+              {ov('smallholderFarmersCount') && <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />}
+              {ov('avgLandHolding') && <Field label="average land holding (ha)" value={app.avgLandHolding} />}
+              {ov('areaUnderRegenPractice') && <Field label="area under regenerative practice (ha)" value={app.areaUnderRegenPractice} />}
+              {ov('villagesDistricts') && (
+                <Field
+                  label="villages / districts"
+                  value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)}
+                />
+              )}
+              {ov('melHandling') && <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />}
+              {ov('materialsInLocalLanguages') && (
+                <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
+              )}
+              {ov('teamFormalTraining') && <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />}
+              {ov('worksBeyondAg') && <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />}
+              {ov('infoAccurateConfirmed') && (
+                <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
+              )}
             </div>
-          )}
-        </Card>
-      )}
-      </div>
+            {ov('teamTrainingDescription') && <Field label="team training details" value={app.teamTrainingDescription} />}
+            {ov('otherDevelopmentAreas') && <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />}
+            {ov('statesOperating') && <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />}
+            {ov('verifiedImpacts') && <Field label="verified impacts" value={app.verifiedImpacts} />}
+            {ov('fundUsagePlan') && <Field label="planned use of prize funds" value={app.fundUsagePlan} />}
+            {ov('heardAboutChallenge') && (
+              <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
+            )}
+            {ov('reportLinks') && app.reportLinks.length > 0 && (
+              <div style={{ marginTop: 'var(--space-2)' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+                  published reports / case studies
+                </div>
+                {app.reportLinks.map((r) => (
+                  <div key={r.id}>
+                    <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}>
+                      {r.url}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      );
+    },
 
-      {!isObserver && app.enrichmentSummary && (
-        <Card style={{ marginBottom: 'var(--space-6)' }}>
+    enrichment: () => {
+      if (!ov('enrichmentSummary') || !app.enrichmentSummary) return null;
+      return (
+        <Card key="enrichment" style={{ marginBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>public-data enrichment</h2>
             <Badge tone="outline">{app.enrichmentSource === 'website+search' ? 'website + search' : 'website'}</Badge>
@@ -485,206 +594,260 @@ export function ApplicationMainContent({
             fetched from {app.website}. this is supporting context for AI scoring, not a substitute for the application itself.
           </p>
         </Card>
-      )}
+      );
+    },
 
-      {embed && (
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+    pitchDeck: () => {
+      if (!ov('pitchDeckUrl') || !app.pitchDeckUrl) return null;
+      return embed ? (
+        <Card accent key="pitchDeck" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>pitch deck</h2>
           <iframe src={embed} width="100%" height="480" style={{ border: 'none' }} allow="autoplay" />
         </Card>
-      )}
-      {!embed && app.pitchDeckUrl && (
-        <Card style={{ marginBottom: 'var(--space-6)' }}>
+      ) : (
+        <Card key="pitchDeck" style={{ marginBottom: 'var(--space-6)' }}>
           <a href={app.pitchDeckUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}>
             open pitch deck ↗
           </a>
         </Card>
-      )}
-      {!isJury && (
-        <>
-          <div id="section-scoring" style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>scoring &amp; evaluation</h2>
-            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
-              AI read below is decision support only — use the &ldquo;review&rdquo; button above to score this application yourself.
-            </p>
-          </div>
-          {latestEval && (
-            <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-                <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI evaluation</h2>
-                {user && <RescoreButton applicationId={app.id} />}
-              </div>
+      );
+    },
 
-              {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)', whiteSpace: 'pre-wrap' }}>{latestEval.summary}</p>}
-
-              {redFlags.length > 0 && (
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  {redFlags.map((f) => (
-                    <Badge key={f} tone="yellow" style={{ marginRight: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                      {f}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {RUBRIC_SECTIONS.map((section) => {
-                  const sectionDefs = RUBRIC_CRITERIA.filter((r) => r.section === section.key);
-                  const sectionMax = sectionDefs.reduce((sum, r) => sum + r.maxScore, 0);
-                  const sectionScore = criteria
-                    .filter((c) => sectionDefs.some((r) => r.key === c.key))
-                    .reduce((sum, c) => sum + c.score, 0);
-                  const pct = sectionMax > 0 ? (sectionScore / sectionMax) * 100 : 0;
-                  const tone = sectionTone(pct);
-                  return (
-                    <div
-                      key={section.key}
-                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
-                    >
-                      <strong style={{ textTransform: 'lowercase', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        {section.label}
-                        <SectionScoreInfo sectionLabel={section.label} sectionKey={section.key} criteria={criteria} />
-                      </strong>
-                      <div style={{ flex: 1, height: 6, background: 'var(--border-subtle)', position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${Math.max(pct, 4)}%`, background: tone.color }} />
-                      </div>
-                      <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', flexShrink: 0 }}>{Math.round(pct)}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {eligibility && (
-                <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
-                  eligibility notes: {eligibility.fit_notes}
+    aiScoring: () => {
+      const showEval = ov('aiEvaluation');
+      const showScraper = ov('scraperChecks');
+      if (!showEval && !showScraper) return null;
+      return (
+        <Fragment key="aiScoring">
+          {showEval && (
+            <>
+              <div id="section-scoring" style={{ marginBottom: 'var(--space-6)' }}>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scoring &amp; evaluation</h2>
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+                  AI read below is decision support only — use the &ldquo;review&rdquo; button above to score this application yourself.
                 </p>
-              )}
-            </Card>
-          )}
-
-          {!latestEval && user && (
-            <Card style={{ marginBottom: 'var(--space-6)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ color: 'var(--text-secondary)' }}>this application hasn&apos;t been scored yet.</p>
-                <RescoreButton applicationId={app.id} />
               </div>
-            </Card>
-          )}
-
-          <div id="section-scraper" style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>scraper data</h2>
-            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
-              checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
-            </p>
-          </div>
-
-          {(
-            [
-              {
-                key: 'opModel' as const,
-                label: 'organisation validation (presence in the ecosystem)',
-                blurb: 'does outside coverage describe them as working directly with farmers, through partners, or both — matching what they claim?',
-                status: app.opModelStatus,
-                error: app.opModelError,
-                verdict: app.opModelVerdict,
-                summary: app.opModelSummary,
-                raw: app.opModelRaw,
-                model: app.opModelModel,
-                runAt: app.opModelRunAt,
-              },
-              {
-                key: 'funders' as const,
-                label: 'organisation understanding',
-                blurb: 'other agriculture programmes, funding, and annual-report disclosures — pulls funder names from every program in the report, not just the one under review.',
-                status: app.fundersStatus,
-                error: app.fundersError,
-                verdict: app.fundersVerdict,
-                summary: app.fundersSummary,
-                raw: app.fundersRaw,
-                model: app.fundersModel,
-                runAt: app.fundersRunAt,
-              },
-              {
-                key: 'founder' as const,
-                label: 'founder expertise',
-                blurb: 'confirms claimed founder expertise against LinkedIn, Scholar, press, or faculty pages — not just the bio page.',
-                status: app.founderStatus,
-                error: app.founderError,
-                verdict: app.founderVerdict,
-                summary: app.founderSummary,
-                raw: app.founderRaw,
-                model: app.founderModel,
-                runAt: app.founderRunAt,
-              },
-            ] as const
-          ).map((check) => {
-            const tone = verdictTone(check.verdict);
-            return (
-              <Card key={check.key} accent style={{ marginBottom: 'var(--space-6)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', textTransform: 'lowercase' }}>{check.label}</h2>
-                  {user && <ValidateOrgButton applicationId={app.id} section={check.key} hasRun={check.status === 'DONE' || check.status === 'FAILED'} />}
-                </div>
-                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{check.blurb}</p>
-
-                {check.status === 'RUNNING' && (
-                  <p style={{ color: 'var(--text-secondary)' }}>running — searching the web for independent sources, this can take up to a minute…</p>
-                )}
-
-                {check.status === 'FAILED' && <p style={{ color: 'var(--delta-red)' }}>check failed: {check.error ?? 'unknown error'}</p>}
-
-                {(!check.status || check.status === 'PENDING') && <p style={{ color: 'var(--text-secondary)' }}>not yet run for this application.</p>}
-
-                {check.status === 'DONE' && (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                      <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
-                      <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
-                    </div>
-                    {check.summary && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap' }}>{check.summary}</p>}
-                    {check.raw && (
-                      <details style={{ marginTop: 'var(--space-2)' }}>
-                        <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
-                        <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginTop: 'var(--space-2)' }}>{check.raw}</p>
-                      </details>
-                    )}
-                    <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
-                      model: {check.model ?? 'unknown'} · last run {check.runAt ? new Date(check.runAt).toLocaleString('en-GB') : 'unknown'}
-                    </p>
+              {latestEval && (
+                <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                    <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI evaluation</h2>
+                    {user && <RescoreButton applicationId={app.id} />}
                   </div>
-                )}
-              </Card>
-            );
-          })}
-        </>
-      )}
 
-      {!isJury && app.humanReviews.length > 0 && (
-        <Card style={{ marginBottom: 'var(--space-6)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)' }}>score</h2>
-            {(() => {
-              const consensus = computeConsensus({
-                aiComposite: latestEval?.composite,
-                humanComposites: app.humanReviews.map((r) => r.composite),
-              });
-              return consensus.divergent ? <Badge tone="yellow">reviewers diverge</Badge> : <Badge tone="outline">consensus aligned</Badge>;
-            })()}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {app.humanReviews.map((r) => (
-              <div key={r.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <strong>{r.reviewer.name}</strong>
-                  <Tag selected={r.recommendation === 'ADVANCE'}>{r.recommendation.toLowerCase()}</Tag>
-                </div>
-                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
+                  {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)', whiteSpace: 'pre-wrap' }}>{latestEval.summary}</p>}
+
+                  {redFlags.length > 0 && (
+                    <div style={{ marginBottom: 'var(--space-4)' }}>
+                      {redFlags.map((f) => (
+                        <Badge key={f} tone="yellow" style={{ marginRight: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                          {f}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    {RUBRIC_SECTIONS.map((section) => {
+                      const sectionDefs = RUBRIC_CRITERIA.filter((r) => r.section === section.key);
+                      const sectionMax = sectionDefs.reduce((sum, r) => sum + r.maxScore, 0);
+                      const sectionScore = criteria
+                        .filter((c) => sectionDefs.some((r) => r.key === c.key))
+                        .reduce((sum, c) => sum + c.score, 0);
+                      const pct = sectionMax > 0 ? (sectionScore / sectionMax) * 100 : 0;
+                      const tone = sectionTone(pct);
+                      return (
+                        <div
+                          key={section.key}
+                          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}
+                        >
+                          <strong style={{ textTransform: 'lowercase', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            {section.label}
+                            <SectionScoreInfo sectionLabel={section.label} sectionKey={section.key} criteria={criteria} />
+                          </strong>
+                          <div style={{ flex: 1, height: 6, background: 'var(--border-subtle)', position: 'relative' }}>
+                            <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${Math.max(pct, 4)}%`, background: tone.color }} />
+                          </div>
+                          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', flexShrink: 0 }}>{Math.round(pct)}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {eligibility && (
+                    <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                      eligibility notes: {eligibility.fit_notes}
+                    </p>
+                  )}
+                </Card>
+              )}
+
+              {!latestEval && user && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ color: 'var(--text-secondary)' }}>this application hasn&apos;t been scored yet.</p>
+                    <RescoreButton applicationId={app.id} />
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+
+          {showScraper && (
+            <>
+              <div id="section-scraper" style={{ marginBottom: 'var(--space-6)' }}>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scraper data</h2>
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+                  checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
+                </p>
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
+              {(
+                [
+                  {
+                    key: 'opModel' as const,
+                    label: 'organisation validation (presence in the ecosystem)',
+                    blurb: 'does outside coverage describe them as working directly with farmers, through partners, or both — matching what they claim?',
+                    status: app.opModelStatus,
+                    error: app.opModelError,
+                    verdict: app.opModelVerdict,
+                    summary: app.opModelSummary,
+                    raw: app.opModelRaw,
+                    model: app.opModelModel,
+                    runAt: app.opModelRunAt,
+                  },
+                  {
+                    key: 'funders' as const,
+                    label: 'organisation understanding',
+                    blurb: 'other agriculture programmes, funding, and annual-report disclosures — pulls funder names from every program in the report, not just the one under review.',
+                    status: app.fundersStatus,
+                    error: app.fundersError,
+                    verdict: app.fundersVerdict,
+                    summary: app.fundersSummary,
+                    raw: app.fundersRaw,
+                    model: app.fundersModel,
+                    runAt: app.fundersRunAt,
+                  },
+                  {
+                    key: 'founder' as const,
+                    label: 'founder expertise',
+                    blurb: 'confirms claimed founder expertise against LinkedIn, Scholar, press, or faculty pages — not just the bio page.',
+                    status: app.founderStatus,
+                    error: app.founderError,
+                    verdict: app.founderVerdict,
+                    summary: app.founderSummary,
+                    raw: app.founderRaw,
+                    model: app.founderModel,
+                    runAt: app.founderRunAt,
+                  },
+                ] as const
+              ).map((check) => {
+                const tone = verdictTone(check.verdict);
+                return (
+                  <Card key={check.key} accent style={{ marginBottom: 'var(--space-6)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
+                      <h2 style={{ fontSize: 'var(--fs-h3)', textTransform: 'lowercase' }}>{check.label}</h2>
+                      {user && <ValidateOrgButton applicationId={app.id} section={check.key} hasRun={check.status === 'DONE' || check.status === 'FAILED'} />}
+                    </div>
+                    <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{check.blurb}</p>
+
+                    {check.status === 'RUNNING' && (
+                      <p style={{ color: 'var(--text-secondary)' }}>running — searching the web for independent sources, this can take up to a minute…</p>
+                    )}
+
+                    {check.status === 'FAILED' && <p style={{ color: 'var(--delta-red)' }}>check failed: {check.error ?? 'unknown error'}</p>}
+
+                    {(!check.status || check.status === 'PENDING') && <p style={{ color: 'var(--text-secondary)' }}>not yet run for this application.</p>}
+
+                    {check.status === 'DONE' && (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                          <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
+                          <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
+                        </div>
+                        {check.summary && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap' }}>{check.summary}</p>}
+                        {check.raw && (
+                          <details style={{ marginTop: 'var(--space-2)' }}>
+                            <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
+                            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginTop: 'var(--space-2)' }}>{check.raw}</p>
+                          </details>
+                        )}
+                        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
+                          model: {check.model ?? 'unknown'} · last run {check.runAt ? new Date(check.runAt).toLocaleString('en-GB') : 'unknown'}
+                        </p>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </>
+          )}
+
+          {ov('humanReviewScores') && app.humanReviews.length > 0 && (
+            <Card style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                <h2 style={{ fontSize: 'var(--fs-h3)' }}>score</h2>
+                {(() => {
+                  const consensus = computeConsensus({
+                    aiComposite: latestEval?.composite,
+                    humanComposites: app.humanReviews.map((r) => r.composite),
+                  });
+                  return consensus.divergent ? <Badge tone="yellow">reviewers diverge</Badge> : <Badge tone="outline">consensus aligned</Badge>;
+                })()}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {app.humanReviews.map((r) => (
+                  <div key={r.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>{r.reviewer.name}</strong>
+                      <Tag selected={r.recommendation === 'ADVANCE'}>{r.recommendation.toLowerCase()}</Tag>
+                    </div>
+                    <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </Fragment>
+      );
+    },
+
+    internalReview: () => {
+      // admin/reviewer already get the fuller "score" card above (aiScoring's humanReviewScores) —
+      // this simpler comment-only card is only for observer, matching the jury view's equivalent.
+      if (!isObserver || !ov('internalReviewerRemarks')) return null;
+      return (
+        <div id="section-internal-reviewer-remarks" key="internalReview">
+          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
+            {app.humanReviews[0]?.comment ? (
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
+            ) : (
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
+            )}
+          </Card>
+        </div>
+      );
+    },
+  };
+
+  // reordering is an observer-only affordance (per the settings UI) — admin/reviewer always get
+  // the fixed, familiar registry order regardless of what's saved for observer.
+  const order = isObserver ? visibility.observerSectionOrder : Object.keys(sections);
+
+  const excludeIds = [
+    ...(isObserver && ov('internalReviewerRemarks') ? [] : ['section-internal-reviewer-remarks']),
+    ...(ov('aiEvaluation') ? [] : ['section-scoring']),
+    ...(ov('scraperChecks') ? [] : ['section-scraper']),
+  ];
+
+  return (
+    <div>
+      <SectionJumpNav excludeIds={excludeIds} />
+      <div>
+        {order.map((key) => (
+          <Fragment key={key}>{sections[key]?.()}</Fragment>
+        ))}
+      </div>
     </div>
   );
 }

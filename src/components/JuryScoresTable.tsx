@@ -28,7 +28,7 @@ export function JuryScoresTable({ juryScores }: { juryScores: JuryScoresTableRow
   if (juryScores.length === 0) {
     return (
       <Card style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>juror scores &amp; comments</h2>
+        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>juror scores &amp; comments</h2>
         <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no jury scores yet.</p>
       </Card>
     );

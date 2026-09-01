@@ -1,59 +1,151 @@
+'use client';
+import React from 'react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Button, Checkbox } from '@/design-system';
-import { VIEW_SECTIONS, VIEW_FIELDS } from '@/lib/visibility/fieldRegistry';
+import { VIEW_SECTIONS, JURY_SECTIONS, VIEW_FIELDS, type ViewSectionDef } from '@/lib/visibility/fieldRegistry';
 import type { FieldVisibilityConfig } from '@/lib/visibility/settings';
 import { updateFieldVisibilityAction } from '@/lib/visibility/actions';
 
-/** Admin-only field-by-field visibility manager for the observer and jury roles. Purely a
- *  settings surface for now — saving here does not change what either role actually sees on any
- *  page yet, until a follow-up wires the application detail page to read this config. */
-export function FieldVisibilityManager({ visibility }: { visibility: FieldVisibilityConfig }) {
+function moveItem(arr: string[], index: number, direction: -1 | 1): string[] {
+  const target = index + direction;
+  if (target < 0 || target >= arr.length) return arr;
+  const next = [...arr];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+const arrowButtonStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 24,
+  height: 24,
+  border: '1px solid var(--border-strong)',
+  background: 'var(--surface-card)',
+  cursor: 'pointer',
+  color: 'var(--text-secondary)',
+  padding: 0,
+};
+
+function SectionOrderList({
+  title,
+  helpText,
+  order,
+  onReorder,
+  sectionDefs,
+  fieldsFor,
+  checkboxName,
+  checkedFor,
+}: {
+  title: string;
+  helpText: string;
+  order: string[];
+  onReorder: (next: string[]) => void;
+  sectionDefs: ViewSectionDef[];
+  fieldsFor: (sectionKey: string) => { key: string; label: string }[];
+  checkboxName: (fieldKey: string) => string;
+  checkedFor: (fieldKey: string) => boolean;
+}) {
   return (
-    <form action={updateFieldVisibilityAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      {VIEW_SECTIONS.map((section) => {
-        const fields = VIEW_FIELDS.filter((f) => f.section === section.key);
-        if (fields.length === 0) return null;
-        return (
-          <div key={section.key}>
-            <div
-              style={{
-                fontSize: 'var(--fs-caption)',
-                textTransform: 'uppercase',
-                letterSpacing: 'var(--ls-wide)',
-                color: 'var(--text-secondary)',
-                marginBottom: 'var(--space-2)',
-                borderBottom: '1px solid var(--border-subtle)',
-                paddingBottom: 'var(--space-2)',
-              }}
-            >
-              {section.label}
+    <div>
+      <h3 style={{ fontSize: 'var(--fs-h4)', marginBottom: 'var(--space-1)' }}>{title}</h3>
+      <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{helpText}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+        {order.map((sectionKey, i) => {
+          const section = sectionDefs.find((s) => s.key === sectionKey);
+          const fields = fieldsFor(sectionKey);
+          if (!section || fields.length === 0) return null;
+          return (
+            <div key={sectionKey}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 'var(--space-2)',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  paddingBottom: 'var(--space-2)',
+                }}
+              >
+                <span style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-secondary)' }}>
+                  {section.label}
+                </span>
+                <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                  <button
+                    type="button"
+                    aria-label={`move ${section.label} up`}
+                    disabled={i === 0}
+                    onClick={() => onReorder(moveItem(order, i, -1))}
+                    style={{ ...arrowButtonStyle, opacity: i === 0 ? 0.4 : 1, cursor: i === 0 ? 'default' : 'pointer' }}
+                  >
+                    <ArrowUp size={14} strokeLinejoin="miter" strokeLinecap="square" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`move ${section.label} down`}
+                    disabled={i === order.length - 1}
+                    onClick={() => onReorder(moveItem(order, i, 1))}
+                    style={{ ...arrowButtonStyle, opacity: i === order.length - 1 ? 0.4 : 1, cursor: i === order.length - 1 ? 'default' : 'pointer' }}
+                  >
+                    <ArrowDown size={14} strokeLinejoin="miter" strokeLinecap="square" />
+                  </button>
+                </div>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  {fields.map((f) => (
+                    <tr key={f.key} style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)' }}>{f.label}</td>
+                      <td style={{ padding: 'var(--space-2) var(--space-3)', width: 60 }}>
+                        <Checkbox name={checkboxName(f.key)} defaultChecked={checkedFor(f.key)} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left' }}>
-                  <th style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', fontWeight: 'var(--fw-light)' as unknown as number }}>
-                    field
-                  </th>
-                  <th style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', width: 90 }}>observer</th>
-                  <th style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', width: 90 }}>jury</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((f) => (
-                  <tr key={f.key} style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)' }}>{f.label}</td>
-                    <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
-                      <Checkbox name={`observer_${f.key}`} defaultChecked={visibility.observer[f.key]} />
-                    </td>
-                    <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
-                      <Checkbox name={`jury_${f.key}`} defaultChecked={visibility.jury[f.key]} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Admin-only field-by-field visibility manager for observer and jury, plus per-role section
+ *  reordering. Actually wired up: ApplicationMainContent.tsx (both the shared admin/reviewer/
+ *  observer tree and JuryApplicationView) reads this same config on every render. Observer and
+ *  jury get separate panels rather than one shared table, since their two views are structured
+ *  differently — jury's 4 hand-curated sections don't correspond 1:1 to the admin tree's 12. */
+export function FieldVisibilityManager({ visibility }: { visibility: FieldVisibilityConfig }) {
+  const [observerOrder, setObserverOrder] = React.useState(visibility.observerSectionOrder);
+  const [juryOrder, setJuryOrder] = React.useState(visibility.jurySectionOrder);
+
+  return (
+    <form action={updateFieldVisibilityAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+      <input type="hidden" name="observerSectionOrder" value={observerOrder.join(',')} />
+      <input type="hidden" name="jurySectionOrder" value={juryOrder.join(',')} />
+
+      <SectionOrderList
+        title="observer view"
+        helpText="which fields observer sees, and in what section order — use the arrows to reorder a section before or after another."
+        order={observerOrder}
+        onReorder={setObserverOrder}
+        sectionDefs={VIEW_SECTIONS}
+        fieldsFor={(key) => VIEW_FIELDS.filter((f) => f.section === key)}
+        checkboxName={(key) => `observer_${key}`}
+        checkedFor={(key) => visibility.observer[key]}
+      />
+
+      <SectionOrderList
+        title="jury view"
+        helpText="jury's own 4 sections only show fields jury's page already has a place for — toggling can narrow what jury sees, not add an entirely new section."
+        order={juryOrder}
+        onReorder={setJuryOrder}
+        sectionDefs={JURY_SECTIONS}
+        fieldsFor={(key) => VIEW_FIELDS.filter((f) => f.jurySection === key)}
+        checkboxName={(key) => `jury_${key}`}
+        checkedFor={(key) => visibility.jury[key]}
+      />
 
       <div>
         <Button type="submit" variant="cta">

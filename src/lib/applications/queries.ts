@@ -239,6 +239,7 @@ export async function listJuryApplications(
     orderBy: { orgName: 'asc' },
     include: {
       juryScores: user ? { where: { jurorId: user.id } } : false,
+      bench: { select: { name: true, panelJurorNames: true } },
     },
   });
 

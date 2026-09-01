@@ -17,6 +17,7 @@ import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
+import { getFieldVisibility } from '@/lib/visibility/settings';
 import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { canManageApplication } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
@@ -31,10 +32,11 @@ export default async function ApplicationDetailPage({
   searchParams: ApplicationListFilters;
 }) {
   const user = await getCurrentUser();
-  const [app, adjacent, allUsers] = await Promise.all([
+  const [app, adjacent, allUsers, visibility] = await Promise.all([
     getApplicationDetail(params.id, user?.id),
     getAdjacentApplications(params.id, user, searchParams),
     listUsers(),
+    getFieldVisibility(),
   ]);
   const reviewers = allUsers;
   if (!app) notFound();
@@ -199,7 +201,7 @@ export default async function ApplicationDetailPage({
           gap: 'var(--space-8)',
         }}
       >
-        <ApplicationMainContent app={app} isJury={hideInternalSections} isObserver={isObserver} user={user} />
+        <ApplicationMainContent app={app} isJury={hideInternalSections} isObserver={isObserver} user={user} visibility={visibility} />
 
         {!isObserver && (
         <div data-pdf-exclude="true">

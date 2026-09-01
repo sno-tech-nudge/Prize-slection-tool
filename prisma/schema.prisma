@@ -68,6 +68,12 @@ model Bench {
   name      String
   createdAt DateTime @default(now())
 
+  // the real external interview panel's names for this bench, semicolon-joined — display-only
+  // text, deliberately NOT the `jurors` login relation below. Most of the real jury interview
+  // panel (the rapid re.gen challenge's external volunteer jurors) never get an app login at
+  // all; `jurors` stays reserved for people who actually sign into this tool.
+  panelJurorNames String?
+
   jurors       User[]
   applications Application[]
 }
@@ -288,6 +294,13 @@ model Application {
   // been placed on a bench yet, so no juror sees it even if internalDecision is YES.
   benchId String?
   bench   Bench?  @relation(fields: [benchId], references: [id], onDelete: SetNull)
+  // the interview "slot" jury sees on their own applications list — free text, not a real
+  // DateTime, since this is purely a display of the fixed jury-interview schedule (e.g. "Wed 2
+  // Sep" / "09:00-09:45"), not something the app does any date logic against. A single bench
+  // hosts multiple applications across different slots on the same day, so this lives on the
+  // application, not the bench.
+  interviewDay  String?
+  interviewTime String?
   source        String  @default("SEED")
   externalId    String? @unique
   isDuplicateOf String?
