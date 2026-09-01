@@ -5,6 +5,7 @@ import { SectionJumpNav } from '@/components/SectionJumpNav';
 import { RescoreButton } from '@/components/RescoreButton';
 import { ValidateOrgButton } from '@/components/ValidateOrgButton';
 import { SectionScoreInfo } from '@/components/SectionScoreInfo';
+import { ExpandableText } from '@/components/ExpandableText';
 import type { getApplicationDetail } from '@/lib/applications/queries';
 import type { User } from '@prisma/client';
 import type { FieldVisibilityConfig } from '@/lib/visibility/settings';
@@ -244,7 +245,11 @@ export function ApplicationMainContent({
                     {f.worksWithGovernment !== null && (
                       <span style={{ color: 'var(--text-muted)' }}> · works with government: {f.worksWithGovernment ? 'yes' : 'no'}</span>
                     )}
-                    {f.fundingNature && <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0', whiteSpace: 'pre-wrap' }}>{f.fundingNature}</p>}
+                    {f.fundingNature && (
+                      <div style={{ marginTop: 'var(--space-1)' }}>
+                        <ExpandableText text={f.fundingNature} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -341,10 +346,14 @@ export function ApplicationMainContent({
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
             {ov('operatingModelArchetype') && <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />}
-            {ov('operatingModelDescription') && <Field label="how it works in practice" value={app.operatingModelDescription} />}
+            {ov('operatingModelDescription') && (
+              <Field label="how it works in practice" value={app.operatingModelDescription ? <ExpandableText text={app.operatingModelDescription} /> : undefined} />
+            )}
             {ov('primaryCrops') && <TagGroup label="primary crops" values={tagList(app.primaryCrops, CROP_TYPE_LABEL)} />}
             {ov('regenerativePractices') && <TagGroup label="regenerative practices" values={tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)} />}
-            {ov('adoptionHurdle') && <Field label="biggest adoption hurdle" value={app.adoptionHurdle} />}
+            {ov('adoptionHurdle') && (
+              <Field label="biggest adoption hurdle" value={app.adoptionHurdle ? <ExpandableText text={app.adoptionHurdle} /> : undefined} />
+            )}
           </Card>
         </div>
       );
@@ -360,11 +369,8 @@ export function ApplicationMainContent({
             {ov('techTools') && <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />}
             {ov('techTools') && <Field label="tools developed internally" value={app.techToolsInternal === null ? undefined : app.techToolsInternal ? 'yes' : 'no'} />}
             {ov('otherTools') && <Field label="other tools" value={app.otherTools} />}
-            {ov('techUseCases') && (
-              <Field
-                label="top tech use cases"
-                value={app.techUseCases.length ? app.techUseCases.map((t) => t.description).join('; ') : undefined}
-              />
+            {ov('techUseCases') && app.techUseCases.length > 0 && (
+              <Field label="top tech use cases" value={<ExpandableText text={app.techUseCases.map((t) => t.description).join('; ')} />} />
             )}
           </Card>
         </div>
@@ -413,8 +419,12 @@ export function ApplicationMainContent({
             {ov('teamTrainingDescription') && <Field label="team training details" value={app.teamTrainingDescription} />}
             {ov('otherDevelopmentAreas') && <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />}
             {ov('statesOperating') && <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />}
-            {ov('verifiedImpacts') && <Field label="verified impacts" value={app.verifiedImpacts} />}
-            {ov('fundUsagePlan') && <Field label="planned use of prize funds" value={app.fundUsagePlan} />}
+            {ov('verifiedImpacts') && (
+              <Field label="verified impacts" value={app.verifiedImpacts ? <ExpandableText text={app.verifiedImpacts} /> : undefined} />
+            )}
+            {ov('fundUsagePlan') && (
+              <Field label="planned use of prize funds" value={app.fundUsagePlan ? <ExpandableText text={app.fundUsagePlan} /> : undefined} />
+            )}
             {ov('heardAboutChallenge') && (
               <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
             )}
