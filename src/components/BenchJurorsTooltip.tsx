@@ -11,13 +11,16 @@ export function BenchJurorsTooltip({ jurorNames }: { jurorNames: string[] }) {
     <Tooltip
       placement="right"
       content={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {jurorNames.map((name) => (
-            <span key={name}>{name}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          {jurorNames.map((name, i) => (
+            <span key={name} style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{i + 1}.</span>
+              <span>{name}</span>
+            </span>
           ))}
         </div>
       }
-      style={{ whiteSpace: 'normal', maxWidth: 220 }}
+      style={{ whiteSpace: 'normal', maxWidth: 240, padding: 'var(--space-3) var(--space-4)' }}
     >
       <button
         type="button"
