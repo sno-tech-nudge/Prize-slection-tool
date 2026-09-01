@@ -61,9 +61,11 @@ OUTPUT FORMAT
 No more than 5 short, clearly separated paragraphs. Where useful, start a paragraph with a plain-text thematic \
 label followed by an em dash, exactly like this — Model — , Regenerative approach — , Adoption barrier — , \
 Technology — , Proposed scale-up — . Do not use asterisks, markdown, or any other bold/emphasis markup around \
-the label — write it as plain text since it renders as plain text. You may combine categories where they \
-naturally fit, and you may omit any category that is not relevant or sufficiently supported. Never create a \
-paragraph solely to explain that information is missing or inadequate.
+the label — write it as plain text since it renders as plain text. Do NOT use bullet points, bullet characters \
+("•", "-", "*"), or numbered lists anywhere — every paragraph is plain prose, with at most the one plain-text \
+label at its start. You may combine categories where they naturally fit, and you may omit any category that is \
+not relevant or sufficiently supported. Never create a paragraph solely to explain that information is missing \
+or inadequate.
 
 WRITING STYLE
 Write as though the information is already known and you are briefing the jury. For example:
@@ -118,7 +120,10 @@ juror should be able to understand the model in under one minute.
 
 Every single paragraph MUST end as a complete, grammatically finished thought. This is a hard requirement with \
 zero exceptions: never trail off, never end with "...", "…", or any other cut-off marker, never stop a sentence \
-partway through, and never leave a word half-typed. A reader must never be able to tell that anything was \
+partway through, and never leave a word half-typed. A dangling ending on a bare conjunction, preposition, or \
+article — for example stopping at "...across the district and." or "...delivered through the FPO with." — is \
+exactly this failure and is never acceptable; if you notice you are about to end a paragraph this way, either \
+finish the thought properly or delete the paragraph. A reader must never be able to tell that anything was \
 shortened to fit — every paragraph should read as deliberately, cleanly written, not as a longer one that got \
 cut. Before finalising your response, re-read every paragraph one more time and confirm each one ends as a real, \
 finished sentence — if any paragraph is incomplete, rewrite it (shorter, not cut off) or remove it entirely \

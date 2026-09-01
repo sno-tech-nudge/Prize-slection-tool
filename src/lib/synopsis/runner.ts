@@ -26,6 +26,31 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// a bare conjunction/preposition/article immediately before the final terminator is the
+// signature of a dangling, unfinished sentence (e.g. "...across Jammikunta and.") — never a
+// legitimate sentence ending.
+const DANGLING_ENDING = /\b(and|or|but|with|to|of|the|a|an|in|on|for|as|by|is|are|was|were|that|which|who|its|their|our)\.?\s*$/i;
+
+/** Deterministic safety net applied to every AI-generated synopsis (Groq, Gemini, and — harmless
+ *  no-op — the heuristic fallback), regardless of how well the prompt's instructions land with a
+ *  given model: strips any lingering "• "/"- "/"* " bullet markers a model wrote despite the
+ *  no-bullets instruction, and trims a trailing unfinished sentence (one ending on a bare
+ *  conjunction/preposition, the classic sign of a cut-off generation) back to the last complete
+ *  one. Prompt wording alone can steer a model but never guarantees it — this is what actually
+ *  guarantees nothing incomplete or bulleted ever reaches a juror, independent of model behaviour. */
+function sanitizeSynopsis(raw: string): string {
+  let text = raw.replace(/^[ \t]*[•*-]\s+/gm, '').trim();
+
+  if (DANGLING_ENDING.test(text)) {
+    const sentences = text.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
+    if (sentences && sentences.length > 1) {
+      text = sentences.slice(0, -1).join('').trim();
+    }
+  }
+
+  return text;
+}
+
 /** Same rate-limit-aware retry as scoring/runner.ts's groqRequest — Groq's free tier hits 429s
  *  under a burst, and the error body tells us exactly how long to wait. */
 async function groqRequest(body: unknown, maxRetries = 6): Promise<Response> {
@@ -158,7 +183,7 @@ export async function generateOrgSynopsis(applicationId: string): Promise<{ used
         // kept even on a successful (heuristic) result so an admin can see why the AI path was
         // skipped, without that ever surfacing as a scary FAILED state to anyone.
         orgSynopsisError: aiError ?? null,
-        orgSynopsisText: synopsis.trim(),
+        orgSynopsisText: sanitizeSynopsis(synopsis),
       },
     });
 
