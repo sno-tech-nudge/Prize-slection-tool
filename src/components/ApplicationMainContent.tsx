@@ -682,7 +682,7 @@ export function ApplicationMainContent({
       if (canAct || !ov('internalReviewerRemarks')) return null;
       return (
         <Card accent key="internalReview" style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal remarks</h2>
           {app.humanReviews[0]?.comment ? (
             <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
           ) : (

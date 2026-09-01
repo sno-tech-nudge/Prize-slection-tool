@@ -29,11 +29,11 @@ export const VIEW_SECTIONS: ViewSectionDef[] = [
   { key: 'registrationsGovernance', label: 'registrations and governance' },
   { key: 'model', label: 'model' },
   { key: 'techTools', label: 'tech and tools' },
-  { key: 'experienceImpact', label: 'experience and impact' },
+  { key: 'experienceImpact', label: 'metrics' },
   { key: 'enrichment', label: 'public-data enrichment' },
   { key: 'pitchDeck', label: 'pitch deck' },
   { key: 'aiScoring', label: 'scoring, ai evaluation & scraper data' },
-  { key: 'internalReview', label: 'internal reviewer remarks' },
+  { key: 'internalReview', label: 'internal remarks' },
 ];
 
 /** Every field on the application detail page, grouped the same way the shared admin/reviewer
@@ -127,5 +127,5 @@ export const VIEW_FIELDS: ViewFieldDef[] = [
   { key: 'orgSynopsis', label: 'organisation & model synopsis', section: 'synopsis', defaultObserver: true, defaultJury: true },
 
   // internal reviewer remarks — comment text only, no scores
-  { key: 'internalReviewerRemarks', label: 'internal reviewer remarks (comment only)', section: 'internalReview', defaultObserver: true, defaultJury: true },
+  { key: 'internalReviewerRemarks', label: 'internal remarks (comment only)', section: 'internalReview', defaultObserver: true, defaultJury: true },
 ];

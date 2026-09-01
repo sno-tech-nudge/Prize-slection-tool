@@ -26,7 +26,7 @@ const AGENDA = [
 ];
 
 const GUIDELINES = [
-  'review the synopsis and internal reviewer remarks for each assigned organisation beforehand. the remarks flag specific areas for further probing which you may draw on during your interview time.',
+  'review the synopsis and internal remarks for each assigned organisation beforehand. the remarks flag specific areas for further probing which you may draw on during your interview time.',
   'evaluate against the challenge, not legacy or adjacent work. the problem statement is the core of this process — assess organisations on their potential to meet and surpass it, not on the size or track record of the organisation itself. we are not simply looking for the biggest players with numbers already in hand, but for models with the potential to effect change at the India level.',
   'look for differentiators. keep a lens on organisations pushing the boundaries of the field, not just executing a known playbook well.',
 ];

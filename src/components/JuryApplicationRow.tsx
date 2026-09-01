@@ -24,7 +24,7 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
 
   return (
     <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+      <td style={{ padding: 'var(--space-3) var(--space-4)', maxWidth: 280 }}>
         <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
           <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number }}>
             <OrgTitle>{app.orgName}</OrgTitle>
@@ -41,7 +41,7 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
           <span style={{ color: 'var(--text-muted)' }}>—</span>
         )}
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+      <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
         {app.interviewDay || app.interviewTime ? (
           <div style={{ fontSize: 'var(--fs-small)', lineHeight: 'var(--lh-relaxed)' }}>
             {app.interviewDay && <div>{app.interviewDay}</div>}

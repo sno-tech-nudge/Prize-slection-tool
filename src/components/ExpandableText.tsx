@@ -63,7 +63,9 @@ export function ExpandableText({ text }: { text: string }) {
         type="button"
         onClick={() => setExpanded((e) => !e)}
         style={{
+          display: 'block',
           marginTop: 'var(--space-2)',
+          marginLeft: 'auto',
           padding: 0,
           border: 'none',
           background: 'none',
