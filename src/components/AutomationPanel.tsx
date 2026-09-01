@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, RefreshCw, Globe, FileText, type LucideIcon } from 'lucide-react';
-import { Card, Button, Badge, Input, useToast } from '@/design-system';
+import { Card, Button, Badge, Input, Select, useToast } from '@/design-system';
 import {
   scoreAllUnscoredAction,
   rerunMatcherAction,
@@ -11,6 +11,7 @@ import {
   reassignReviewerAction,
   reassignJurorAction,
   regenerateAllSynopsesAction,
+  regenerateOneSynopsisAction,
 } from '@/lib/automation/actions';
 import { Users, ArrowRightLeft } from 'lucide-react';
 
@@ -26,6 +27,11 @@ export interface AutomationStats {
   sitesToEnrich: number;
   enrichedApps: number;
   synopsisJobsInFlight: number;
+}
+
+export interface SynopsisApplicationOption {
+  id: string;
+  orgName: string;
 }
 
 function TaskRow({
@@ -73,7 +79,7 @@ function TaskRow({
   );
 }
 
-export function AutomationPanel({ stats }: { stats: AutomationStats }) {
+export function AutomationPanel({ stats, synopsisApplications }: { stats: AutomationStats; synopsisApplications: SynopsisApplicationOption[] }) {
   const router = useRouter();
   const { push } = useToast();
   const [scoring, setScoring] = React.useState(false);
@@ -83,6 +89,8 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
   const [movingAssignments, setMovingAssignments] = React.useState(false);
   const [movingJuror, setMovingJuror] = React.useState(false);
   const [regeneratingSynopses, setRegeneratingSynopses] = React.useState(false);
+  const [regeneratingOne, setRegeneratingOne] = React.useState(false);
+  const [selectedApplicationId, setSelectedApplicationId] = React.useState('');
   const jobsInFlight = stats.jobStats.PENDING + stats.jobStats.RUNNING;
 
   async function runScore() {
@@ -103,6 +111,27 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
       router.refresh();
     } finally {
       setRegeneratingSynopses(false);
+    }
+  }
+
+  async function runRegenerateOne() {
+    if (!selectedApplicationId) {
+      push('pick an application', 'select one from the dropdown first.', 'error');
+      return;
+    }
+    setRegeneratingOne(true);
+    try {
+      const formData = new FormData();
+      formData.set('applicationId', selectedApplicationId);
+      const result = await regenerateOneSynopsisAction(formData);
+      if (result.error) {
+        push('regeneration failed', `${result.orgName ?? 'application'}: ${result.error}`, 'error');
+      } else {
+        push('regenerated', `${result.orgName} — via ${result.usedModel}.`, 'success');
+        router.refresh();
+      }
+    } finally {
+      setRegeneratingOne(false);
     }
   }
 
@@ -244,6 +273,29 @@ export function AutomationPanel({ stats }: { stats: AutomationStats }) {
             {regeneratingSynopses ? 'queuing…' : 'regenerate all synopses'}
           </Button>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-3)', flexWrap: 'wrap', padding: 'var(--space-4) 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ flex: '0 0 100%', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
+          <FileText size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
+          regenerate just one application&apos;s synopsis — runs immediately, useful for testing without burning tokens on the full batch
+        </div>
+        <Select
+          aria-label="application to regenerate"
+          value={selectedApplicationId}
+          onChange={(e) => setSelectedApplicationId(e.target.value)}
+          containerStyle={{ minWidth: 260, flex: 1 }}
+        >
+          <option value="">select an application…</option>
+          {synopsisApplications.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.orgName}
+            </option>
+          ))}
+        </Select>
+        <Button variant="secondary" size="sm" disabled={regeneratingOne} onClick={runRegenerateOne}>
+          {regeneratingOne ? 'regenerating…' : 'regenerate this one'}
+        </Button>
       </div>
 
       <form

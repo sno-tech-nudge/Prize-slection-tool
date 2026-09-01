@@ -8,6 +8,7 @@ import { enqueueJobs, getJobStats } from '@/lib/jobs/queue';
 import { syncApplicationsFromSupabase, type SupabaseSyncResult } from '@/lib/sources/supabase-source';
 import { reassignAllInRotationOrder } from '@/lib/applications/assignment';
 import { getSettings } from '@/lib/settings';
+import { generateOrgSynopsis } from '@/lib/synopsis/runner';
 
 const BATCH_LIMIT = 200; // enqueue is cheap (no LLM call happens here) — the ticker drains it over time
 
@@ -85,6 +86,46 @@ export async function regenerateAllSynopsesAction() {
   revalidatePath('/dashboard');
   revalidatePath('/applications');
   return { queued };
+}
+
+/** The dropdown source for regenerateOneSynopsisAction below — every YES-decided application,
+ *  same set regenerateAllSynopsesAction targets, so there's nothing in the picker that action
+ *  wouldn't also reach. Picked by id from a dropdown rather than typed, so there's no chance of
+ *  the wrong id being entered by hand (unlike a raw SQL WHERE id = '...' someone copies wrong from
+ *  a screenshot). */
+export async function listYesDecidedApplicationsForSynopsis() {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  return prisma.application.findMany({
+    where: { isDuplicateOf: null, internalDecision: 'YES' },
+    select: { id: true, orgName: true },
+    orderBy: { orgName: 'asc' },
+  });
+}
+
+/** Regenerates exactly one application's synopsis, synchronously (not via the job queue) — this
+ *  is specifically for testing a prompt/model change against one real application without
+ *  burning tokens or queue time on the other 50+, and gives an immediate pass/fail result instead
+ *  of a "queued" toast you then have to go check on. */
+export async function regenerateOneSynopsisAction(formData: FormData): Promise<{ orgName?: string; usedModel?: string; error?: string }> {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const applicationId = String(formData.get('applicationId') ?? '');
+  if (!applicationId) return { error: 'pick an application first.' };
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { orgName: true } });
+  if (!app) return { error: 'that application no longer exists.' };
+
+  try {
+    const { usedModel } = await generateOrgSynopsis(applicationId);
+    revalidatePath(`/applications/${applicationId}`);
+    revalidatePath('/applications');
+    return { orgName: app.orgName, usedModel };
+  } catch (err) {
+    return { orgName: app.orgName, error: err instanceof Error ? err.message : 'synopsis generation failed' };
+  }
 }
 
 export async function rerunMatcherAction() {
