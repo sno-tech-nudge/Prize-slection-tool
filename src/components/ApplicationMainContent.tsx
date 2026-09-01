@@ -105,160 +105,17 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
   );
 }
 
-/** The real JURY role's entire application view, deliberately separate from the shared tree below
- *  rather than threaded through it with per-field conditionals — per the jury view field sheet,
- *  jury sees exactly four sections (organisation details, application synopsis, metrics, plus
- *  "internal reviewer remarks") and nothing else. A dedicated component makes that a closed list:
- *  a new field added to the shared admin/reviewer tree can't leak into jury's view by accident.
- *  Observer is NOT this — observer still gets the fuller shared tree below, just with AI
- *  evaluation/scraper/scoring hidden. `visibility.jury` narrows which of these ~15 fields actually
- *  render, per admin's /settings/view configuration; `order` controls which of the 4 cards render
- *  first, same source. */
-function JuryApplicationView({ app, visibility, order }: { app: ApplicationDetail; visibility: FieldVisibilityConfig; order: string[] }) {
-  const jv = (key: string) => visibility.jury[key] === true;
-
-  const sections: Record<string, () => React.ReactNode> = {
-    organisationDetails: () => (
-      <div id="section-organisation-profile" key="organisationDetails">
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            <Field label="organisation name" value={app.orgName} />
-            {jv('website') && (
-              <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />
-            )}
-            {jv('incorporationDate') && (
-              <Field label="year of incorporation" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
-            )}
-            {jv('legalRegistrationType') && (
-              <Field
-                label="legal registration"
-                value={app.legalRegistrationType ? (LEGAL_REGISTRATION_TYPE_LABEL[app.legalRegistrationType as LegalRegistrationTypeValue] ?? app.legalRegistrationType) : undefined}
-              />
-            )}
-            {jv('annualOperatingBudget') && (
-              <Field
-                label="annual operating budget"
-                value={app.annualOperatingBudget ? (ANNUAL_BUDGET_BAND_LABEL[app.annualOperatingBudget as AnnualBudgetBandValue] ?? app.annualOperatingBudget) : undefined}
-              />
-            )}
-            {jv('teamSize') && <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />}
-          </div>
-          {jv('founders') && app.founders.length > 0 && (
-            <div style={{ marginTop: 'var(--space-2)' }}>
-              <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
-                founders
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-                {app.founders.map((f) => (
-                  <div key={f.id} style={{ fontSize: 'var(--fs-small)' }}>
-                    <div style={{ fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--text-primary)' }}>{f.fullName}</div>
-                    <div style={{ marginTop: 'var(--space-1)' }}>
-                      {f.linkedin ? (
-                        <a href={f.linkedin} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)' }}>{f.linkedin}</a>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>LinkedIn not provided</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
-    ),
-
-    applicationSynopsis: () => {
-      if (!jv('orgSynopsis') || app.internalDecision !== 'YES') return null;
-      return (
-        <div id="section-ai-summary" key="applicationSynopsis">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
-            {app.orgSynopsisText && (
-              <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{app.orgSynopsisText}</p>
-            )}
-            {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
-            {!app.orgSynopsisText && app.orgSynopsisStatus !== 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>}
-          </Card>
-        </div>
-      );
-    },
-
-    metrics: () => {
-      const anyVisible =
-        (jv('yearsExperience') && app.yearsExperience !== null) ||
-        (jv('farmersCount') && app.farmersCount !== null) ||
-        (jv('smallholderFarmersCount') && app.smallholderFarmersCount !== null) ||
-        (jv('avgLandHolding') && app.avgLandHolding !== null) ||
-        (jv('areaUnderRegenPractice') && app.areaUnderRegenPractice !== null) ||
-        (jv('statesOperating') && app.statesOperating) ||
-        (jv('verifiedImpacts') && app.verifiedImpacts);
-      if (!anyVisible) return null;
-      return (
-        <div id="section-experience-impact" key="metrics">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              {jv('yearsExperience') && <Field label="years in regenerative agriculture" value={app.yearsExperience} />}
-              {jv('farmersCount') && <Field label="farmers reached" value={app.farmersCount} />}
-              {jv('smallholderFarmersCount') && <Field label="smallholder farmers reached" value={app.smallholderFarmersCount} />}
-              {jv('areaUnderRegenPractice') && <Field label="area under regenerative agriculture" value={app.areaUnderRegenPractice} />}
-              {jv('avgLandHolding') && <Field label="average land holding (ha)" value={app.avgLandHolding} />}
-              {jv('statesOperating') && <Field label="geography coverage" value={tagList(app.statesOperating, {})?.join(', ')} />}
-            </div>
-            {jv('verifiedImpacts') && <Field label="self reported impact" value={app.verifiedImpacts} />}
-          </Card>
-        </div>
-      );
-    },
-
-    internalReview: () => {
-      if (!jv('internalReviewerRemarks')) return null;
-      return (
-        <div id="section-internal-reviewer-remarks" key="internalReview">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
-            {app.humanReviews[0]?.comment ? (
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
-            ) : (
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
-            )}
-          </Card>
-        </div>
-      );
-    },
-  };
-
-  const excludeIds = [
-    'section-model',
-    'section-tech-and-tools',
-    'section-scoring',
-    'section-scraper',
-    ...(jv('internalReviewerRemarks') ? [] : ['section-internal-reviewer-remarks']),
-  ];
-
-  return (
-    <div>
-      <SectionJumpNav excludeIds={excludeIds} />
-      {order.map((key) => (
-        <Fragment key={key}>{sections[key]?.()}</Fragment>
-      ))}
-    </div>
-  );
-}
-
 /** The whole "application record" left column — organisation profile through AI evaluation,
- *  scraper checks, human review score, and jury scores. Shared between the regular admin
- *  application page and the internal jury-dashboard page so both render identically; `isJury`
- *  controls whether the AI evaluation / scraper-data / public-data enrichment sections are shown
- *  (jury and observer never see them, on either page) — the application detail page passes this
- *  true for OBSERVER-role viewers too, since the two roles are meant to see an identical
- *  restricted slice there. The real JURY role (`isJury && !isObserver`) doesn't render any of this
- *  — see JuryApplicationView above, a fully separate closed-list view per the jury view field
- *  sheet. Observer still gets everything below, gated field-by-field and section-ordered by
- *  `visibility` (admin's /settings/view config) — admin/reviewer are never gated or reordered by
- *  it, since `ov()` below only consults `visibility` when `isObserver` is true. */
+ *  scraper checks, human review score, and jury scores. One unified render path for every role
+ *  (admin, reviewer, observer, jury): which fields and sections actually show, and in what order,
+ *  is entirely driven by `visibility` (admin's /settings/view config) via `ov()` below — jury and
+ *  observer each have their own independent field map and section order over the exact same
+ *  registry, so either can be handed anywhere from a couple of fields up to the full admin/
+ *  reviewer view. Admin/reviewer are never gated or reordered — `ov()` returns true unconditionally
+ *  for them. `canAct` (true only for admin/reviewer) separately gates action buttons (rescore,
+ *  validate) and internal-only debug notes, which are permissions concerns, not display ones —
+ *  making a field visible to jury/observer never grants them the ability to trigger AI rescoring
+ *  or org validation. */
 export function ApplicationMainContent({
   app,
   isJury,
@@ -272,18 +129,17 @@ export function ApplicationMainContent({
   user: User | null;
   visibility: FieldVisibilityConfig;
 }) {
-  if (isJury && !isObserver) {
-    return <JuryApplicationView app={app} visibility={visibility} order={visibility.jurySectionOrder} />;
-  }
-
   const latestEval = app.aiEvaluations[0];
   const criteria = latestEval ? parseCriteria(latestEval.criteria) : [];
   const redFlags = latestEval ? parseRedFlags(latestEval.redFlags) : [];
   const eligibility = latestEval ? parseEligibility(latestEval.eligibility) : null;
   const embed = driveEmbedUrl(app.pitchDeckUrl);
 
-  // admin/reviewer always see every field, unrestricted — visibility only narrows observer.
-  const ov = (key: string) => !isObserver || visibility.observer[key] === true;
+  const canAct = !isJury && !isObserver;
+  const ov = (key: string) => {
+    if (canAct) return true;
+    return (isJury ? visibility.jury[key] : visibility.observer[key]) === true;
+  };
 
   const sections: Record<string, () => React.ReactNode> = {
     organisation: () => (
@@ -292,7 +148,7 @@ export function ApplicationMainContent({
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             {ov('orgType') && <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />}
-            {!isObserver && !isJury && ov('recId') && <Field label="rec_id" value={app.creatorRecordId} />}
+            {ov('recId') && <Field label="rec_id" value={app.creatorRecordId} />}
             {ov('website') && <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />}
             {ov('linkedinUrl') && <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />}
             {ov('incorporationDate') && (
@@ -317,7 +173,7 @@ export function ApplicationMainContent({
                 <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
                   {app.orgSynopsisText}
                 </p>
-                {!isJury && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
+                {canAct && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
                   <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
                     every configured AI provider failed, so this is a template-built fallback, not a model-generated read
                     {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}.
@@ -327,12 +183,12 @@ export function ApplicationMainContent({
             )}
             {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
             {/* the raw provider error (rate limits, billing details) is only useful to whoever can
-             *  act on it via the regenerate button above — observer gets the same neutral message as
-             *  the not-yet-generated state instead of technical noise they can't fix. */}
-            {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && !isJury && (
+             *  act on it via the regenerate button above — jury/observer get the same neutral
+             *  message as the not-yet-generated state instead of technical noise they can't fix. */}
+            {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && canAct && (
               <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
             )}
-            {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? isJury : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
+            {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? !canAct : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
               <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>
             )}
           </Card>
@@ -631,7 +487,7 @@ export function ApplicationMainContent({
                 <Card accent style={{ marginBottom: 'var(--space-6)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
                     <h2 style={{ fontSize: 'var(--fs-h3)' }}>AI evaluation</h2>
-                    {user && <RescoreButton applicationId={app.id} />}
+                    {user && canAct && <RescoreButton applicationId={app.id} />}
                   </div>
 
                   {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)', whiteSpace: 'pre-wrap' }}>{latestEval.summary}</p>}
@@ -685,7 +541,7 @@ export function ApplicationMainContent({
                 <Card style={{ marginBottom: 'var(--space-6)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p style={{ color: 'var(--text-secondary)' }}>this application hasn&apos;t been scored yet.</p>
-                    <RescoreButton applicationId={app.id} />
+                    {canAct && <RescoreButton applicationId={app.id} />}
                   </div>
                 </Card>
               )}
@@ -746,7 +602,7 @@ export function ApplicationMainContent({
                   <Card key={check.key} accent style={{ marginBottom: 'var(--space-6)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
                       <h2 style={{ fontSize: 'var(--fs-h3)', textTransform: 'lowercase' }}>{check.label}</h2>
-                      {user && <ValidateOrgButton applicationId={app.id} section={check.key} hasRun={check.status === 'DONE' || check.status === 'FAILED'} />}
+                      {user && canAct && <ValidateOrgButton applicationId={app.id} section={check.key} hasRun={check.status === 'DONE' || check.status === 'FAILED'} />}
                     </div>
                     <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{check.blurb}</p>
 
@@ -813,8 +669,8 @@ export function ApplicationMainContent({
 
     internalReview: () => {
       // admin/reviewer already get the fuller "score" card above (aiScoring's humanReviewScores) —
-      // this simpler comment-only card is only for observer, matching the jury view's equivalent.
-      if (!isObserver || !ov('internalReviewerRemarks')) return null;
+      // this simpler comment-only card is only for jury/observer.
+      if (canAct || !ov('internalReviewerRemarks')) return null;
       return (
         <div id="section-internal-reviewer-remarks" key="internalReview">
           <Card accent style={{ marginBottom: 'var(--space-6)' }}>
@@ -830,12 +686,12 @@ export function ApplicationMainContent({
     },
   };
 
-  // reordering is an observer-only affordance (per the settings UI) — admin/reviewer always get
-  // the fixed, familiar registry order regardless of what's saved for observer.
-  const order = isObserver ? visibility.observerSectionOrder : Object.keys(sections);
+  // reordering is a jury/observer-only affordance (per the settings UI) — admin/reviewer always
+  // get the fixed, familiar registry order regardless of what's saved for either role.
+  const order = canAct ? Object.keys(sections) : isJury ? visibility.jurySectionOrder : visibility.observerSectionOrder;
 
   const excludeIds = [
-    ...(isObserver && ov('internalReviewerRemarks') ? [] : ['section-internal-reviewer-remarks']),
+    ...(!canAct && ov('internalReviewerRemarks') ? [] : ['section-internal-reviewer-remarks']),
     ...(ov('aiEvaluation') ? [] : ['section-scoring']),
     ...(ov('scraperChecks') ? [] : ['section-scraper']),
   ];

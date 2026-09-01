@@ -2,7 +2,7 @@
 import React from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Button, Checkbox } from '@/design-system';
-import { VIEW_SECTIONS, JURY_SECTIONS, VIEW_FIELDS, type ViewSectionDef } from '@/lib/visibility/fieldRegistry';
+import { VIEW_SECTIONS, VIEW_FIELDS, type ViewSectionDef } from '@/lib/visibility/fieldRegistry';
 import type { FieldVisibilityConfig } from '@/lib/visibility/settings';
 import { updateFieldVisibilityAction } from '@/lib/visibility/actions';
 
@@ -111,19 +111,31 @@ function SectionOrderList({
   );
 }
 
-/** Admin-only field-by-field visibility manager for observer and jury, plus per-role section
- *  reordering. Actually wired up: ApplicationMainContent.tsx (both the shared admin/reviewer/
- *  observer tree and JuryApplicationView) reads this same config on every render. Observer and
- *  jury get separate panels rather than one shared table, since their two views are structured
- *  differently — jury's 4 hand-curated sections don't correspond 1:1 to the admin tree's 12. */
+/** Admin-only field-by-field visibility manager for jury and observer, plus per-role section
+ *  reordering. Wired up in ApplicationMainContent.tsx, which now renders jury, observer, and
+ *  admin/reviewer through the exact same section/field machinery — every field here is available
+ *  to every role, so jury can be handed anywhere from a couple of fields up to the entire
+ *  admin/reviewer view, one field or section at a time. Jury is listed first (not observer) since
+ *  it's checked far more often day to day. */
 export function FieldVisibilityManager({ visibility }: { visibility: FieldVisibilityConfig }) {
-  const [observerOrder, setObserverOrder] = React.useState(visibility.observerSectionOrder);
   const [juryOrder, setJuryOrder] = React.useState(visibility.jurySectionOrder);
+  const [observerOrder, setObserverOrder] = React.useState(visibility.observerSectionOrder);
 
   return (
     <form action={updateFieldVisibilityAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-      <input type="hidden" name="observerSectionOrder" value={observerOrder.join(',')} />
       <input type="hidden" name="jurySectionOrder" value={juryOrder.join(',')} />
+      <input type="hidden" name="observerSectionOrder" value={observerOrder.join(',')} />
+
+      <SectionOrderList
+        title="jury view"
+        helpText="which fields jury sees, and in what section order — every field on the application is available here, up to the full admin/reviewer view. Use the arrows to reorder a section before or after another."
+        order={juryOrder}
+        onReorder={setJuryOrder}
+        sectionDefs={VIEW_SECTIONS}
+        fieldsFor={(key) => VIEW_FIELDS.filter((f) => f.section === key)}
+        checkboxName={(key) => `jury_${key}`}
+        checkedFor={(key) => visibility.jury[key]}
+      />
 
       <SectionOrderList
         title="observer view"
@@ -134,17 +146,6 @@ export function FieldVisibilityManager({ visibility }: { visibility: FieldVisibi
         fieldsFor={(key) => VIEW_FIELDS.filter((f) => f.section === key)}
         checkboxName={(key) => `observer_${key}`}
         checkedFor={(key) => visibility.observer[key]}
-      />
-
-      <SectionOrderList
-        title="jury view"
-        helpText="jury's own 4 sections only show fields jury's page already has a place for — toggling can narrow what jury sees, not add an entirely new section."
-        order={juryOrder}
-        onReorder={setJuryOrder}
-        sectionDefs={JURY_SECTIONS}
-        fieldsFor={(key) => VIEW_FIELDS.filter((f) => f.jurySection === key)}
-        checkboxName={(key) => `jury_${key}`}
-        checkedFor={(key) => visibility.jury[key]}
       />
 
       <div>

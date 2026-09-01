@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/db';
-import { VIEW_FIELDS, VIEW_SECTIONS, JURY_SECTIONS } from './fieldRegistry';
+import { VIEW_FIELDS, VIEW_SECTIONS } from './fieldRegistry';
 
 export interface FieldVisibilityConfig {
   observer: Record<string, boolean>;
   jury: Record<string, boolean>;
-  /** a permutation of VIEW_SECTIONS' keys / JURY_SECTIONS' keys — missing or unknown keys fall
-   *  back to registry order, same "never read as broken" philosophy as the visibility maps. */
+  /** a permutation of VIEW_SECTIONS' keys, independently for each role — missing or unknown keys
+   *  fall back to registry order, same "never read as broken" philosophy as the visibility maps. */
   observerSectionOrder: string[];
   jurySectionOrder: string[];
 }
@@ -23,7 +23,7 @@ function defaults(): FieldVisibilityConfig {
     observer,
     jury,
     observerSectionOrder: VIEW_SECTIONS.map((s) => s.key),
-    jurySectionOrder: JURY_SECTIONS.map((s) => s.key),
+    jurySectionOrder: VIEW_SECTIONS.map((s) => s.key),
   };
 }
 
