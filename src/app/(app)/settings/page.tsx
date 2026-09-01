@@ -4,6 +4,7 @@ import { listUsers } from '@/lib/auth/session';
 import { SupabaseSyncPanel } from '@/components/SupabaseSyncPanel';
 import { UserRoleManager } from '@/components/UserRoleManager';
 import { AutomationPanel } from '@/components/AutomationPanel';
+import { ResetPlatformPanel } from '@/components/ResetPlatformPanel';
 import { getAutomationStats, listYesDecidedApplicationsForSynopsis } from '@/lib/automation/actions';
 
 export default async function SettingsPage() {
@@ -46,6 +47,8 @@ export default async function SettingsPage() {
         <SupabaseSyncPanel configured={supabaseConfigured} />
 
         <AutomationPanel stats={automationStats} synopsisApplications={synopsisApplications} />
+
+        <ResetPlatformPanel />
       </div>
     </div>
   );
