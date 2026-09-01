@@ -9,9 +9,15 @@ const TRUNCATE_THRESHOLD_WORDS = 100;
 // for ordinary prose, without ever stopping mid-sentence.
 const TARGET_WORDS = 70;
 
+// Real applicant free text very often doesn't end with a final ".", "!" or "?" (people just stop
+// typing) — a strict "every chunk must end in punctuation" split would then fail to account for
+// that trailing remainder and silently disable truncation for the whole field. Instead, capture
+// whatever properly-terminated sentences exist, then append any leftover un-terminated text as one
+// final chunk so it still participates in the word-count accumulation below.
 function splitSentences(text: string): string[] {
-  const matches = text.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
-  return matches && matches.join('') === text ? matches : [text];
+  const matches = text.match(/[^.!?]+[.!?]+(?:\s+|$)/g) ?? [];
+  const remainder = text.slice(matches.join('').length);
+  return remainder.trim().length > 0 ? [...matches, remainder] : matches;
 }
 
 function wordCount(s: string): number {
