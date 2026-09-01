@@ -9,6 +9,7 @@ import { ExpandableText } from '@/components/ExpandableText';
 import type { getApplicationDetail } from '@/lib/applications/queries';
 import type { User } from '@prisma/client';
 import type { FieldVisibilityConfig } from '@/lib/visibility/settings';
+import { VIEW_SECTIONS } from '@/lib/visibility/fieldRegistry';
 import { parseCriteria, parseRedFlags, parseEligibility } from '@/lib/scoring/parse';
 import { RUBRIC_CRITERIA, RUBRIC_SECTIONS } from '@/lib/scoring/rubric';
 import { computeConsensus } from '@/lib/applications/consensus';
@@ -29,6 +30,8 @@ import {
 } from '@/lib/constants';
 
 type ApplicationDetail = NonNullable<Awaited<ReturnType<typeof getApplicationDetail>>>;
+
+const SECTION_LABEL: Record<string, string> = Object.fromEntries(VIEW_SECTIONS.map((s) => [s.key, s.label]));
 
 function tagList(raw: string | null, labels: Record<string, string>) {
   return raw
@@ -116,7 +119,13 @@ function TagGroup({ label, values }: { label: string; values: string[] | undefin
  *  for them. `canAct` (true only for admin/reviewer) separately gates action buttons (rescore,
  *  validate) and internal-only debug notes, which are permissions concerns, not display ones —
  *  making a field visible to jury/observer never grants them the ability to trigger AI rescoring
- *  or org validation. */
+ *  or org validation.
+ *
+ *  The jump-nav tabs at the top are derived from the exact same `sections`/`order` this renders
+ *  from (see `rendered` below) — every section gets one `id="section-<key>"` anchor, and only
+ *  sections that actually render something get a tab, in the exact order they render. This is
+ *  deliberate: a previous version had SectionJumpNav keep its own hardcoded tab list, which could
+ *  (and did) drift out of sync with the real section order once that became admin-configurable. */
 export function ApplicationMainContent({
   app,
   isJury,
@@ -144,56 +153,52 @@ export function ApplicationMainContent({
 
   const sections: Record<string, () => React.ReactNode> = {
     organisation: () => (
-      <div id="section-organisation-profile" key="organisation">
-        <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-            {ov('orgType') && <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />}
-            {ov('recId') && <Field label="rec_id" value={app.creatorRecordId} />}
-            {ov('website') && <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />}
-            {ov('linkedinUrl') && <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />}
-            {ov('incorporationDate') && (
-              <Field label="incorporated" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
-            )}
-            {ov('email') && <Field label="email" value={app.email} />}
-            {ov('phone') && <Field label="phone" value={app.phone} />}
-            {ov('teamSize') && <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />}
-          </div>
-        </Card>
-      </div>
+      <Card accent key="organisation" style={{ marginBottom: 'var(--space-6)' }}>
+        <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>organisation details</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+          {ov('orgType') && <Field label="organisation type" value={ORG_TYPE_LABEL[app.orgType as OrgTypeValue] ?? app.orgType} />}
+          {ov('recId') && <Field label="rec_id" value={app.creatorRecordId} />}
+          {ov('website') && <Field label="website" value={app.website ? <a href={app.website} target="_blank" rel="noreferrer">{app.website}</a> : undefined} />}
+          {ov('linkedinUrl') && <Field label="LinkedIn" value={app.linkedinUrl ? <a href={app.linkedinUrl} target="_blank" rel="noreferrer">{app.linkedinUrl}</a> : undefined} />}
+          {ov('incorporationDate') && (
+            <Field label="incorporated" value={app.incorporationDate ? new Date(app.incorporationDate).toLocaleDateString('en-GB') : undefined} />
+          )}
+          {ov('email') && <Field label="email" value={app.email} />}
+          {ov('phone') && <Field label="phone" value={app.phone} />}
+          {ov('teamSize') && <Field label="team size" value={app.teamSize ? (TEAM_SIZE_LABEL[app.teamSize as TeamSizeValue] ?? app.teamSize) : undefined} />}
+        </div>
+      </Card>
     ),
 
     synopsis: () => {
       if (!ov('orgSynopsis') || app.internalDecision !== 'YES') return null;
       return (
-        <div id="section-ai-summary" key="synopsis">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
-            {app.orgSynopsisText && (
-              <>
-                <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
-                  {app.orgSynopsisText}
+        <Card accent key="synopsis" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
+          {app.orgSynopsisText && (
+            <>
+              <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
+                {app.orgSynopsisText}
+              </p>
+              {canAct && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
+                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+                  every configured AI provider failed, so this is a template-built fallback, not a model-generated read
+                  {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}.
                 </p>
-                {canAct && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
-                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
-                    every configured AI provider failed, so this is a template-built fallback, not a model-generated read
-                    {app.orgSynopsisError ? ` (${app.orgSynopsisError})` : ''}.
-                  </p>
-                )}
-              </>
-            )}
-            {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
-            {/* the raw provider error (rate limits, billing details) is only useful to whoever can
-             *  act on it via the regenerate button above — jury/observer get the same neutral
-             *  message as the not-yet-generated state instead of technical noise they can't fix. */}
-            {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && canAct && (
-              <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
-            )}
-            {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? !canAct : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
-              <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>
-            )}
-          </Card>
-        </div>
+              )}
+            </>
+          )}
+          {!app.orgSynopsisText && app.orgSynopsisStatus === 'RUNNING' && <p style={{ color: 'var(--text-secondary)' }}>generating…</p>}
+          {/* the raw provider error (rate limits, billing details) is only useful to whoever can
+           *  act on it via the regenerate button above — jury/observer get the same neutral
+           *  message as the not-yet-generated state instead of technical noise they can't fix. */}
+          {!app.orgSynopsisText && app.orgSynopsisStatus === 'FAILED' && canAct && (
+            <p style={{ color: 'var(--delta-red)' }}>summary generation failed: {app.orgSynopsisError ?? 'unknown error'}</p>
+          )}
+          {!app.orgSynopsisText && (app.orgSynopsisStatus === 'FAILED' ? !canAct : !app.orgSynopsisStatus || app.orgSynopsisStatus === 'PENDING') && (
+            <p style={{ color: 'var(--text-secondary)' }}>summary not available yet.</p>
+          )}
+        </Card>
       );
     },
 
@@ -342,20 +347,18 @@ export function ApplicationMainContent({
         (ov('adoptionHurdle') && app.adoptionHurdle);
       if (!anyVisible) return null;
       return (
-        <div id="section-model" key="model">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
-            {ov('operatingModelArchetype') && <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />}
-            {ov('operatingModelDescription') && (
-              <Field label="how it works in practice" value={app.operatingModelDescription ? <ExpandableText text={app.operatingModelDescription} /> : undefined} />
-            )}
-            {ov('primaryCrops') && <TagGroup label="primary crops" values={tagList(app.primaryCrops, CROP_TYPE_LABEL)} />}
-            {ov('regenerativePractices') && <TagGroup label="regenerative practices" values={tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)} />}
-            {ov('adoptionHurdle') && (
-              <Field label="biggest adoption hurdle" value={app.adoptionHurdle ? <ExpandableText text={app.adoptionHurdle} /> : undefined} />
-            )}
-          </Card>
-        </div>
+        <Card accent key="model" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>model</h2>
+          {ov('operatingModelArchetype') && <TagGroup label="operating model archetype" values={tagList(app.operatingModelArchetype, OPERATING_MODEL_ARCHETYPE_LABEL)} />}
+          {ov('operatingModelDescription') && (
+            <Field label="how it works in practice" value={app.operatingModelDescription ? <ExpandableText text={app.operatingModelDescription} /> : undefined} />
+          )}
+          {ov('primaryCrops') && <TagGroup label="primary crops" values={tagList(app.primaryCrops, CROP_TYPE_LABEL)} />}
+          {ov('regenerativePractices') && <TagGroup label="regenerative practices" values={tagList(app.regenerativePractices, REGEN_PRACTICE_LABEL)} />}
+          {ov('adoptionHurdle') && (
+            <Field label="biggest adoption hurdle" value={app.adoptionHurdle ? <ExpandableText text={app.adoptionHurdle} /> : undefined} />
+          )}
+        </Card>
       );
     },
 
@@ -363,17 +366,15 @@ export function ApplicationMainContent({
       const anyVisible = (ov('techTools') && app.techTools) || (ov('otherTools') && app.otherTools) || (ov('techTools') && app.techToolsInternal !== null) || (ov('techUseCases') && app.techUseCases.length > 0);
       if (!anyVisible) return null;
       return (
-        <div id="section-tech-and-tools" key="techTools">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
-            {ov('techTools') && <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />}
-            {ov('techTools') && <Field label="tools developed internally" value={app.techToolsInternal === null ? undefined : app.techToolsInternal ? 'yes' : 'no'} />}
-            {ov('otherTools') && <Field label="other tools" value={app.otherTools} />}
-            {ov('techUseCases') && app.techUseCases.length > 0 && (
-              <Field label="top tech use cases" value={<ExpandableText text={app.techUseCases.map((t) => t.description).join('; ')} />} />
-            )}
-          </Card>
-        </div>
+        <Card accent key="techTools" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>tech and tools</h2>
+          {ov('techTools') && <TagGroup label="tools used for data / transparency / delivery" values={tagList(app.techTools, TECH_TOOL_LABEL)} />}
+          {ov('techTools') && <Field label="tools developed internally" value={app.techToolsInternal === null ? undefined : app.techToolsInternal ? 'yes' : 'no'} />}
+          {ov('otherTools') && <Field label="other tools" value={app.otherTools} />}
+          {ov('techUseCases') && app.techUseCases.length > 0 && (
+            <Field label="top tech use cases" value={<ExpandableText text={app.techUseCases.map((t) => t.description).join('; ')} />} />
+          )}
+        </Card>
       );
     },
 
@@ -391,59 +392,57 @@ export function ApplicationMainContent({
         (ov('heardAboutChallenge') && app.heardAboutChallenge);
       if (!anyVisible) return null;
       return (
-        <div id="section-experience-impact" key="experienceImpact">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              {ov('yearsExperience') && <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />}
-              {ov('farmersCount') && <Field label="farmers reached" value={app.farmersCount} />}
-              {ov('smallholderFarmersCount') && <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />}
-              {ov('avgLandHolding') && <Field label="average land holding (ha)" value={app.avgLandHolding} />}
-              {ov('areaUnderRegenPractice') && <Field label="area under regenerative practice (ha)" value={app.areaUnderRegenPractice} />}
-              {ov('villagesDistricts') && (
-                <Field
-                  label="villages / districts"
-                  value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)}
-                />
-              )}
-              {ov('melHandling') && <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />}
-              {ov('materialsInLocalLanguages') && (
-                <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
-              )}
-              {ov('teamFormalTraining') && <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />}
-              {ov('worksBeyondAg') && <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />}
-              {ov('infoAccurateConfirmed') && (
-                <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
-              )}
-            </div>
-            {ov('teamTrainingDescription') && <Field label="team training details" value={app.teamTrainingDescription} />}
-            {ov('otherDevelopmentAreas') && <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />}
-            {ov('statesOperating') && <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />}
-            {ov('verifiedImpacts') && (
-              <Field label="verified impacts" value={app.verifiedImpacts ? <ExpandableText text={app.verifiedImpacts} /> : undefined} />
+        <Card accent key="experienceImpact" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>metrics</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            {ov('yearsExperience') && <Field label="years of experience in regenerative agriculture" value={app.yearsExperience} />}
+            {ov('farmersCount') && <Field label="farmers reached" value={app.farmersCount} />}
+            {ov('smallholderFarmersCount') && <Field label="of which smallholder (≤2ha)" value={app.smallholderFarmersCount} />}
+            {ov('avgLandHolding') && <Field label="average land holding (ha)" value={app.avgLandHolding} />}
+            {ov('areaUnderRegenPractice') && <Field label="area under regenerative practice (ha)" value={app.areaUnderRegenPractice} />}
+            {ov('villagesDistricts') && (
+              <Field
+                label="villages / districts"
+                value={app.villagesDistrictsRaw ?? (app.villagesCount ?? app.districtsCount ? `${app.villagesCount ?? '—'} villages, ${app.districtsCount ?? '—'} districts` : undefined)}
+              />
             )}
-            {ov('fundUsagePlan') && (
-              <Field label="planned use of prize funds" value={app.fundUsagePlan ? <ExpandableText text={app.fundUsagePlan} /> : undefined} />
+            {ov('melHandling') && <Field label="MEL handled" value={app.melHandling ? (MEL_HANDLING_LABEL[app.melHandling as MelHandlingValue] ?? app.melHandling) : undefined} />}
+            {ov('materialsInLocalLanguages') && (
+              <Field label="materials in local languages" value={app.materialsInLocalLanguages === null ? undefined : app.materialsInLocalLanguages ? 'yes' : 'no'} />
             )}
-            {ov('heardAboutChallenge') && (
-              <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
+            {ov('teamFormalTraining') && <Field label="team formally trained" value={app.teamFormalTraining === null ? undefined : app.teamFormalTraining ? 'yes' : 'no'} />}
+            {ov('worksBeyondAg') && <Field label="works beyond agriculture" value={app.worksBeyondAg === null ? undefined : app.worksBeyondAg ? 'yes' : 'no'} />}
+            {ov('infoAccurateConfirmed') && (
+              <Field label="info confirmed accurate by applicant" value={app.infoAccurateConfirmed === null ? undefined : app.infoAccurateConfirmed ? 'yes' : 'no'} />
             )}
-            {ov('reportLinks') && app.reportLinks.length > 0 && (
-              <div style={{ marginTop: 'var(--space-2)' }}>
-                <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
-                  published reports / case studies
-                </div>
-                {app.reportLinks.map((r) => (
-                  <div key={r.id}>
-                    <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}>
-                      {r.url}
-                    </a>
-                  </div>
-                ))}
+          </div>
+          {ov('teamTrainingDescription') && <Field label="team training details" value={app.teamTrainingDescription} />}
+          {ov('otherDevelopmentAreas') && <Field label="other development work beyond agriculture" value={app.otherDevelopmentAreas} />}
+          {ov('statesOperating') && <Field label="states / UTs of operation" value={tagList(app.statesOperating, {})?.join(', ')} />}
+          {ov('verifiedImpacts') && (
+            <Field label="verified impacts" value={app.verifiedImpacts ? <ExpandableText text={app.verifiedImpacts} /> : undefined} />
+          )}
+          {ov('fundUsagePlan') && (
+            <Field label="planned use of prize funds" value={app.fundUsagePlan ? <ExpandableText text={app.fundUsagePlan} /> : undefined} />
+          )}
+          {ov('heardAboutChallenge') && (
+            <Field label="how they heard about the challenge" value={[tagList(app.heardAboutChallenge, {})?.join(', '), app.otherHeardAbout].filter(Boolean).join(' — ') || undefined} />
+          )}
+          {ov('reportLinks') && app.reportLinks.length > 0 && (
+            <div style={{ marginTop: 'var(--space-2)' }}>
+              <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+                published reports / case studies
               </div>
-            )}
-          </Card>
-        </div>
+              {app.reportLinks.map((r) => (
+                <div key={r.id}>
+                  <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}>
+                    {r.url}
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       );
     },
 
@@ -487,7 +486,7 @@ export function ApplicationMainContent({
         <Fragment key="aiScoring">
           {showEval && (
             <>
-              <div id="section-scoring" style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ marginBottom: 'var(--space-6)' }}>
                 <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scoring &amp; evaluation</h2>
                 <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
                   AI read below is decision support only — use the &ldquo;review&rdquo; button above to score this application yourself.
@@ -560,7 +559,7 @@ export function ApplicationMainContent({
 
           {showScraper && (
             <>
-              <div id="section-scraper" style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ marginBottom: 'var(--space-6)' }}>
                 <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scraper data</h2>
                 <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
                   checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
@@ -682,16 +681,14 @@ export function ApplicationMainContent({
       // this simpler comment-only card is only for jury/observer.
       if (canAct || !ov('internalReviewerRemarks')) return null;
       return (
-        <div id="section-internal-reviewer-remarks" key="internalReview">
-          <Card accent style={{ marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
-            {app.humanReviews[0]?.comment ? (
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
-            ) : (
-              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
-            )}
-          </Card>
-        </div>
+        <Card accent key="internalReview" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal reviewer remarks</h2>
+          {app.humanReviews[0]?.comment ? (
+            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
+          ) : (
+            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
+          )}
+        </Card>
       );
     },
   };
@@ -700,18 +697,22 @@ export function ApplicationMainContent({
   // get the fixed, familiar registry order regardless of what's saved for either role.
   const order = canAct ? Object.keys(sections) : isJury ? visibility.jurySectionOrder : visibility.observerSectionOrder;
 
-  const excludeIds = [
-    ...(!canAct && ov('internalReviewerRemarks') ? [] : ['section-internal-reviewer-remarks']),
-    ...(ov('aiEvaluation') ? [] : ['section-scoring']),
-    ...(ov('scraperChecks') ? [] : ['section-scraper']),
-  ];
+  // render every section exactly once, in final order — the jump-nav tabs below are derived from
+  // this same array, so a tab can never point at a section that isn't actually there, or list
+  // sections out of the order they actually render in.
+  const rendered = order.map((key) => ({ key, node: sections[key]?.() ?? null }));
+  const jumpNavSections = rendered
+    .filter((r) => r.node !== null)
+    .map((r) => ({ id: `section-${r.key}`, label: SECTION_LABEL[r.key] ?? r.key }));
 
   return (
     <div>
-      <SectionJumpNav excludeIds={excludeIds} />
+      <SectionJumpNav sections={jumpNavSections} />
       <div>
-        {order.map((key) => (
-          <Fragment key={key}>{sections[key]?.()}</Fragment>
+        {rendered.map((r) => (
+          <div id={`section-${r.key}`} key={r.key}>
+            {r.node}
+          </div>
         ))}
       </div>
     </div>

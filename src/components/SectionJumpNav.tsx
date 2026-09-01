@@ -1,26 +1,15 @@
 'use client';
 
-const SECTIONS = [
-  { id: 'section-organisation-profile', label: 'organisation details' },
-  { id: 'section-ai-summary', label: 'application synopsis' },
-  { id: 'section-model', label: 'model' },
-  { id: 'section-tech-and-tools', label: 'tech and tools' },
-  { id: 'section-experience-impact', label: 'metrics' },
-  // only ever rendered on the jury's own view — see the excludeIds passed from
-  // ApplicationMainContent, which drops this for every other role.
-  { id: 'section-internal-reviewer-remarks', label: 'internal reviewer remarks' },
-  { id: 'section-scoring', label: 'scoring & evaluation' },
-  { id: 'section-scraper', label: 'scraper data' },
-];
+export interface JumpNavSection {
+  id: string;
+  label: string;
+}
 
-/** Quick-jump nav — same section names for every role that sees a given section (jury and
- *  admin/reviewer both call these "organisation details" / "metrics" now), everything stays
- *  visible on one page (this is the "very detailed view", nothing hidden), these buttons just
- *  scroll to the right spot. `excludeIds` drops entries whose target section isn't rendered for
- *  the current viewer (jury don't get scoring & evaluation / scraper data, so those jump buttons
- *  would go nowhere). */
-export function SectionJumpNav({ excludeIds }: { excludeIds?: string[] } = {}) {
-  const sections = excludeIds ? SECTIONS.filter((s) => !excludeIds.includes(s.id)) : SECTIONS;
+/** Quick-jump nav — renders exactly the sections passed in, in the exact order given. The caller
+ *  (ApplicationMainContent) computes this list from what actually rendered, in its actual render
+ *  order, so a hidden section or a reordered one can never drift out of sync with these tabs the
+ *  way a separate hardcoded list once did. */
+export function SectionJumpNav({ sections }: { sections: JumpNavSection[] }) {
   return (
     <div
       style={{
