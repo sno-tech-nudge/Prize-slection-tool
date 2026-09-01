@@ -66,7 +66,27 @@ export default async function ApplicationsPage({
             if (scoreB === null) return -1;
             return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
           })
-        : unsortedJuryApplications;
+        : searchParams.sort === 'slot'
+          ? // interviewDay/interviewTime are free display text, not real dates (see the schema
+            // comment on Application.interviewDay) — pull out the day number and the time's
+            // minutes-since-midnight to get a real chronological order without hardcoding this
+            // challenge's exact day labels. Unscheduled applications sort last. The base list is
+            // already alphabetical by orgName (see listJuryApplications' orderBy), and Array.sort
+            // is stable, so same-slot ties fall back to alphabetical automatically — no separate
+            // tiebreak needed.
+            [...unsortedJuryApplications].sort((a, b) => {
+              const dayOrder = (day: string | null) => {
+                const match = day?.match(/(\d+)/);
+                return match ? parseInt(match[1], 10) : Infinity;
+              };
+              const timeOrder = (time: string | null) => {
+                const match = time?.match(/^(\d{1,2}):(\d{2})/);
+                return match ? parseInt(match[1], 10) * 60 + parseInt(match[2], 10) : Infinity;
+              };
+              const dayDiff = dayOrder(a.interviewDay) - dayOrder(b.interviewDay);
+              return dayDiff !== 0 ? dayDiff : timeOrder(a.interviewTime) - timeOrder(b.interviewTime);
+            })
+          : unsortedJuryApplications;
 
     // backfills any missing synopsis before the juror even opens an application — every
     // application on this list is already internalDecision: YES (that's the visibility gate), so
