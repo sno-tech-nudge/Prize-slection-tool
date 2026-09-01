@@ -31,7 +31,7 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
           </div>
         </Link>
       </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+      <td style={{ padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>
         {app.bench ? (
           <span style={{ display: 'inline-flex', alignItems: 'center' }}>
             {app.bench.name}
