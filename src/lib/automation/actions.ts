@@ -300,3 +300,63 @@ export async function getAutomationStats() {
     synopsisJobsInFlight,
   };
 }
+
+const HEURISTIC_MARKER = 'heuristic-fallback-v1';
+
+/** Read-only diagnostic: how much of the AI evaluation / synopsis output is actually coming from
+ *  a real model call vs. the deterministic heuristic fallback — the fallback runs silently
+ *  whenever every configured provider fails (a deprecated model, an exhausted quota, a bad key),
+ *  with nothing else in the app ever surfacing that. Deliberately does nothing but read: no
+ *  queueing, no mutation, no revalidation — click it, see the numbers, decide for yourself whether
+ *  anything needs attention. Covers both the all-time picture and the most recent 15 of each, since
+ *  a provider issue that started recently can be masked by a large all-time total that's mostly
+ *  real model runs from before it broke. */
+export async function getAiHealthStatsAction() {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_MANAGE_SETTINGS);
+
+  const [
+    totalEvaluations,
+    heuristicEvaluations,
+    recentEvaluations,
+    totalSynopses,
+    heuristicSynopses,
+    recentSynopses,
+  ] = await Promise.all([
+    prisma.aiEvaluation.count(),
+    prisma.aiEvaluation.count({ where: { model: HEURISTIC_MARKER } }),
+    prisma.aiEvaluation.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+      select: { model: true, createdAt: true, application: { select: { orgName: true } } },
+    }),
+    prisma.application.count({ where: { orgSynopsisStatus: 'DONE' } }),
+    prisma.application.count({ where: { orgSynopsisStatus: 'DONE', orgSynopsisModel: HEURISTIC_MARKER } }),
+    prisma.application.findMany({
+      where: { orgSynopsisStatus: 'DONE' },
+      orderBy: { orgSynopsisRunAt: 'desc' },
+      take: 15,
+      select: { orgName: true, orgSynopsisModel: true, orgSynopsisRunAt: true },
+    }),
+  ]);
+
+  const recentEvalHeuristicCount = recentEvaluations.filter((e) => e.model === HEURISTIC_MARKER).length;
+  const recentSynopsisHeuristicCount = recentSynopses.filter((s) => s.orgSynopsisModel === HEURISTIC_MARKER).length;
+
+  return {
+    evaluations: {
+      total: totalEvaluations,
+      heuristic: heuristicEvaluations,
+      recentChecked: recentEvaluations.length,
+      recentHeuristic: recentEvalHeuristicCount,
+      recent: recentEvaluations.map((e) => ({ orgName: e.application.orgName, model: e.model, at: e.createdAt.toISOString() })),
+    },
+    synopses: {
+      total: totalSynopses,
+      heuristic: heuristicSynopses,
+      recentChecked: recentSynopses.length,
+      recentHeuristic: recentSynopsisHeuristicCount,
+      recent: recentSynopses.map((s) => ({ orgName: s.orgName, model: s.orgSynopsisModel ?? 'unknown', at: s.orgSynopsisRunAt?.toISOString() ?? null })),
+    },
+  };
+}

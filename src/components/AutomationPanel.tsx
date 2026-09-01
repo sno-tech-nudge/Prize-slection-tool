@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Send, RefreshCw, Globe, FileText, type LucideIcon } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, Globe, FileText, HeartPulse, type LucideIcon } from 'lucide-react';
 import { Card, Button, Badge, Input, Select, useToast } from '@/design-system';
 import {
   scoreAllUnscoredAction,
@@ -12,8 +12,21 @@ import {
   reassignJurorAction,
   regenerateAllSynopsesAction,
   regenerateOneSynopsisAction,
+  getAiHealthStatsAction,
 } from '@/lib/automation/actions';
 import { Users, ArrowRightLeft } from 'lucide-react';
+
+interface AiHealthBucket {
+  total: number;
+  heuristic: number;
+  recentChecked: number;
+  recentHeuristic: number;
+  recent: { orgName: string; model: string; at: string | null }[];
+}
+interface AiHealthStats {
+  evaluations: AiHealthBucket;
+  synopses: AiHealthBucket;
+}
 
 export interface AutomationStats {
   totalApps: number;
@@ -91,6 +104,8 @@ export function AutomationPanel({ stats, synopsisApplications }: { stats: Automa
   const [regeneratingSynopses, setRegeneratingSynopses] = React.useState(false);
   const [regeneratingOne, setRegeneratingOne] = React.useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = React.useState('');
+  const [checkingHealth, setCheckingHealth] = React.useState(false);
+  const [aiHealth, setAiHealth] = React.useState<AiHealthStats | null>(null);
   const jobsInFlight = stats.jobStats.PENDING + stats.jobStats.RUNNING;
 
   async function runScore() {
@@ -132,6 +147,16 @@ export function AutomationPanel({ stats, synopsisApplications }: { stats: Automa
       }
     } finally {
       setRegeneratingOne(false);
+    }
+  }
+
+  async function runCheckAiHealth() {
+    setCheckingHealth(true);
+    try {
+      const result = await getAiHealthStatsAction();
+      setAiHealth(result);
+    } finally {
+      setCheckingHealth(false);
     }
   }
 
@@ -296,6 +321,68 @@ export function AutomationPanel({ stats, synopsisApplications }: { stats: Automa
         <Button variant="secondary" size="sm" disabled={regeneratingOne} onClick={runRegenerateOne}>
           {regeneratingOne ? 'regenerating…' : 'regenerate this one'}
         </Button>
+      </div>
+
+      <div style={{ padding: 'var(--space-4) 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--text-primary)' }}>
+            <HeartPulse size={14} color="var(--text-muted)" strokeLinejoin="miter" strokeLinecap="square" />
+            AI provider health — how much AI scoring/synopsis output is a real model read vs. the template fallback
+          </span>
+          <Button variant="secondary" size="sm" disabled={checkingHealth} onClick={runCheckAiHealth}>
+            {checkingHealth ? 'checking…' : aiHealth ? 'refresh' : 'check ai provider health'}
+          </Button>
+        </div>
+
+        {aiHealth && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+            {(
+              [
+                { label: 'AI evaluations', bucket: aiHealth.evaluations },
+                { label: 'application synopses', bucket: aiHealth.synopses },
+              ] as const
+            ).map(({ label, bucket }) => (
+              <div key={label} style={{ border: '1px solid var(--border-subtle)', padding: 'var(--space-4)' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-1)' }}>
+                  all-time:{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>
+                    {bucket.total - bucket.heuristic} / {bucket.total}
+                  </strong>{' '}
+                  via a real model
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
+                    most recent {bucket.recentChecked}:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {bucket.recentChecked - bucket.recentHeuristic} / {bucket.recentChecked}
+                    </strong>{' '}
+                    via a real model
+                  </span>
+                  {bucket.recentChecked > 0 && (
+                    <Badge tone={bucket.recentHeuristic === 0 ? 'outline' : 'yellow'}>
+                      {bucket.recentHeuristic === 0 ? 'looks healthy' : `${bucket.recentHeuristic} on fallback`}
+                    </Badge>
+                  )}
+                </div>
+                {bucket.recent.length > 0 && (
+                  <div style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {bucket.recent.map((r, i) => (
+                      <div key={i} style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.orgName}</span>
+                        <span style={{ flexShrink: 0, color: r.model === 'heuristic-fallback-v1' ? 'var(--delta-red)' : 'var(--text-muted)' }}>
+                          {r.model === 'heuristic-fallback-v1' ? 'fallback' : r.model}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <form
