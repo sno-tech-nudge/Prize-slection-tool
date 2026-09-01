@@ -21,7 +21,7 @@ export interface ViewFieldDef {
  *  exact same list, so either can be handed anywhere from a couple of fields up to the full
  *  admin/reviewer view. Admin/reviewer always see every section, unordered by this. */
 export const VIEW_SECTIONS: ViewSectionDef[] = [
-  { key: 'organisation', label: 'organisation' },
+  { key: 'organisation', label: 'organisation details' },
   { key: 'synopsis', label: 'application synopsis' },
   { key: 'foundersFunders', label: 'founders & funders' },
   { key: 'problemSolution', label: 'problem and solution' },
@@ -32,7 +32,11 @@ export const VIEW_SECTIONS: ViewSectionDef[] = [
   { key: 'experienceImpact', label: 'metrics' },
   { key: 'enrichment', label: 'public-data enrichment' },
   { key: 'pitchDeck', label: 'pitch deck' },
-  { key: 'aiScoring', label: 'scoring, ai evaluation & scraper data' },
+  // split from one combined "aiScoring" section — that single tab could never match both of its
+  // two actual card headings at once, which is exactly the tab/card mismatch this list exists to
+  // prevent everywhere else. One tab per real heading now, same as every other section.
+  { key: 'aiEvaluation', label: 'scoring & evaluation' },
+  { key: 'scraperChecks', label: 'scraper data' },
   { key: 'internalReview', label: 'internal remarks' },
 ];
 
@@ -119,9 +123,9 @@ export const VIEW_FIELDS: ViewFieldDef[] = [
   { key: 'pitchDeckUrl', label: 'pitch deck', section: 'pitchDeck', defaultObserver: true, defaultJury: false },
 
   // scoring / ai / scraper — hidden from both today, available to turn on for either
-  { key: 'aiEvaluation', label: 'AI evaluation summary & section scores', section: 'aiScoring', defaultObserver: false, defaultJury: false },
-  { key: 'scraperChecks', label: 'scraper data (organisation validation checks)', section: 'aiScoring', defaultObserver: false, defaultJury: false },
-  { key: 'humanReviewScores', label: 'internal reviewer scores (full breakdown)', section: 'aiScoring', defaultObserver: false, defaultJury: false },
+  { key: 'aiEvaluation', label: 'AI evaluation summary & section scores', section: 'aiEvaluation', defaultObserver: false, defaultJury: false },
+  { key: 'scraperChecks', label: 'scraper data (organisation validation checks)', section: 'scraperChecks', defaultObserver: false, defaultJury: false },
+  { key: 'humanReviewScores', label: 'internal reviewer scores (full breakdown)', section: 'aiEvaluation', defaultObserver: false, defaultJury: false },
 
   // application synopsis
   { key: 'orgSynopsis', label: 'organisation & model synopsis', section: 'synopsis', defaultObserver: true, defaultJury: true },

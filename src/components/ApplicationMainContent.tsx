@@ -177,9 +177,7 @@ export function ApplicationMainContent({
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>
           {app.orgSynopsisText && (
             <>
-              <p style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>
-                {app.orgSynopsisText}
-              </p>
+              <ExpandableText text={app.orgSynopsisText} />
               {canAct && app.orgSynopsisModel === 'heuristic-fallback-v1' && (
                 <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
                   every configured AI provider failed, so this is a template-built fallback, not a model-generated read
@@ -285,7 +283,7 @@ export function ApplicationMainContent({
       if (!anyVisible) return null;
       return (
         <Card accent key="agwaterLegacy" style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>impact and eligibility signals (AgWater cycle)</h2>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>impact and eligibility signals (agwater cycle)</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             {ov('beneficiaries') && <Field label="beneficiaries" value={app.beneficiaries} />}
             {ov('smallMarginalFarmerPct') && <Field label="small/marginal farmer share" value={app.smallMarginalFarmerPct !== null ? `${app.smallMarginalFarmerPct}%` : undefined} />}
@@ -478,13 +476,11 @@ export function ApplicationMainContent({
       );
     },
 
-    aiScoring: () => {
-      const showEval = ov('aiEvaluation');
-      const showScraper = ov('scraperChecks');
-      if (!showEval && !showScraper) return null;
+    aiEvaluation: () => {
+      if (!ov('aiEvaluation') && !ov('humanReviewScores')) return null;
       return (
-        <Fragment key="aiScoring">
-          {showEval && (
+        <Fragment key="aiEvaluation">
+          {ov('aiEvaluation') && (
             <>
               <div style={{ marginBottom: 'var(--space-6)' }}>
                 <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scoring &amp; evaluation</h2>
@@ -557,16 +553,47 @@ export function ApplicationMainContent({
             </>
           )}
 
-          {showScraper && (
-            <>
-              <div style={{ marginBottom: 'var(--space-6)' }}>
-                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scraper data</h2>
-                <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
-                  checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
-                </p>
+          {ov('humanReviewScores') && app.humanReviews.length > 0 && (
+            <Card style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                <h2 style={{ fontSize: 'var(--fs-h3)' }}>score</h2>
+                {(() => {
+                  const consensus = computeConsensus({
+                    aiComposite: latestEval?.composite,
+                    humanComposites: app.humanReviews.map((r) => r.composite),
+                  });
+                  return consensus.divergent ? <Badge tone="yellow">reviewers diverge</Badge> : <Badge tone="outline">consensus aligned</Badge>;
+                })()}
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {app.humanReviews.map((r) => (
+                  <div key={r.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>{r.reviewer.name}</strong>
+                      <Tag selected={r.recommendation === 'ADVANCE'}>{r.recommendation.toLowerCase()}</Tag>
+                    </div>
+                    <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </Fragment>
+      );
+    },
 
-              {(
+    scraperChecks: () => {
+      if (!ov('scraperChecks')) return null;
+      return (
+        <Fragment key="scraperChecks">
+          <div style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>scraper data</h2>
+            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
+              checks self-reported claims against independent outside sources — each check below runs and fails independently, manually triggered, never runs on its own.
+            </p>
+          </div>
+
+          {(
                 [
                   {
                     key: 'opModel' as const,
@@ -644,41 +671,13 @@ export function ApplicationMainContent({
                   </Card>
                 );
               })}
-            </>
-          )}
-
-          {ov('humanReviewScores') && app.humanReviews.length > 0 && (
-            <Card style={{ marginBottom: 'var(--space-6)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-                <h2 style={{ fontSize: 'var(--fs-h3)' }}>score</h2>
-                {(() => {
-                  const consensus = computeConsensus({
-                    aiComposite: latestEval?.composite,
-                    humanComposites: app.humanReviews.map((r) => r.composite),
-                  });
-                  return consensus.divergent ? <Badge tone="yellow">reviewers diverge</Badge> : <Badge tone="outline">consensus aligned</Badge>;
-                })()}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {app.humanReviews.map((r) => (
-                  <div key={r.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <strong>{r.reviewer.name}</strong>
-                      <Tag selected={r.recommendation === 'ADVANCE'}>{r.recommendation.toLowerCase()}</Tag>
-                    </div>
-                    <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
         </Fragment>
       );
     },
 
     internalReview: () => {
-      // admin/reviewer already get the fuller "score" card above (aiScoring's humanReviewScores) —
-      // this simpler comment-only card is only for jury/observer.
+      // admin/reviewer already get the fuller "score" card above (aiEvaluation's
+      // humanReviewScores) — this simpler comment-only card is only for jury/observer.
       if (canAct || !ov('internalReviewerRemarks')) return null;
       return (
         <Card accent key="internalReview" style={{ marginBottom: 'var(--space-6)' }}>

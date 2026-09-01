@@ -11,8 +11,8 @@ const compactFieldStyle: React.CSSProperties = {
   border: '1px solid var(--border-strong)',
 };
 
-/** Jury's own filter bar — search, scored/not-scored, and sort (alphabetical, interview slot, or
- *  score). Deliberately just these: no decision status, registration type, operating model,
+/** Jury's own filter bar — search, scored/not-scored, and sort (slot by default, or alphabetical,
+ *  or score). Deliberately just these: no decision status, registration type, operating model,
  *  state, or eligibility selects — jury only ever sees their own bench's shortlisted applications,
  *  and only needs to find and order them, not slice by the same operational filters the internal
  *  team uses. */
@@ -55,8 +55,8 @@ export function JuryApplicationFilters() {
         containerStyle={{ width: 170, minWidth: 0, flexShrink: 0 }}
         style={{ ...compactFieldStyle, padding: '0 var(--space-6) 0 var(--space-3)' }}
       >
-        <option value="">sort: alphabetical</option>
-        <option value="slot">slot: earliest first</option>
+        <option value="">sort: slot (earliest first)</option>
+        <option value="alphabetical">sort: alphabetical</option>
         <option value="score_desc">score: high to low</option>
         <option value="score_asc">score: low to high</option>
       </Select>

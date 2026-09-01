@@ -56,17 +56,21 @@ export default async function ApplicationsPage({
     });
     // score is per-juror-scoped in the query above (at most one juryScores entry — this juror's
     // own), so sorting on it is a plain in-memory sort rather than needing an aggregate.
+    // Default (no ?sort= at all) is "slot" — the schedule is what jurors actually work from day to
+    // day — with explicit "alphabetical" as the opt-out. "score_desc"/"score_asc" both a juror
+    // might reasonably want are unaffected by this default.
+    const sortMode = searchParams.sort || 'slot';
     const juryApplications =
-      searchParams.sort === 'score_desc' || searchParams.sort === 'score_asc'
+      sortMode === 'score_desc' || sortMode === 'score_asc'
         ? [...unsortedJuryApplications].sort((a, b) => {
             const scoreA = a.juryScores[0]?.composite ?? null;
             const scoreB = b.juryScores[0]?.composite ?? null;
             if (scoreA === null && scoreB === null) return 0;
             if (scoreA === null) return 1;
             if (scoreB === null) return -1;
-            return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
+            return sortMode === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
           })
-        : searchParams.sort === 'slot'
+        : sortMode === 'slot'
           ? // interviewDay/interviewTime are free display text, not real dates (see the schema
             // comment on Application.interviewDay) — pull out the day number and the time's
             // minutes-since-midnight to get a real chronological order without hardcoding this
@@ -86,7 +90,7 @@ export default async function ApplicationsPage({
               const dayDiff = dayOrder(a.interviewDay) - dayOrder(b.interviewDay);
               return dayDiff !== 0 ? dayDiff : timeOrder(a.interviewTime) - timeOrder(b.interviewTime);
             })
-          : unsortedJuryApplications;
+          : unsortedJuryApplications; // 'alphabetical' — already the base query order
 
     // backfills any missing synopsis before the juror even opens an application — every
     // application on this list is already internalDecision: YES (that's the visibility gate), so

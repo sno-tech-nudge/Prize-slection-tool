@@ -3,11 +3,16 @@ import React from 'react';
 
 // only worth truncating once a field runs noticeably past a skimmable length — anything at or
 // under this just renders in full, no button, so short answers never grow a pointless toggle.
-const TRUNCATE_THRESHOLD_WORDS = 100;
-// where the cut looks for a sentence boundary to land on, per the requested 70-100 word range —
-// accumulating sentences until this is crossed naturally lands the cut somewhere in that band
-// for ordinary prose, without ever stopping mid-sentence.
-const TARGET_WORDS = 70;
+const TRUNCATE_THRESHOLD_WORDS = 160;
+// where the cut looks for a sentence boundary to land on, per the requested 150-160 word range —
+// accumulating sentences until this is crossed naturally lands the cut in that band for ordinary
+// prose, without ever stopping mid-sentence.
+const TARGET_WORDS = 150;
+
+// a paragraph that opens with a short "Label — " lead-in (the application synopsis's own format —
+// "Model — ...", "Regenerative approach — ...") gets that lead-in rendered bold, everything else
+// renders as plain prose. Harmless no-op for fields that don't use this convention.
+const LABEL_LEAD_IN = /^([A-Z][A-Za-z][A-Za-z /&-]{0,38}) — /;
 
 // Real applicant free text very often doesn't end with a final ".", "!" or "?" (people just stop
 // typing) — a strict "every chunk must end in punctuation" split would then fail to account for
@@ -38,33 +43,56 @@ function truncateAtSentence(text: string, targetWords: number): string | null {
   return text.slice(0, end).trimEnd();
 }
 
-/** A long free-text answer field, truncated to a clean sentence boundary past ~70-100 words with
- *  a "read more" toggle — used for the handful of explainer fields (funders' funding nature, how
- *  the model works, adoption hurdles, tech use cases, verified impacts, prize fund plans) whose
- *  answers can otherwise run to several paragraphs and dominate the page. Renders in full, no
- *  toggle at all, when the answer is already short. */
+// splits on blank lines into paragraphs, bolding any "Label — " lead-in each paragraph opens
+// with. Every field renders through this — plain single-paragraph prose with no such lead-in
+// just comes out as one unstyled paragraph, identical to before.
+function renderParagraphs(text: string): React.ReactNode {
+  const paragraphs = text.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
+  return paragraphs.map((para, i) => {
+    const match = para.match(LABEL_LEAD_IN);
+    return (
+      <p key={i} style={{ margin: i === 0 ? 0 : undefined, marginTop: i === 0 ? 0 : 'var(--space-3)' }}>
+        {match ? (
+          <>
+            <strong style={{ fontWeight: 'var(--fw-bold)' as unknown as number }}>{match[1]} — </strong>
+            {para.slice(match[0].length)}
+          </>
+        ) : (
+          para
+        )}
+      </p>
+    );
+  });
+}
+
+/** A long free-text answer field, truncated to a clean sentence boundary past ~150-160 words with
+ *  a "read more" toggle — used everywhere a free-text answer can run long: the application
+ *  synopsis, funders' funding nature, how the model works, adoption hurdles, tech use cases,
+ *  verified impacts, prize fund plans. Renders in full, no toggle at all, when the answer is
+ *  already short. Paragraphs separated by a blank line render with consistent spacing, and any
+ *  paragraph opening with a short "Label — " lead-in (the synopsis's own convention) gets that
+ *  lead-in bolded as a subheading rather than shown as plain inline text. */
 export function ExpandableText({ text }: { text: string }) {
   const [expanded, setExpanded] = React.useState(false);
-  const textStyle: React.CSSProperties = {
+  const containerStyle: React.CSSProperties = {
     fontSize: 'var(--fs-body)',
     color: 'var(--text-primary)',
     lineHeight: 'var(--lh-relaxed)',
     whiteSpace: 'pre-wrap',
-    margin: 0,
   };
 
   if (wordCount(text) <= TRUNCATE_THRESHOLD_WORDS) {
-    return <p style={textStyle}>{text}</p>;
+    return <div style={containerStyle}>{renderParagraphs(text)}</div>;
   }
 
   const truncated = truncateAtSentence(text, TARGET_WORDS);
   if (!truncated) {
-    return <p style={textStyle}>{text}</p>;
+    return <div style={containerStyle}>{renderParagraphs(text)}</div>;
   }
 
   return (
     <div>
-      <p style={textStyle}>{expanded ? text : `${truncated}…`}</p>
+      <div style={containerStyle}>{renderParagraphs(expanded ? text : `${truncated}…`)}</div>
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
