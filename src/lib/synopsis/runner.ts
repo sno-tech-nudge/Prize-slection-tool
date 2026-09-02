@@ -141,12 +141,15 @@ async function callGemini(userPrompt: string): Promise<string> {
  *  philosophy as scoring/heuristic.ts, since jury has no way to retry this themselves. FAILED is
  *  reserved for a genuine bug (the heuristic itself throwing), not an AI provider outage. */
 export async function generateOrgSynopsis(applicationId: string): Promise<{ usedModel: string }> {
-  const currentStatus = (await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { orgSynopsisStatus: true } }))
-    .orgSynopsisStatus;
-  if (currentStatus === 'RUNNING') {
-    throw new Error('The synopsis is already being generated for this application — wait for it to finish.');
-  }
-
+  // There used to be an "already RUNNING, refuse to start again" guard here — but orgSynopsisStatus
+  // has no staleness recovery the way the Job queue's status does (see reclaimStaleRunningJobs in
+  // jobs/queue.ts), so any generation interrupted mid-flight (a serverless timeout, a deploy
+  // landing mid-request) left the row stuck at RUNNING forever, permanently refusing every future
+  // regenerate attempt for that application — exactly the same failure mode the job queue fix
+  // addressed, just for this separate status field. Removed rather than reproduce that same bug
+  // here: the job queue's own atomic claim already prevents the same queued job from double-
+  // running, and a user double-clicking "regenerate this one" is a low-consequence race (whichever
+  // call finishes last simply wins), not worth reintroducing a bug this disruptive to guard against.
   await prisma.application.update({ where: { id: applicationId }, data: { orgSynopsisStatus: 'RUNNING', orgSynopsisError: null } });
 
   try {
