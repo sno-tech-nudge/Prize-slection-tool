@@ -3,7 +3,14 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import type { JuryScore } from '@prisma/client';
 import { Textarea, Radio, Input, Button, Dialog } from '@/design-system';
-import { JURY_RUBRIC_CRITERIA, JURY_DECISION_QUESTION, JURY_WINNING_MODEL_QUESTION, JURY_FRAMING_QUESTION, computeJuryComposite } from '@/lib/scoring/juryRubric';
+import {
+  JURY_RUBRIC_CRITERIA,
+  JURY_RUBRIC_MAX_TOTAL,
+  JURY_DECISION_QUESTION,
+  JURY_WINNING_MODEL_QUESTION,
+  JURY_FRAMING_QUESTION,
+  computeJuryComposite,
+} from '@/lib/scoring/juryRubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 import { JurySectionInfo } from '@/components/JurySectionInfo';
 import { submitJuryScoreAction, clearJuryScoreAction } from '@/lib/applications/jury-actions';
@@ -196,7 +203,7 @@ export function JuryScoringForm({
         >
           <strong>this score predates the current jury rubric.</strong> only {carriedOverCount} of the {currentKeys.size} current
           criteria carried over from the original submission — the rest show blank below and need to be scored fresh. the original
-          score of <strong>{existing?.composite}/100</strong> stays exactly as recorded unless you save this form, so please only
+          score of <strong>{existing?.composite}/{JURY_RUBRIC_MAX_TOTAL}</strong> stays exactly as recorded unless you save this form, so please only
           submit once every criterion below has been scored against the current rubric.
         </div>
       )}
@@ -219,7 +226,7 @@ export function JuryScoringForm({
             current score
           </div>
           <div style={{ fontSize: 'var(--fs-h2)', fontWeight: 'var(--fw-bold)' as unknown as number, color: 'var(--delta-red)' }}>
-            {liveComposite} / 100
+            {liveComposite} / {JURY_RUBRIC_MAX_TOTAL}
           </div>
         </div>
         <div style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', textAlign: 'right' }}>

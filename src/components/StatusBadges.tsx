@@ -22,8 +22,12 @@ export function DispositionTag({ disposition }: { disposition: string }) {
   return <Tag>{DISPOSITION_LABEL[disposition as DispositionValue] ?? disposition}</Tag>;
 }
 
-export function CompositeBadge({ score }: { score: number }) {
-  return <Badge tone="outline">{Math.round(score)} / 100</Badge>;
+export function CompositeBadge({ score, max = 100 }: { score: number; max?: number }) {
+  return (
+    <Badge tone="outline">
+      {Math.round(score)} / {max}
+    </Badge>
+  );
 }
 
 export function SolutionCategoryTag({ category }: { category: string }) {

@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, Badge } from '@/design-system';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { parseCriteria } from '@/lib/scoring/parse';
-import { JURY_RUBRIC_CRITERIA } from '@/lib/scoring/juryRubric';
+import { JURY_RUBRIC_CRITERIA, JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
 
 export interface JuryScoresTableRow {
   id: string;
@@ -69,7 +69,7 @@ export function JuryScoresTable({ juryScores }: { juryScores: JuryScoresTableRow
                 </td>
                 <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <CompositeBadge score={s.composite} />
+                    <CompositeBadge score={s.composite} max={JURY_RUBRIC_MAX_TOTAL} />
                     <Badge tone="outline">{s.verdict.toLowerCase()}</Badge>
                   </div>
                 </td>
@@ -130,7 +130,7 @@ export function JuryScoresTable({ juryScores }: { juryScores: JuryScoresTableRow
                 <td style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-bold)' as unknown as number }}>composite</td>
                 {scoresByJuror.map(({ score }) => (
                   <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right' }}>
-                    <CompositeBadge score={score.composite} />
+                    <CompositeBadge score={score.composite} max={JURY_RUBRIC_MAX_TOTAL} />
                   </td>
                 ))}
               </tr>

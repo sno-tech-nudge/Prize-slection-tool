@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, Badge } from '@/design-system';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { parseCriteria } from '@/lib/scoring/parse';
-import { JURY_RUBRIC_CRITERIA } from '@/lib/scoring/juryRubric';
+import { JURY_RUBRIC_CRITERIA, JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
 import type { JuryScoresTableRow } from '@/components/JuryScoresTable';
 
 /** The internal jury dashboard's detail view — a single full-width "jury score card" instead of
@@ -35,7 +35,7 @@ export function JuryScoreCard({ juryScores }: { juryScores: JuryScoresTableRow[]
         <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)' }}>
           avg score
         </div>
-        {avgScore !== null && <CompositeBadge score={avgScore} />}
+        {avgScore !== null && <CompositeBadge score={avgScore} max={JURY_RUBRIC_MAX_TOTAL} />}
         <Badge tone="outline">{juryScores.length} juror{juryScores.length === 1 ? '' : 's'} scored</Badge>
       </div>
 
@@ -89,7 +89,7 @@ export function JuryScoreCard({ juryScores }: { juryScores: JuryScoresTableRow[]
               {scoresByJuror.map(({ score }) => (
                 <td key={score.id} style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
-                    <CompositeBadge score={score.composite} />
+                    <CompositeBadge score={score.composite} max={JURY_RUBRIC_MAX_TOTAL} />
                     <Badge tone="outline">{score.verdict.toLowerCase()}</Badge>
                   </div>
                 </td>

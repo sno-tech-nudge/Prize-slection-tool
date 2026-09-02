@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { CompositeBadge } from '@/components/StatusBadges';
-import { JuryConsensusBadge } from '@/components/JuryConsensusBadge';
 import { BenchJurorsTooltip } from '@/components/BenchJurorsTooltip';
+import { JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
 import { Badge, Button } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 
@@ -9,7 +9,6 @@ export interface JuryApplicationRowData {
   id: string;
   orgName: string;
   juryScores: { composite: number; verdict: string }[];
-  benchVerdicts: string[];
   interviewDay: string | null;
   interviewTime: string | null;
   bench: { name: string; panelJurorNames: string | null } | null;
@@ -55,10 +54,17 @@ export function JuryApplicationRow({ app, queryString = '' }: { app: JuryApplica
         <Badge tone={myScore ? 'red' : 'yellow'}>{myScore ? 'completed' : 'yet to score'}</Badge>
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        {myScore ? <CompositeBadge score={myScore.composite} /> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+        {myScore ? <CompositeBadge score={myScore.composite} max={JURY_RUBRIC_MAX_TOTAL} /> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        <JuryConsensusBadge verdicts={app.benchVerdicts} />
+        {/* this juror's own verdict only — never the bench-wide consensus, which would reveal how
+         *  other jurors on the same bench voted. That aggregate stays admin-only, on the internal
+         *  /jury oversight page (InternalJuryRow), where it's the whole point of the view. */}
+        {myScore ? (
+          <Badge tone={myScore.verdict === 'YES' ? 'red' : myScore.verdict === 'NO' ? 'outline' : 'yellow'}>{myScore.verdict.toLowerCase()}</Badge>
+        ) : (
+          <span style={{ color: 'var(--text-muted)' }}>—</span>
+        )}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <Link href={href} style={{ textDecoration: 'none' }}>

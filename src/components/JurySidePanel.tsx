@@ -5,6 +5,7 @@ import { X, ClipboardCheck } from 'lucide-react';
 import { Card, Badge, Button } from '@/design-system';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { JuryScoringForm } from '@/components/JuryScoringForm';
+import { JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
 
 export interface JurySidePanelProps {
   applicationId: string;
@@ -26,7 +27,7 @@ export function JurySidePanel({ applicationId, myScore }: JurySidePanelProps) {
         <div style={{ marginBottom: 'var(--space-5)' }}>
           {myScore ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-              <CompositeBadge score={myScore.composite} />
+              <CompositeBadge score={myScore.composite} max={JURY_RUBRIC_MAX_TOTAL} />
               <Badge tone="outline">{myScore.verdict.toLowerCase()}</Badge>
             </div>
           ) : (

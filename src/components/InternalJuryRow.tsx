@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { JuryConsensusBadge } from '@/components/JuryConsensusBadge';
+import { JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
 import { Badge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 
@@ -53,7 +54,7 @@ export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRo
         return (
           <td key={i} style={{ padding: 'var(--space-3) var(--space-4)' }} title={juror?.name}>
             {score !== undefined ? (
-              <CompositeBadge score={score} />
+              <CompositeBadge score={score} max={JURY_RUBRIC_MAX_TOTAL} />
             ) : (
               <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>{juror ? '—' : ''}</span>
             )}
@@ -61,7 +62,7 @@ export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRo
         );
       })}
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        {avgJuryScore !== null ? <CompositeBadge score={avgJuryScore} /> : <Badge tone="yellow">no scores yet</Badge>}
+        {avgJuryScore !== null ? <CompositeBadge score={avgJuryScore} max={JURY_RUBRIC_MAX_TOTAL} /> : <Badge tone="yellow">no scores yet</Badge>}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         <JuryConsensusBadge

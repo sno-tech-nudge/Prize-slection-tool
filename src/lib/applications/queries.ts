@@ -234,7 +234,10 @@ export async function listJuryApplications(
   if (filters.scored === 'YES' && user) where.juryScores = { some: { jurorId: user.id } };
   if (filters.scored === 'NO' && user) where.juryScores = { none: { jurorId: user.id } };
 
-  const apps = await prisma.application.findMany({
+  // no bench-wide verdict aggregate here — a juror's own list shows only their own verdict (see
+  // JuryApplicationRow), never how the rest of the bench voted; that aggregate is admin-only, on
+  // the internal /jury oversight page (listJuryOversight), where it belongs.
+  return prisma.application.findMany({
     where,
     orderBy: { orgName: 'asc' },
     include: {
@@ -242,23 +245,6 @@ export async function listJuryApplications(
       bench: { select: { name: true, panelJurorNames: true } },
     },
   });
-
-  // bench-wide verdict tally for the majority-vote status column — every juror's verdict on this
-  // application's bench, not just this juror's own (unlike the scoped juryScores above, which
-  // stays "my own score only" for the actual score display). Counts only, no identities, so the
-  // aggregate signal doesn't reveal who specifically voted which way.
-  const appIds = apps.map((a) => a.id);
-  const allVerdicts = appIds.length
-    ? await prisma.juryScore.findMany({ where: { applicationId: { in: appIds } }, select: { applicationId: true, verdict: true } })
-    : [];
-  const verdictsByApp = new Map<string, string[]>();
-  for (const v of allVerdicts) {
-    const list = verdictsByApp.get(v.applicationId) ?? [];
-    list.push(v.verdict);
-    verdictsByApp.set(v.applicationId, list);
-  }
-
-  return apps.map((a) => ({ ...a, benchVerdicts: verdictsByApp.get(a.id) ?? [] }));
 }
 
 /** Prev/next neighbours of an application in the same order as the applications list (most
