@@ -33,13 +33,19 @@ const DANGLING_ENDING = /\b(and|or|but|with|to|of|the|a|an|in|on|for|as|by|is|ar
 
 /** Deterministic safety net applied to every AI-generated synopsis (Groq, Gemini, and — harmless
  *  no-op — the heuristic fallback), regardless of how well the prompt's instructions land with a
- *  given model: strips any lingering "• "/"- "/"* " bullet markers a model wrote despite the
+ *  given model: strips any lingering bullet/numbered-list markers a model wrote despite the
  *  no-bullets instruction, and trims a trailing unfinished sentence (one ending on a bare
  *  conjunction/preposition, the classic sign of a cut-off generation) back to the last complete
  *  one. Prompt wording alone can steer a model but never guarantees it — this is what actually
- *  guarantees nothing incomplete or bulleted ever reaches a juror, independent of model behaviour. */
+ *  guarantees nothing incomplete or bulleted ever reaches a juror, independent of model behaviour.
+ *
+ *  Bullet stripping covers more than the ASCII "•"/"-"/"*" cases: it also catches common bullet
+ *  glyphs a model might use instead (‣▪●◦∙·) and numbered markers ("1. "), and — since a model
+ *  that skips a real newline before a bullet still visually looks bulleted under this app's
+ *  pre-wrap rendering — matches a marker at the start of the text, right after any newline, or
+ *  right after a sentence-ending "."/"!"/"?" and some whitespace, not only at an actual line start. */
 function sanitizeSynopsis(raw: string): string {
-  let text = raw.replace(/^[ \t]*[•*-]\s+/gm, '').trim();
+  let text = raw.replace(/(^|\n|(?<=[.!?])\s+)[ \t]*(?:[•‣▪●◦∙·*-]|\d+\.)\s+/g, '\n\n').trim();
 
   if (DANGLING_ENDING.test(text)) {
     const sentences = text.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
