@@ -70,7 +70,9 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
       <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
         {label}
       </div>
-      <div style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{value ?? '—'}</div>
+      <div style={{ fontSize: 'var(--fs-body)', color: 'var(--text-primary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+        {value ?? '—'}
+      </div>
     </div>
   );
 }
@@ -219,7 +221,7 @@ export function ApplicationMainContent({
                       {f.fullName}
                       {f.role && <span style={{ fontWeight: 'var(--fw-light)' as unknown as number, color: 'var(--text-secondary)' }}> · {f.role}</span>}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 'var(--space-1)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 'var(--space-1)', overflowWrap: 'break-word', minWidth: 0 }}>
                       {f.email ? (
                         <a href={`mailto:${f.email}`} style={{ color: 'var(--delta-red)' }}>{f.email}</a>
                       ) : (
@@ -433,7 +435,7 @@ export function ApplicationMainContent({
               </div>
               {app.reportLinks.map((r) => (
                 <div key={r.id}>
-                  <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}>
+                  <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--delta-red)', fontSize: 'var(--fs-small)', overflowWrap: 'break-word' }}>
                     {r.url}
                   </a>
                 </div>
@@ -452,7 +454,7 @@ export function ApplicationMainContent({
             <h2 style={{ fontSize: 'var(--fs-h3)' }}>public-data enrichment</h2>
             <Badge tone="outline">{app.enrichmentSource === 'website+search' ? 'website + search' : 'website'}</Badge>
           </div>
-          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap' }}>{app.enrichmentSummary}</p>
+          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', lineHeight: 'var(--lh-relaxed)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{app.enrichmentSummary}</p>
           <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
             fetched from {app.website}. this is supporting context for AI scoring, not a substitute for the application itself.
           </p>
@@ -495,7 +497,7 @@ export function ApplicationMainContent({
                     {user && canAct && <RescoreButton applicationId={app.id} />}
                   </div>
 
-                  {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)', whiteSpace: 'pre-wrap' }}>{latestEval.summary}</p>}
+                  {latestEval.summary && <p style={{ marginBottom: 'var(--space-4)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{latestEval.summary}</p>}
 
                   {redFlags.length > 0 && (
                     <div style={{ marginBottom: 'var(--space-4)' }}>
@@ -535,7 +537,7 @@ export function ApplicationMainContent({
                   </div>
 
                   {eligibility && (
-                    <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                    <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                       eligibility notes: {eligibility.fit_notes}
                     </p>
                   )}
@@ -572,7 +574,7 @@ export function ApplicationMainContent({
                       <strong>{r.reviewer.name}</strong>
                       <Tag selected={r.recommendation === 'ADVANCE'}>{r.recommendation.toLowerCase()}</Tag>
                     </div>
-                    <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
+                    <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{r.comment}</p>
                   </div>
                 ))}
               </div>
@@ -656,11 +658,17 @@ export function ApplicationMainContent({
                           <span style={{ width: 12, height: 12, flexShrink: 0, background: tone.color }} />
                           <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{tone.label}</span>
                         </div>
-                        {check.summary && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap' }}>{check.summary}</p>}
+                        {check.summary && (
+                          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                            {check.summary}
+                          </p>
+                        )}
                         {check.raw && (
                           <details style={{ marginTop: 'var(--space-2)' }}>
                             <summary style={{ fontSize: 'var(--fs-caption)', cursor: 'pointer', color: 'var(--text-muted)' }}>view raw</summary>
-                            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginTop: 'var(--space-2)' }}>{check.raw}</p>
+                            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginTop: 'var(--space-2)' }}>
+                              {check.raw}
+                            </p>
                           </details>
                         )}
                         <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
@@ -683,7 +691,7 @@ export function ApplicationMainContent({
         <Card accent key="internalReview" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>internal remarks</h2>
           {app.humanReviews[0]?.comment ? (
-            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{app.humanReviews[0].comment}</p>
+            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{app.humanReviews[0].comment}</p>
           ) : (
             <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no reviewer remarks yet.</p>
           )}

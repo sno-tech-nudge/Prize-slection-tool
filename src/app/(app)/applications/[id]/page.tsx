@@ -201,10 +201,12 @@ export default async function ApplicationDetailPage({
           gap: 'var(--space-8)',
         }}
       >
-        <ApplicationMainContent app={app} isJury={isJury} isObserver={isObserver} user={user} visibility={visibility} />
+        <div style={{ minWidth: 0 }}>
+          <ApplicationMainContent app={app} isJury={isJury} isObserver={isObserver} user={user} visibility={visibility} />
+        </div>
 
         {!isObserver && (
-        <div data-pdf-exclude="true">
+        <div data-pdf-exclude="true" style={{ minWidth: 0 }}>
           {isJury ? (
             <JurySidePanel applicationId={app.id} myScore={myJuryScore} />
           ) : (

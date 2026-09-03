@@ -79,6 +79,7 @@ export function ExpandableText({ text }: { text: string }) {
     color: 'var(--text-primary)',
     lineHeight: 'var(--lh-relaxed)',
     whiteSpace: 'pre-wrap',
+    overflowWrap: 'break-word',
   };
 
   if (wordCount(text) <= TRUNCATE_THRESHOLD_WORDS) {
