@@ -12,7 +12,7 @@ export function RubricSidePanel() {
       <Button variant="secondary" onClick={() => setOpen(true)}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <ListChecks size={14} strokeLinejoin="miter" strokeLinecap="square" />
-          explore rubric
+          explore round 1 rubric
         </span>
       </Button>
 
