@@ -263,7 +263,7 @@ export async function reassignJurorAction(formData: FormData): Promise<{ movedBe
     data: { jurorId: toUser.id },
   });
 
-  revalidatePath('/jury');
+  revalidatePath('/applications/round-2');
   revalidatePath('/applications');
   return { movedBenches: fromUser.benches.length, movedScores: scoreResult.count };
 }

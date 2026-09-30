@@ -1,17 +1,19 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import { AngularBanner, Card } from '@/design-system';
+import { Download } from 'lucide-react';
+import { AngularBanner, Card, Button } from '@/design-system';
 import { InternalJuryRow } from '@/components/InternalJuryRow';
 import { JuryListFilters } from '@/components/JuryListFilters';
+import { RoundAnalyticsSection } from '@/components/RoundAnalyticsSection';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listJuryOversight, listBenches } from '@/lib/benches/queries';
 import type { ApplicationListFilters } from '@/lib/applications/queries';
 
-/** Internal team's jury dashboard — deliberately the same trimmed table + double-click-to-open
- *  view a jury member sees on their own applications list, just scoped to every bench instead of
- *  one, alphabetical — plus one column per juror (j1, j2, …) so progress is visible without
- *  opening each application. */
-export default async function JuryOversightPage({ searchParams }: { searchParams: ApplicationListFilters }) {
+/** Internal team's round 2 (jury) tracking page — deliberately the same trimmed table +
+ *  double-click-to-open view a jury member sees on their own applications list, just scoped to
+ *  every bench instead of one, alphabetical — plus one column per juror (j1, j2, …) so progress
+ *  is visible without opening each application. */
+export default async function Round2Page({ searchParams }: { searchParams: ApplicationListFilters }) {
   const user = await getCurrentUser();
   if (user?.role === 'JURY') redirect('/applications');
 
@@ -30,16 +32,24 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
   // as empty until that juror scores, instead of the columns only appearing once someone has.
   const jurorColumnCount = applications.reduce((max, a) => Math.max(max, a.bench?.jurors.length ?? 0), 0);
   const jurorHeaders = Array.from({ length: jurorColumnCount }, (_, i) => `j${i + 1}`);
-  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score', 'verdict'];
+  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score', 'verdict', 'decision', 'pdf'];
 
   return (
     <div>
       <AngularBanner
-        eyebrow="jury oversight · rapid re.gen challenge"
-        title="jury"
-        subtitle={`${applications.length} shortlisted application${applications.length === 1 ? '' : 's'} across all benches, alphabetical — double-click a row to open it`}
+        eyebrow="round 2 · rapid re.gen challenge"
+        title="round 2"
+        subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'} across all benches, alphabetical — double-click a row to open it`}
+        action={
+          <a href="/api/applications/round-2/export" style={{ textDecoration: 'none' }}>
+            <Button variant="secondary">
+              <Download size={14} strokeLinejoin="miter" strokeLinecap="square" style={{ marginRight: 'var(--space-2)' }} />
+              download jury scoring
+            </Button>
+          </a>
+        }
       />
-      <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+      <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <Suspense>
           <JuryListFilters benches={benches.map((b) => ({ id: b.id, name: b.name }))} />
         </Suspense>
@@ -78,6 +88,8 @@ export default async function JuryOversightPage({ searchParams }: { searchParams
             </tbody>
           </table>
         </Card>
+
+        <RoundAnalyticsSection where={{ round1Decision: 'YES' }} />
       </div>
     </div>
   );

@@ -33,7 +33,8 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 // internal oversight — every bench, every juror's individual score, for the team running the
 // jury process. distinct from what a jury member sees on /applications (their own bench only,
 // trimmed columns, blind until they submit). Reviewers get the identical full view admins do.
-const JURY_OVERSIGHT_ITEM: NavItem = { href: '/jury', label: 'jury', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
+const ROUND_2_ITEM: NavItem = { href: '/applications/round-2', label: 'round 2', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
+const ROUND_3_ITEM: NavItem = { href: '/applications/round-3', label: 'round 3', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
 
 // reachable, but not counted among the 4 modules — admin-only configuration
 const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] };
@@ -41,7 +42,9 @@ const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Set
 export function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const navItems = [...PRIMARY_NAV_ITEMS, JURY_OVERSIGHT_ITEM, SETTINGS_ITEM].filter((it) => !user || it.roles.includes(user.role as UserRole));
+  const navItems = [...PRIMARY_NAV_ITEMS, ROUND_2_ITEM, ROUND_3_ITEM, SETTINGS_ITEM].filter(
+    (it) => !user || it.roles.includes(user.role as UserRole),
+  );
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

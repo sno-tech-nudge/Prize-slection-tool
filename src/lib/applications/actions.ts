@@ -234,7 +234,6 @@ export async function setRoundDecisionAction(round: 1 | 2 | 3, formData: FormDat
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath('/applications/round-2');
   revalidatePath('/applications/round-3');
-  revalidatePath('/jury');
   revalidatePath('/dashboard');
 }
 

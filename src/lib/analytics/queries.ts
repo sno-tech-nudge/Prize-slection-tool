@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { STAGE_ORDER } from '@/lib/stages/rules';
 import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue, type StageStatusValue } from '@/lib/constants';
@@ -76,8 +77,8 @@ export async function getFunnel() {
 /** Mix by rapid re.gen operating model archetype — the current cycle's categorisation.
  *  Applications from the historical AgWater cohort predate this question, so they're
  *  bucketed separately rather than mixed in under a misleading label. */
-export async function getOperatingModelMix() {
-  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { operatingModelArchetype: true } });
+export async function getOperatingModelMix(extraWhere: Prisma.ApplicationWhereInput = {}) {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null, ...extraWhere }, select: { operatingModelArchetype: true } });
   const tally = new Map<string, number>();
   for (const a of apps) {
     if (!a.operatingModelArchetype) {

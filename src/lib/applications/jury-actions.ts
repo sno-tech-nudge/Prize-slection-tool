@@ -47,8 +47,8 @@ export async function submitJuryScoreAction(formData: FormData) {
 
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath('/applications');
-  revalidatePath(`/jury/${applicationId}`);
-  revalidatePath('/jury');
+  revalidatePath(`/applications/round-2/${applicationId}`);
+  revalidatePath('/applications/round-2');
 }
 
 /** Wipes this juror's own score for an application back to "not yet scored" — used by the
@@ -65,6 +65,6 @@ export async function clearJuryScoreAction(formData: FormData) {
 
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath('/applications');
-  revalidatePath(`/jury/${applicationId}`);
-  revalidatePath('/jury');
+  revalidatePath(`/applications/round-2/${applicationId}`);
+  revalidatePath('/applications/round-2');
 }

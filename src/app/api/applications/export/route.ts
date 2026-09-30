@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
       q: params.get('q') ?? undefined,
       internal: params.get('internal') ?? undefined,
       ecosystemPartner: params.get('ecosystemPartner') ?? undefined,
+      round: params.get('round') ?? undefined,
       assignedToMe: params.get('assignedToMe') ?? undefined,
     },
     user,

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { computeConsensus } from '@/lib/applications/consensus';
 import { parseRedFlags } from '@/lib/scoring/parse';
@@ -6,10 +7,11 @@ import { isReviewed, REVIEWED_WHERE } from '@/lib/applications/reviewStatus';
 
 /** Surfaces applications that need attention before they slip through the pipeline unnoticed:
  *  either the AI evaluation raised red flags, or the Level 1 eligibility screen (see
- *  src/lib/scoring/eligibility.ts) actually fails them. */
-export async function getFlaggedApplications() {
+ *  src/lib/scoring/eligibility.ts) actually fails them. `extraWhere` scopes this to a subset
+ *  (e.g. round 2/round 3's applications) instead of duplicating this query per round. */
+export async function getFlaggedApplications(extraWhere: Prisma.ApplicationWhereInput = {}) {
   const apps = await prisma.application.findMany({
-    where: { isDuplicateOf: null },
+    where: { isDuplicateOf: null, ...extraWhere },
     select: {
       id: true,
       orgName: true,
@@ -82,9 +84,9 @@ export async function getDashboardKpis() {
 
 /** Pipeline funnel that folds review status and internal decision into one view:
  *  received → reviewed → decision split (yes / no / undecided). */
-export async function getReviewDecisionFunnel() {
+export async function getReviewDecisionFunnel(extraWhere: Prisma.ApplicationWhereInput = {}) {
   const apps = await prisma.application.findMany({
-    where: { isDuplicateOf: null },
+    where: { isDuplicateOf: null, ...extraWhere },
     select: { round1Decision: true, stageStatus: true },
   });
   const total = apps.length;
@@ -106,11 +108,11 @@ export async function getReviewDecisionFunnel() {
  *  was never assigned anything (a new admin, the jury account, etc.) never shows up as a
  *  permanent 0/0 row, and an admin who genuinely was hand-assigned a review still shows
  *  correctly without needing to be added to any allow-list. */
-export async function getReviewerStats() {
+export async function getReviewerStats(extraApplicationWhere: Prisma.ApplicationWhereInput = {}) {
   const [users, assignments] = await Promise.all([
     prisma.user.findMany({ select: { id: true, name: true } }),
     prisma.reviewAssignment.findMany({
-      where: { application: { isDuplicateOf: null } },
+      where: { application: { isDuplicateOf: null, ...extraApplicationWhere } },
       select: { reviewerId: true, application: { select: { stageStatus: true } } },
     }),
   ]);

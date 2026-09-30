@@ -10,6 +10,10 @@ export interface ApplicationListFilters {
   q?: string;
   internal?: string;
   ecosystemPartner?: string;
+  /** '3' scopes the list to round 3's applications (round2Decision: 'YES') — used by the round-3
+   *  tracking page so it can reuse this same query/filter/row machinery instead of a parallel
+   *  implementation. */
+  round?: string;
   registrationType?: string;
   operatingModel?: string;
   state?: string;
@@ -36,6 +40,7 @@ function buildApplicationWhere(filters: ApplicationListFilters, user: User | nul
   if (filters.internal === 'YES' || filters.internal === 'NO' || filters.internal === 'UNDER_REVIEW') where.round1Decision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.round1Decision = null;
   if (filters.ecosystemPartner === '1') where.isEcosystemPartner = true;
+  if (filters.round === '3') where.round2Decision = 'YES';
   if (filters.assignedToMe === '1' && user) where.reviewAssignments = { some: { reviewerId: user.id } };
 
   // multi-select filters — each URL param is a comma-separated list of values; a row matches if
