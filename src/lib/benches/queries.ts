@@ -67,6 +67,29 @@ export async function listJuryEligibleApplications() {
   });
 }
 
+/** Round 3 ("field visits") tracking list — every application that cleared round 2
+ *  (round2Decision: 'YES'), with its round 2 avg jury score (displayed as "round 3 score" here,
+ *  since no separate round 3 scoring mechanism exists — round 3 is tracking/view only, per the
+ *  approved plan) and its round 3 decision. */
+export async function listFieldVisitApplications() {
+  const apps = await prisma.application.findMany({
+    where: { isDuplicateOf: null, round2Decision: 'YES' },
+    orderBy: { orgName: 'asc' },
+    select: {
+      id: true,
+      orgName: true,
+      round3Decision: true,
+      juryScores: { select: { composite: true } },
+    },
+  });
+  return apps.map((a) => ({
+    id: a.id,
+    orgName: a.orgName,
+    round3Decision: a.round3Decision,
+    avgJuryScore: a.juryScores.length > 0 ? Math.round(a.juryScores.reduce((sum, s) => sum + s.composite, 0) / a.juryScores.length) : null,
+  }));
+}
+
 /** Internal oversight view — every shortlisted application with its bench and every juror's
  *  individual score on that bench, so an admin/reviewer can see jury progress across all benches
  *  at a glance. This is distinct from what a jury member sees on /applications (their own bench

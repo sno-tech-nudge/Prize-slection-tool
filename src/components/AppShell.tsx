@@ -34,7 +34,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 // jury process. distinct from what a jury member sees on /applications (their own bench only,
 // trimmed columns, blind until they submit). Reviewers get the identical full view admins do.
 const ROUND_2_ITEM: NavItem = { href: '/applications/round-2', label: 'round 2', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
-const ROUND_3_ITEM: NavItem = { href: '/applications/round-3', label: 'round 3', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
+const ROUND_3_ITEM: NavItem = { href: '/applications/round-3', label: 'field visits', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
 
 // reachable, but not counted among the 4 modules — admin-only configuration
 const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] };

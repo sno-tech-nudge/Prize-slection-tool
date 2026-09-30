@@ -32,7 +32,7 @@ export default async function Round2Page({ searchParams }: { searchParams: Appli
   // as empty until that juror scores, instead of the columns only appearing once someone has.
   const jurorColumnCount = applications.reduce((max, a) => Math.max(max, a.bench?.jurors.length ?? 0), 0);
   const jurorHeaders = Array.from({ length: jurorColumnCount }, (_, i) => `j${i + 1}`);
-  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score', 'verdict', 'decision', 'pdf'];
+  const headers = ['organisation', 'bench', 'int score', ...jurorHeaders, 'avg jury score', 'jury verdict', 'round 2 decision'];
 
   return (
     <div>

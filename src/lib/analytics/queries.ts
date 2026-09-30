@@ -1,7 +1,13 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { STAGE_ORDER } from '@/lib/stages/rules';
-import { OPERATING_MODEL_ARCHETYPE_LABEL, type OperatingModelArchetypeValue, type StageStatusValue } from '@/lib/constants';
+import {
+  OPERATING_MODEL_ARCHETYPE_LABEL,
+  REGEN_PRACTICE_LABEL,
+  type OperatingModelArchetypeValue,
+  type RegenPracticeValue,
+  type StageStatusValue,
+} from '@/lib/constants';
 import { isReviewed } from '@/lib/applications/reviewStatus';
 
 const OTHERS_THRESHOLD = 3;
@@ -98,6 +104,26 @@ export async function getOperatingModelMix(extraWhere: Prisma.ApplicationWhereIn
   return collapsed.map(({ label, count }) => ({ category: label, count }));
 }
 
+/** Tally of applications by regenerative practice covered — regenerativePractices is a
+ *  multi-select off the fixed REGEN_PRACTICES list, so an application counts toward every
+ *  practice it selected. */
+export async function getRegenPracticesMix(extraWhere: Prisma.ApplicationWhereInput = {}) {
+  const apps = await prisma.application.findMany({
+    where: { isDuplicateOf: null, ...extraWhere },
+    select: { regenerativePractices: true },
+  });
+  const tally = new Map<string, number>();
+  for (const a of apps) {
+    (a.regenerativePractices ?? '').split(';').forEach((raw) => {
+      const key = raw.trim();
+      if (!key) return;
+      const label = REGEN_PRACTICE_LABEL[key as RegenPracticeValue] ?? key;
+      tally.set(label, (tally.get(label) ?? 0) + 1);
+    });
+  }
+  return [...tally.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+}
+
 /** Annual operating budget is free text off the real Zoho form (not the fixed enum band list),
  *  so this tallies whatever distinct values actually exist rather than the enum. */
 export async function getOperatingBudgetMix() {
@@ -161,8 +187,8 @@ export async function getInternalDecisionMix() {
 
 /** Tally of applications by state operated in — statesOperating is a multi-select field, so an
  *  application counts toward every state it lists. Used to shade the India map. */
-export async function getStateApplicationMix() {
-  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } });
+export async function getStateApplicationMix(extraWhere: Prisma.ApplicationWhereInput = {}) {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null, ...extraWhere }, select: { statesOperating: true } });
   const tally = new Map<string, number>();
   for (const a of apps) {
     (a.statesOperating ?? '').split(';').forEach((s) => {
@@ -175,8 +201,8 @@ export async function getStateApplicationMix() {
 }
 
 /** teamSize on the live form is a fixed band string ("0-10", "10-50", ...), not free text. */
-export async function getOrgSizeMix() {
-  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null }, select: { teamSize: true } });
+export async function getOrgSizeMix(extraWhere: Prisma.ApplicationWhereInput = {}) {
+  const apps = await prisma.application.findMany({ where: { isDuplicateOf: null, ...extraWhere }, select: { teamSize: true } });
   const tally = new Map<string, number>();
   for (const a of apps) {
     const key = a.teamSize?.trim() || 'not provided';

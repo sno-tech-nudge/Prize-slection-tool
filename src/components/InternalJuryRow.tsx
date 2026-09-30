@@ -1,6 +1,5 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { FileText } from 'lucide-react';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { JuryConsensusBadge } from '@/components/JuryConsensusBadge';
 import { JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
@@ -12,7 +11,6 @@ export interface InternalJuryRowData {
   id: string;
   orgName: string;
   round2Decision: string | null;
-  deckUrl: string | null;
   bench: { name: string; jurors: { id: string; name: string }[] } | null;
   humanReviews: { composite: number }[];
   juryScores: { jurorId: string; composite: number; verdict: string; juror: { name: string } }[];
@@ -78,21 +76,6 @@ export function InternalJuryRow({ app, jurorColumnCount }: { app: InternalJuryRo
         <Badge tone={app.round2Decision === 'YES' ? 'red' : app.round2Decision === 'NO' ? 'neutral' : 'outline'}>
           {app.round2Decision ? (ROUND_DECISION_LABEL[app.round2Decision as RoundDecisionValue] ?? 'undecided') : 'undecided'}
         </Badge>
-      </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        {app.deckUrl ? (
-          <a
-            href={app.deckUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}
-          >
-            <FileText size={14} strokeLinejoin="miter" strokeLinecap="square" /> pdf
-          </a>
-        ) : (
-          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>
-        )}
       </td>
     </tr>
   );
