@@ -28,14 +28,8 @@ const CELL_GETTERS: Record<string, (app: ExportRow) => unknown> = {
   bench: (app) => app.bench?.name ?? '',
   targetMatch: (app) => app.targetMatch?.name ?? '',
   reviewStatus: (app) => (isReviewed(app) ? 'reviewed' : 'not reviewed'),
-  decisionStatus: (app) =>
-    app.internalDecision === 'YES'
-      ? 'yes'
-      : app.internalDecision === 'NO'
-        ? 'no'
-        : app.internalDecision === 'ECOSYSTEM_PARTNER'
-          ? 'potential ecosystem partner'
-          : 'undecided',
+  decisionStatus: (app) => (app.round1Decision === 'YES' ? 'yes' : app.round1Decision === 'NO' ? 'no' : 'undecided'),
+  ecosystemPartner: (app) => (app.isEcosystemPartner ? 'yes' : 'no'),
   operatingModel: (app) => app.operatingModelArchetype ?? app.solutionCategory ?? '',
   states: (app) => app.statesOperating ?? '',
   annualBudget: (app) => app.annualOperatingBudget ?? '',
@@ -76,6 +70,7 @@ export async function GET(request: NextRequest) {
       category: params.get('category') ?? undefined,
       q: params.get('q') ?? undefined,
       internal: params.get('internal') ?? undefined,
+      ecosystemPartner: params.get('ecosystemPartner') ?? undefined,
       assignedToMe: params.get('assignedToMe') ?? undefined,
     },
     user,

@@ -25,8 +25,8 @@ async function hasQueuedSynopsisJob(applicationId: string): Promise<boolean> {
  *  Deliberately never re-enqueues once any status exists (RUNNING/DONE/FAILED) — a stuck FAILED
  *  run needs an admin's manual "regenerate" (a real error worth a human look), not a silent retry
  *  loop firing on every page view. */
-export async function ensureOrgSynopsisQueued(app: { id: string; internalDecision: string | null; orgSynopsisStatus: string | null }) {
-  if (app.internalDecision !== 'YES' || app.orgSynopsisStatus) return;
+export async function ensureOrgSynopsisQueued(app: { id: string; round1Decision: string | null; orgSynopsisStatus: string | null }) {
+  if (app.round1Decision !== 'YES' || app.orgSynopsisStatus) return;
   if (await hasQueuedSynopsisJob(app.id)) return;
   await enqueueJob('SYNOPSIZE_APPLICATION', app.id);
 }

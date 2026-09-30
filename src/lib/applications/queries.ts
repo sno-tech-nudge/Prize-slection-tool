@@ -9,6 +9,7 @@ export interface ApplicationListFilters {
   category?: string;
   q?: string;
   internal?: string;
+  ecosystemPartner?: string;
   registrationType?: string;
   operatingModel?: string;
   state?: string;
@@ -32,8 +33,9 @@ export interface ApplicationListFilters {
 function buildApplicationWhere(filters: ApplicationListFilters, user: User | null): Prisma.ApplicationWhereInput {
   const where: Prisma.ApplicationWhereInput = { ...visibleApplicationWhere(user), isDuplicateOf: null };
   if (filters.q) where.orgName = { contains: filters.q, mode: 'insensitive' };
-  if (filters.internal === 'YES' || filters.internal === 'NO' || filters.internal === 'ECOSYSTEM_PARTNER') where.internalDecision = filters.internal;
-  if (filters.internal === 'UNDECIDED') where.internalDecision = null;
+  if (filters.internal === 'YES' || filters.internal === 'NO' || filters.internal === 'UNDER_REVIEW') where.round1Decision = filters.internal;
+  if (filters.internal === 'UNDECIDED') where.round1Decision = null;
+  if (filters.ecosystemPartner === '1') where.isEcosystemPartner = true;
   if (filters.assignedToMe === '1' && user) where.reviewAssignments = { some: { reviewerId: user.id } };
 
   // multi-select filters — each URL param is a comma-separated list of values; a row matches if
@@ -73,6 +75,8 @@ const BASE_INCLUDE = {
   targetMatch: true,
   reviewAssignments: { include: { reviewer: true } },
   founders: true,
+  juryScores: true,
+  bench: { select: { name: true } },
 } satisfies Prisma.ApplicationInclude;
 
 // `comments` (+author) and `aiEvaluations` are only rendered by the CSV export columns, never
@@ -170,10 +174,11 @@ export async function getApplicationFilterOptions() {
 
 /** All applications for the outreach tab — filterable by internal decision, with each
  *  application's outbox email history so the table can show what's already queued/sent. */
-export async function listApplicationsForOutreach(internalDecision?: string) {
+export async function listApplicationsForOutreach(decisionFilter?: string) {
   const where: Prisma.ApplicationWhereInput = { isDuplicateOf: null };
-  if (internalDecision === 'YES' || internalDecision === 'NO' || internalDecision === 'ECOSYSTEM_PARTNER') where.internalDecision = internalDecision;
-  if (internalDecision === 'UNDECIDED') where.internalDecision = null;
+  if (decisionFilter === 'YES' || decisionFilter === 'NO' || decisionFilter === 'UNDER_REVIEW') where.round1Decision = decisionFilter;
+  if (decisionFilter === 'UNDECIDED') where.round1Decision = null;
+  if (decisionFilter === 'ECOSYSTEM_PARTNER') where.isEcosystemPartner = true;
 
   return prisma.application.findMany({
     where,
@@ -209,7 +214,7 @@ export async function listReviewQueue(user: User | null) {
 
 export async function listJuryQueue() {
   return prisma.application.findMany({
-    where: { isDuplicateOf: null, internalDecision: 'YES' },
+    where: { isDuplicateOf: null, round1Decision: 'YES' },
     orderBy: [{ stageStatus: 'asc' }, { orgName: 'asc' }],
     include: {
       aiEvaluations: { orderBy: { createdAt: 'desc' as const }, take: 1 },
@@ -303,7 +308,6 @@ export async function getApplicationDetail(id: string, userId?: string) {
       aiEvaluations: { orderBy: { createdAt: 'desc' } },
       humanReviews: { include: { reviewer: true }, orderBy: { submittedAt: 'desc' } },
       juryScores: { include: { juror: { include: { benches: true } } }, orderBy: { submittedAt: 'desc' } },
-      stageTransitions: { include: { actor: true }, orderBy: { createdAt: 'asc' } },
       reviewAssignments: { include: { reviewer: true } },
       targetMatch: true,
       bench: true,

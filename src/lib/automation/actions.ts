@@ -74,7 +74,7 @@ export async function regenerateAllSynopsesAction() {
   assertRole(user, CAN_MANAGE_SETTINGS);
 
   const applications = await prisma.application.findMany({
-    where: { isDuplicateOf: null, internalDecision: 'YES' },
+    where: { isDuplicateOf: null, round1Decision: 'YES' },
     select: { id: true },
   });
 
@@ -98,7 +98,7 @@ export async function listYesDecidedApplicationsForSynopsis() {
   assertRole(user, CAN_MANAGE_SETTINGS);
 
   return prisma.application.findMany({
-    where: { isDuplicateOf: null, internalDecision: 'YES' },
+    where: { isDuplicateOf: null, round1Decision: 'YES' },
     select: { id: true, orgName: true },
     orderBy: { orgName: 'asc' },
   });

@@ -106,17 +106,35 @@ export type TargetStatusValue = (typeof TARGET_STATUSES)[number];
 export const OUTBOX_STATUSES = ['QUEUED', 'APPROVED', 'SENT', 'FAILED', 'SKIPPED'] as const;
 export type OutboxStatusValue = (typeof OUTBOX_STATUSES)[number];
 
-// admin call on whether an application should be treated as an internal pick — only
-// applications marked YES here are passed through to jury review. ECOSYSTEM_PARTNER is a third,
-// separate outcome for applications that don't make the challenge cut but are worth tracking as
-// potential ecosystem partners (e.g. an academic/research institution or funder-adjacent org) —
-// it's mutually exclusive with YES/NO, not a tag layered on top of one.
-export const INTERNAL_DECISIONS = ['YES', 'NO', 'ECOSYSTEM_PARTNER'] as const;
-export type InternalDecisionValue = (typeof INTERNAL_DECISIONS)[number];
-export const INTERNAL_DECISION_LABEL: Record<InternalDecisionValue, string> = {
+// admin call on an application's round decision — shared shape for round1Decision (also the
+// jury-visibility gate: only YES here is passed through to jury review), round2Decision, and
+// round3Decision. UNDER_REVIEW is a genuine third outcome (not yet decided but actively being
+// looked at), distinct from null (never touched). "potential ecosystem partner" used to be a
+// fourth mutually-exclusive value here (ECOSYSTEM_PARTNER) — it's now an independent checkbox
+// (Application.isEcosystemPartner) instead, since it isn't really a round-1-specific outcome.
+export const ROUND_DECISIONS = ['YES', 'NO', 'UNDER_REVIEW'] as const;
+export type RoundDecisionValue = (typeof ROUND_DECISIONS)[number];
+export const ROUND_DECISION_LABEL: Record<RoundDecisionValue, string> = {
   YES: 'decision: yes',
   NO: 'decision: no',
-  ECOSYSTEM_PARTNER: 'potential ecosystem partner',
+  UNDER_REVIEW: 'under review',
+};
+
+// kept as an alias for the handful of places that still refer to "internal decision" by its old
+// name (round1Decision specifically) — same values, same meaning, just round 1's copy of it.
+export const INTERNAL_DECISIONS = ROUND_DECISIONS;
+export type InternalDecisionValue = RoundDecisionValue;
+export const INTERNAL_DECISION_LABEL = ROUND_DECISION_LABEL;
+
+// which of the 4 stages the "application status" bar shows as active for a given application —
+// auto-advances when a round decision is set to YES, but can also be set directly by an admin.
+export const CURRENT_ROUND_VALUES = ['ROUND_1', 'ROUND_2', 'ROUND_3', 'SELECTED'] as const;
+export type CurrentRoundValue = (typeof CURRENT_ROUND_VALUES)[number];
+export const CURRENT_ROUND_LABEL: Record<CurrentRoundValue, string> = {
+  ROUND_1: 'round 1',
+  ROUND_2: 'round 2',
+  ROUND_3: 'round 3',
+  SELECTED: 'selected',
 };
 
 export const VALUE_CHAIN_OPTIONS = [

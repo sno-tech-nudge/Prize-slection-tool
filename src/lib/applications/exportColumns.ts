@@ -19,6 +19,7 @@ const CORE_COLUMNS: ExportColumnDef[] = [
   { id: 'founders', label: 'founders', defaultOn: false },
   { id: 'reviewStatus', label: 'review status', defaultOn: true },
   { id: 'decisionStatus', label: 'decision status', defaultOn: true },
+  { id: 'ecosystemPartner', label: 'potential ecosystem partner', defaultOn: false },
   { id: 'operatingModel', label: 'operating model', defaultOn: true },
   { id: 'states', label: 'states', defaultOn: true },
   { id: 'annualBudget', label: 'annual operating budget', defaultOn: false },

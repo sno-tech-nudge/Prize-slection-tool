@@ -281,15 +281,34 @@ model Application {
   externalAiScoreRationale String? // ai_score_rationale
   rawSourcePayload         String? // full raw_payload JSON dump from Supabase, for audit/debug
 
-  // pipeline
+  // pipeline — stageStatus/stageTransitions are retired from the UI (kept only as historical
+  // audit data) in favour of the round-based decision model below. Nothing writes to stageStatus
+  // anymore; don't build new features against it.
   stageStatus   String  @default("SUBMITTED")
-  // admin-only gate, independent of stageStatus — only applications marked "YES" here
-  // are visible to jury (see visibleApplicationWhere / listJuryQueue). null = undecided.
-  internalDecision String?
-  // independent of internalDecision — a reviewer/admin marker with no effect on stage, pipeline,
-  // or jury visibility, purely informational. Shown wherever the application appears (including
-  // to jury) only when true; never shown as an explicit "not marked" state to anyone.
+  // the round-based decision gate — round1Decision (this admin-only field, was named
+  // internalDecision) controls jury visibility exactly as before (see visibleApplicationWhere /
+  // listJuryQueue): only "YES" here makes an application visible to jury. round2Decision only
+  // becomes actionable once round1Decision is YES; round3Decision only once round2Decision is
+  // YES. Each is independently YES | NO | UNDER_REVIEW | null (undecided/cleared).
+  round1Decision String?
+  round2Decision String?
+  round3Decision String?
+  // which of the 4 stages this application's "application status" bar currently shows as active —
+  // auto-advances when a round decision is set to YES, but can also be set directly by an admin
+  // (see setCurrentRoundAction) independent of the decision fields above.
+  currentRound String @default("ROUND_1")
+  // the old ECOSYSTEM_PARTNER decision value became this independent checkbox instead — same
+  // "informational only, no effect on stage/pipeline/jury visibility" role isConsortium already
+  // had, just for a different marker.
+  isEcosystemPartner Boolean @default(false)
+  // independent of round1Decision, a reviewer/admin marker with no effect on stage, pipeline, or
+  // jury visibility, purely informational. Shown wherever the application appears (including to
+  // jury) only when true; never shown as an explicit "not marked" state to anyone.
   isConsortium Boolean @default(false)
+  // the uploaded pitch-deck PDF for this specific application (bulk-imported and matched by org
+  // name, see settings' deck-upload panel) — a Vercel Blob URL, not the applicant-submitted
+  // pitchDeckUrl above, which is a different, applicant-supplied link.
+  deckUrl String?
   // which jury bench this application is assigned to for jury review — null means it hasn't
   // been placed on a bench yet, so no juror sees it even if internalDecision is YES.
   benchId String?

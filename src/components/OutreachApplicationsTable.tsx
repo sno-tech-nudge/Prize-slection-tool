@@ -11,20 +11,20 @@ export interface OutreachApplicationRow {
   pocFirstName: string;
   pocLastName: string;
   email: string;
-  internalDecision: string | null;
+  round1Decision: string | null;
   outboxEmails: { template: string; status: string }[];
 }
 
 const DECISION_TONE: Record<string, 'red' | 'neutral' | 'outline'> = {
   YES: 'red',
   NO: 'neutral',
-  ECOSYSTEM_PARTNER: 'neutral',
+  UNDER_REVIEW: 'outline',
 };
 
 const DECISION_LABEL: Record<string, string> = {
   YES: 'decision: yes',
   NO: 'decision: no',
-  ECOSYSTEM_PARTNER: 'potential ecosystem partner',
+  UNDER_REVIEW: 'under review',
 };
 
 const BULK_TEMPLATE_KIND: Record<string, string> = {
@@ -227,7 +227,7 @@ function OutreachApplicationTableRow({
 }) {
   const router = useRouter();
   const { push } = useToast();
-  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(app.internalDecision === 'YES' ? 'acceptance' : 'rejection');
+  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(app.round1Decision === 'YES' ? 'acceptance' : 'rejection');
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [preview, setPreview] = React.useState<{ subject: string; body: string } | null>(null);
@@ -304,8 +304,8 @@ function OutreachApplicationTableRow({
           <div style={{ fontSize: 'var(--fs-caption)' }}>{app.email}</div>
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-          <Badge tone={app.internalDecision ? (DECISION_TONE[app.internalDecision] ?? 'outline') : 'outline'}>
-            {app.internalDecision ? (DECISION_LABEL[app.internalDecision] ?? app.internalDecision.toLowerCase()) : 'undecided'}
+          <Badge tone={app.round1Decision ? (DECISION_TONE[app.round1Decision] ?? 'outline') : 'outline'}>
+            {app.round1Decision ? (DECISION_LABEL[app.round1Decision] ?? app.round1Decision.toLowerCase()) : 'undecided'}
           </Badge>
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>

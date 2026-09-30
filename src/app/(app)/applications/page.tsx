@@ -20,13 +20,12 @@ import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
 const HEADERS = [
   'organisation',
   'registration type',
-  'review status',
-  'decision status',
-  'operating model',
-  'states',
-  'eligibility',
-  'score',
-  'reviewer',
+  'application status',
+  'round 1 score',
+  'internal reviewer',
+  'round 2 score',
+  'bench',
+  'pdf',
 ];
 
 const JURY_HEADERS = ['organisation', 'bench', 'slot', 'scoring status', 'total score', 'verdict', ''];
@@ -93,7 +92,7 @@ export default async function ApplicationsPage({
           : unsortedJuryApplications; // 'alphabetical' — already the base query order
 
     // backfills any missing synopsis before the juror even opens an application — every
-    // application on this list is already internalDecision: YES (that's the visibility gate), so
+    // application on this list is already round1Decision: YES (that's the visibility gate), so
     // there's no per-app check to make here, just queue whatever's missing.
     await Promise.all(juryApplications.map((a) => ensureOrgSynopsisQueued(a)));
 
@@ -161,7 +160,7 @@ export default async function ApplicationsPage({
 
   if (user?.role === 'OBSERVER') {
     const observerApplications = await listApplications(searchParams, user);
-    await Promise.all(observerApplications.filter((a) => a.internalDecision === 'YES').map((a) => ensureOrgSynopsisQueued(a)));
+    await Promise.all(observerApplications.filter((a) => a.round1Decision === 'YES').map((a) => ensureOrgSynopsisQueued(a)));
     return (
       <div>
         <AngularBanner
@@ -234,7 +233,7 @@ export default async function ApplicationsPage({
 
   // sweeps every YES-decided application on the admin/reviewer list too, so coverage isn't left
   // depending on jury/observer happening to browse first.
-  await Promise.all(applications.filter((a) => a.internalDecision === 'YES').map((a) => ensureOrgSynopsisQueued(a)));
+  await Promise.all(applications.filter((a) => a.round1Decision === 'YES').map((a) => ensureOrgSynopsisQueued(a)));
 
   return (
     <div>
@@ -247,7 +246,6 @@ export default async function ApplicationsPage({
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <RubricSidePanel />
             <ExportCsvButton searchParams={searchParams} />
-            <ExportCsvButton searchParams={searchParams} mine />
           </div>
         }
       />
@@ -269,7 +267,6 @@ export default async function ApplicationsPage({
                       textTransform: 'uppercase',
                       letterSpacing: 'var(--ls-wide)',
                       color: 'var(--text-secondary)',
-                      minWidth: h === 'operating model' ? 260 : undefined,
                     }}
                   >
                     {h}

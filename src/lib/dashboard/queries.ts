@@ -41,17 +41,17 @@ export async function getFlaggedApplications() {
 }
 
 export async function getDashboardKpis() {
-  const [total, reviewed, internalYes, internalNo, ecosystemPartners, statesRaw, yearsRaw] = await Promise.all([
+  const [total, reviewed, internalYes, internalNo, ecosystemPartners, round2Count, round3Count, statesRaw, yearsRaw] = await Promise.all([
     prisma.application.count({ where: { isDuplicateOf: null } }),
     prisma.application.count({ where: { isDuplicateOf: null, ...REVIEWED_WHERE } }),
-    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'YES' } }),
-    // "decision: no" on the dashboard also folds in potential ecosystem partners — they didn't
-    // make the challenge cut either, just via a different outcome than a flat no. The dedicated
-    // ecosystem-partners count/section below still tracks that subset on its own; this is purely
-    // additive to the top KPI, not a change to what NO means anywhere else in the app (the
-    // applications list "decision: no" filter, outreach, exports, etc. all stay strict NO-only).
-    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: { in: ['NO', 'ECOSYSTEM_PARTNER'] } } }),
-    prisma.application.count({ where: { isDuplicateOf: null, internalDecision: 'ECOSYSTEM_PARTNER' } }),
+    prisma.application.count({ where: { isDuplicateOf: null, round1Decision: 'YES' } }),
+    prisma.application.count({ where: { isDuplicateOf: null, round1Decision: 'NO' } }),
+    prisma.application.count({ where: { isDuplicateOf: null, isEcosystemPartner: true } }),
+    // round-wise dashboard numbers — "currently in round N or further along", not "currently
+    // exactly in round N", so an application that's advanced to round 3/selected still counts
+    // toward round 2's number (it went through round 2, it just isn't stuck there anymore).
+    prisma.application.count({ where: { isDuplicateOf: null, currentRound: { in: ['ROUND_2', 'ROUND_3', 'SELECTED'] } } }),
+    prisma.application.count({ where: { isDuplicateOf: null, currentRound: { in: ['ROUND_3', 'SELECTED'] } } }),
     prisma.application.findMany({ where: { isDuplicateOf: null }, select: { statesOperating: true } }),
     prisma.application.findMany({ where: { isDuplicateOf: null, yearsExperience: { not: null } }, select: { yearsExperience: true } }),
   ]);
@@ -73,6 +73,8 @@ export async function getDashboardKpis() {
     internalYes,
     internalNo,
     ecosystemPartners,
+    round2Count,
+    round3Count,
     statesRepresented: statesSet.size,
     avgYearsExperience,
   };
@@ -83,12 +85,12 @@ export async function getDashboardKpis() {
 export async function getReviewDecisionFunnel() {
   const apps = await prisma.application.findMany({
     where: { isDuplicateOf: null },
-    select: { internalDecision: true, stageStatus: true },
+    select: { round1Decision: true, stageStatus: true },
   });
   const total = apps.length;
   const reviewed = apps.filter(isReviewed).length;
-  const yes = apps.filter((a) => a.internalDecision === 'YES').length;
-  const no = apps.filter((a) => a.internalDecision === 'NO').length;
+  const yes = apps.filter((a) => a.round1Decision === 'YES').length;
+  const no = apps.filter((a) => a.round1Decision === 'NO').length;
   const undecided = total - yes - no;
   return [
     { label: 'applications received', count: total },

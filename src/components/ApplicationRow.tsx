@@ -1,19 +1,12 @@
 import Link from 'next/link';
-import { CircleAlert } from 'lucide-react';
-import { CompositeBadge, SolutionCategoryTag } from '@/components/StatusBadges';
+import { FileText } from 'lucide-react';
+import { CompositeBadge } from '@/components/StatusBadges';
 import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
-import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { isReviewed, computeHumanComposite } from '@/lib/applications/reviewStatus';
-import {
-  OPERATING_MODEL_ARCHETYPE_LABEL,
-  LEGAL_REGISTRATION_TYPE_LABEL,
-  INTERNAL_DECISION_LABEL,
-  type OperatingModelArchetypeValue,
-  type LegalRegistrationTypeValue,
-  type InternalDecisionValue,
-} from '@/lib/constants';
+import { JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
+import { LEGAL_REGISTRATION_TYPE_LABEL, type LegalRegistrationTypeValue } from '@/lib/constants';
 
 export interface ApplicationRowData {
   id: string;
@@ -29,17 +22,20 @@ export interface ApplicationRowData {
   solutionCategory: string;
   operatingModelArchetype: string | null;
   statesOperating: string | null;
-  internalDecision: string | null;
+  round1Decision: string | null;
   legalRegistrationType: string | null;
   fcraStatus: string | null;
   cert12A: string | null;
   cert80G: string | null;
   csr1Registration: string | null;
   darpanRegistered: string | null;
+  deckUrl: string | null;
   targetMatch: { name: string } | null;
   founders: { fullName: string; email: string | null; linkedin: string | null }[];
   humanReviews: { id: string; composite: number; submittedAt: Date }[];
   reviewAssignments: { id: string; reviewer: { name: string } }[];
+  juryScores: { composite: number }[];
+  bench: { name: string } | null;
 }
 
 /** Row navigates to the full application record page (/applications/[id]) on click — a real
@@ -47,14 +43,10 @@ export interface ApplicationRowData {
  *  behave the way the browser expects, with no JS interception. */
 export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowData; queryString?: string }) {
   const humanComposite = computeHumanComposite(app);
-
-  const internalTone =
-    app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' || app.internalDecision === 'ECOSYSTEM_PARTNER' ? 'neutral' : 'outline';
-  const internalLabel = app.internalDecision ? (INTERNAL_DECISION_LABEL[app.internalDecision as InternalDecisionValue] ?? 'undecided') : 'undecided';
+  const avgJuryScore =
+    app.juryScores.length > 0 ? Math.round(app.juryScores.reduce((sum, s) => sum + s.composite, 0) / app.juryScores.length) : null;
 
   const reviewedBy = app.reviewAssignments.length > 0 ? app.reviewAssignments.map((r) => r.reviewer.name).join(', ') : 'unassigned';
-
-  const eligibility = evaluateEligibility(app);
 
   return (
     <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -82,45 +74,6 @@ export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowD
         <ReviewStatusDropdown reviewed={isReviewed(app)} />
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        <DsBadge tone={internalTone}>{internalLabel}</DsBadge>
-      </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', minWidth: 260 }}>
-        {app.operatingModelArchetype
-          ? (() => {
-              const values = app.operatingModelArchetype.split(';').filter(Boolean);
-              const label = OPERATING_MODEL_ARCHETYPE_LABEL[values[0] as OperatingModelArchetypeValue] ?? values[0];
-              return values.length > 1 ? `${label} +${values.length - 1}` : label;
-            })()
-          : app.solutionCategory
-            ? <SolutionCategoryTag category={app.solutionCategory} />
-            : '—'}
-      </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-        {app.statesOperating ? app.statesOperating.split(';').filter(Boolean).slice(0, 2).join(', ') : '—'}
-      </td>
-      <td
-        style={{ padding: 'var(--space-3) var(--space-4)' }}
-        title={eligibility.eligible ? eligibility.identityGaps.join('; ') : eligibility.failedReasons.join('; ')}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)' }}>
-          {!eligibility.eligible && <CircleAlert size={14} color="var(--delta-red)" strokeLinejoin="miter" strokeLinecap="square" />}
-          {eligibility.eligible && eligibility.identityGaps.length > 0 && (
-            <CircleAlert size={14} color="var(--delta-yellow)" strokeLinejoin="miter" strokeLinecap="square" />
-          )}
-          <span
-            style={{
-              color: !eligibility.eligible
-                ? 'var(--delta-red)'
-                : eligibility.identityGaps.length > 0
-                  ? 'var(--yellow-600)'
-                  : 'var(--text-secondary)',
-            }}
-          >
-            {eligibility.eligible ? 'yes' : 'no'}
-          </span>
-        </div>
-      </td>
-      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         {humanComposite !== null ? (
           <CompositeBadge score={humanComposite} />
         ) : (
@@ -128,6 +81,29 @@ export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowD
         )}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{reviewedBy}</td>
+      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+        {avgJuryScore !== null ? (
+          <CompositeBadge score={avgJuryScore} max={JURY_RUBRIC_MAX_TOTAL} />
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>
+        )}
+      </td>
+      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{app.bench?.name ?? '—'}</td>
+      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+        {app.deckUrl ? (
+          <a
+            href={app.deckUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}
+          >
+            <FileText size={14} strokeLinejoin="miter" strokeLinecap="square" /> pdf
+          </a>
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>
+        )}
+      </td>
     </tr>
   );
 }

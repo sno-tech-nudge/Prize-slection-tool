@@ -57,11 +57,11 @@ export async function listJuryUsers() {
   });
 }
 
-/** The full jury-eligible pool (internalDecision: YES) with their current bench, if any — this
+/** The full jury-eligible pool (round1Decision: YES) with their current bench, if any — this
  *  is the assignment surface an admin uses to place companies onto benches. */
 export async function listJuryEligibleApplications() {
   return prisma.application.findMany({
-    where: { isDuplicateOf: null, internalDecision: 'YES' },
+    where: { isDuplicateOf: null, round1Decision: 'YES' },
     orderBy: { orgName: 'asc' },
     select: { id: true, orgName: true, benchId: true, bench: { select: { name: true } } },
   });
@@ -73,7 +73,7 @@ export async function listJuryEligibleApplications() {
  *  only, no other jurors' names until they've submitted their own score). */
 export async function listJuryOversight(filters: JuryListFilters = {}) {
   const apps = await prisma.application.findMany({
-    where: { isDuplicateOf: null, internalDecision: 'YES', ...buildJuryFilterWhere(filters) },
+    where: { isDuplicateOf: null, round1Decision: 'YES', ...buildJuryFilterWhere(filters) },
     orderBy: { orgName: 'asc' },
     include: {
       bench: { include: { jurors: { orderBy: { name: 'asc' } } } },

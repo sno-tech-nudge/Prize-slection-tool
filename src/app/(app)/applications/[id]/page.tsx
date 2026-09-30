@@ -2,9 +2,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
-import { StageActionBar } from '@/components/StageActionBar';
+import { ApplicationStatusBar } from '@/components/ApplicationStatusBar';
 import { DownloadPdfButton } from '@/components/DownloadPdfButton';
-import { DecisionStatusButtons } from '@/components/DecisionStatusButtons';
+import { RoundDecisionButtons } from '@/components/RoundDecisionButtons';
+import { EcosystemPartnerCheckbox } from '@/components/EcosystemPartnerCheckbox';
 import { ConsortiumButton } from '@/components/ConsortiumButton';
 import { ReviewerAssignmentPanel } from '@/components/ReviewerAssignmentPanel';
 import { ApplicationPagerKeys } from '@/components/ApplicationPagerKeys';
@@ -22,7 +23,6 @@ import { getCurrentUser, listUsers } from '@/lib/auth/session';
 import { canManageApplication } from '@/lib/auth/guard';
 import { evaluateEligibility } from '@/lib/scoring/eligibility';
 import { slugify } from '@/lib/sources/normalize';
-import { STAGE_STATUS_LABEL, type StageStatusValue } from '@/lib/constants';
 
 export default async function ApplicationDetailPage({
   params,
@@ -213,28 +213,57 @@ export default async function ApplicationDetailPage({
             <>
               {(isAdmin || user?.role === 'REVIEWER') && (
                 <Card accent accentSide="left" style={{ marginBottom: 'var(--space-6)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>stage action</h2>
-                  <StageActionBar applicationId={app.id} currentStage={app.stageStatus as StageStatusValue} canManage={canManage} />
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>application status</h2>
+                  <ApplicationStatusBar applicationId={app.id} currentRound={app.currentRound} canManage={canManage} />
                 </Card>
               )}
 
               {(isAdmin || user?.role === 'REVIEWER') && (
                 <Card style={{ marginBottom: 'var(--space-6)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>decision status</h2>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 1 decision</h2>
                   <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
-                    only applications marked &ldquo;yes&rdquo; here are passed through to jury review.
+                    only applications marked &ldquo;yes&rdquo; here are passed through to round 2.
                   </p>
-                  <DecisionStatusButtons applicationId={app.id} current={app.internalDecision} canManage={canManage} />
+                  <RoundDecisionButtons applicationId={app.id} round={1} current={app.round1Decision} canManage={canManage} />
                 </Card>
               )}
 
               {(isAdmin || user?.role === 'REVIEWER') && (
                 <Card style={{ marginBottom: 'var(--space-6)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>consortium</h2>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 2 decision</h2>
+                  <RoundDecisionButtons
+                    applicationId={app.id}
+                    round={2}
+                    current={app.round2Decision}
+                    canManage={canManage}
+                    gated={app.round1Decision !== 'YES'}
+                  />
+                </Card>
+              )}
+
+              {(isAdmin || user?.role === 'REVIEWER') && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 3 decision</h2>
+                  <RoundDecisionButtons
+                    applicationId={app.id}
+                    round={3}
+                    current={app.round3Decision}
+                    canManage={canManage}
+                    gated={app.round2Decision !== 'YES'}
+                  />
+                </Card>
+              )}
+
+              {(isAdmin || user?.role === 'REVIEWER') && (
+                <Card style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>consortium &amp; ecosystem</h2>
                   <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
-                    purely informational — has no effect on stage, decision status, or jury visibility.
+                    purely informational — has no effect on application status, round decisions, or jury visibility.
                   </p>
-                  <ConsortiumButton applicationId={app.id} current={app.isConsortium} canManage={canManage} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    <ConsortiumButton applicationId={app.id} current={app.isConsortium} canManage={canManage} />
+                    <EcosystemPartnerCheckbox applicationId={app.id} current={app.isEcosystemPartner} canManage={canManage} />
+                  </div>
                 </Card>
               )}
 
@@ -253,24 +282,6 @@ export default async function ApplicationDetailPage({
               <Card style={{ marginBottom: 'var(--space-6)' }}>
                 <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>discussion</h2>
                 <CommentThread applicationId={app.id} comments={app.comments} users={allUsers.map((u) => ({ id: u.id, name: u.name }))} />
-              </Card>
-
-              <Card style={{ marginBottom: 'var(--space-6)' }}>
-                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-4)' }}>transition history</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                  {app.stageTransitions.map((t) => (
-                    <div key={t.id} style={{ fontSize: 'var(--fs-small)' }}>
-                      <div>
-                        <strong>{STAGE_STATUS_LABEL[t.fromStatus as StageStatusValue] ?? t.fromStatus}</strong> →{' '}
-                        <strong style={{ color: 'var(--delta-red)' }}>{STAGE_STATUS_LABEL[t.toStatus as StageStatusValue] ?? t.toStatus}</strong>
-                      </div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>
-                        {new Date(t.createdAt).toLocaleDateString('en-GB')} {t.actor ? `· ${t.actor.name}` : ''}
-                      </div>
-                      {t.reason && <div style={{ color: 'var(--text-secondary)' }}>{t.reason}</div>}
-                    </div>
-                  ))}
-                </div>
               </Card>
 
               {app.outboxEmails.length > 0 && (

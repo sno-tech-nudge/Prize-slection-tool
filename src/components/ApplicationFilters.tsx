@@ -113,31 +113,6 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
           </button>
         ))}
       </div>
-      <Select
-        aria-label="filter by decision status"
-        defaultValue={searchParams.get('internal') ?? ''}
-        onChange={(e) => setParam('internal', e.target.value)}
-        containerStyle={fixedWidth(150)}
-        style={compactSelectStyle}
-      >
-        <option value="">decision status: all</option>
-        <option value="YES">decision: yes</option>
-        <option value="NO">decision: no</option>
-        <option value="ECOSYSTEM_PARTNER">potential ecosystem partner</option>
-        <option value="UNDECIDED">decision: undecided</option>
-      </Select>
-      <Select
-        aria-label="filter by eligibility"
-        defaultValue={searchParams.get('eligible') ?? ''}
-        onChange={(e) => setParam('eligible', e.target.value)}
-        containerStyle={fixedWidth(140)}
-        style={compactSelectStyle}
-      >
-        <option value="">eligibility: all</option>
-        <option value="YES">eligible</option>
-        <option value="NO">ineligible</option>
-      </Select>
-
       <GroupDivider />
 
       {/* attributes — what kind of application this is */}
@@ -154,20 +129,6 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         selected={getMultiParam('registrationType')}
         onChange={(v) => setMultiParam('registrationType', v)}
         options={options.registrationTypes.map((t) => ({ value: t, label: t }))}
-      />
-      <MultiSelect
-        label="operating model"
-        width={160}
-        selected={getMultiParam('operatingModel')}
-        onChange={(v) => setMultiParam('operatingModel', v)}
-        options={options.operatingModels.map((m) => ({ value: m, label: m }))}
-      />
-      <MultiSelect
-        label="state"
-        width={130}
-        selected={getMultiParam('state')}
-        onChange={(v) => setMultiParam('state', v)}
-        options={options.states.map((s) => ({ value: s, label: s }))}
       />
       {isAdmin && (
         <Select
@@ -186,15 +147,15 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         </Select>
       )}
       <Select
-        aria-label="sort by score"
+        aria-label="sort by round 1 score"
         defaultValue={searchParams.get('sort') ?? ''}
         onChange={(e) => setParam('sort', e.target.value)}
-        containerStyle={fixedWidth(170)}
+        containerStyle={fixedWidth(190)}
         style={compactSelectStyle}
       >
         <option value="">sort: most recent</option>
-        <option value="score_desc">score: high to low</option>
-        <option value="score_asc">score: low to high</option>
+        <option value="score_desc">round 1 score: high to low</option>
+        <option value="score_asc">round 1 score: low to high</option>
       </Select>
 
       <GroupDivider />

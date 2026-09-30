@@ -16,7 +16,7 @@ function pillStyle(active: boolean, disabled: boolean): React.CSSProperties {
   };
 }
 
-/** Purely informational marker, independent of the internalDecision pills above it — mirrors
+/** Purely informational marker, independent of the round1Decision pills above it — mirrors
  *  DecisionStatusButtons' same "everyone sees the same pills, canManage only controls whether
  *  they're clickable" pattern. Marking an application here has no effect on stage, pipeline, or
  *  jury visibility; it just gets remembered and shown wherever the application appears. */

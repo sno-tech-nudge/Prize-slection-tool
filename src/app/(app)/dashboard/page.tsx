@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { FileText, ClipboardCheck, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
+import { FileText, ClipboardCheck, CheckCircle2, XCircle, Trophy, type LucideIcon } from 'lucide-react';
 import { AngularBanner, Card, Badge } from '@/design-system';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getDashboardKpis, getRecentActivity, getReviewDecisionFunnel, getReviewerStats } from '@/lib/dashboard/queries';
@@ -27,13 +27,12 @@ import { listApplications } from '@/lib/applications/queries';
 const ECOSYSTEM_PARTNER_TABLE_HEADERS = [
   'organisation',
   'registration type',
-  'review status',
-  'decision status',
-  'operating model',
-  'states',
-  'eligibility',
-  'score',
-  'reviewer',
+  'application status',
+  'round 1 score',
+  'internal reviewer',
+  'round 2 score',
+  'bench',
+  'pdf',
 ];
 
 function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
@@ -140,7 +139,7 @@ export default async function DashboardPage() {
     getOrgSizeMix(),
     getOrgAgeMix(),
     getReviewerStats(),
-    listApplications({ internal: 'ECOSYSTEM_PARTNER' }, user),
+    listApplications({ ecosystemPartner: '1' }, user),
   ]);
   const funnelMax = Math.max(...funnel.map((f) => f.count), 1);
 
@@ -154,10 +153,10 @@ export default async function DashboardPage() {
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
-          <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />
-          <Kpi label="reviewed" value={kpis.reviewed} icon={ClipboardCheck} />
-          <Kpi label="decision: yes" value={kpis.internalYes} icon={CheckCircle2} />
-          <Kpi label="decision: no" value={kpis.internalNo} icon={XCircle} />
+          <Kpi label="round 1" value={kpis.total} icon={FileText} href="/applications" />
+          <Kpi label="round 2" value={kpis.round2Count} icon={ClipboardCheck} href="/applications/round-2" />
+          <Kpi label="round 3" value={kpis.round3Count} icon={CheckCircle2} href="/applications/round-3" />
+          <Kpi label="selected" value="—" icon={Trophy} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
@@ -313,7 +312,7 @@ export default async function DashboardPage() {
                 {kpis.ecosystemPartners}
               </div>
             </div>
-            <ExportCsvButton searchParams={{ internal: 'ECOSYSTEM_PARTNER' }} label="download ecosystem partners" />
+            <ExportCsvButton searchParams={{ ecosystemPartner: '1' }} label="download ecosystem partners" />
           </div>
 
           <Card padding="0" style={{ marginTop: 'var(--space-5)', overflowX: 'auto' }}>
@@ -329,7 +328,6 @@ export default async function DashboardPage() {
                         textTransform: 'uppercase',
                         letterSpacing: 'var(--ls-wide)',
                         color: 'var(--text-secondary)',
-                        minWidth: h === 'operating model' ? 260 : undefined,
                       }}
                     >
                       {h}

@@ -173,7 +173,7 @@ export function ApplicationMainContent({
     ),
 
     synopsis: () => {
-      if (!ov('orgSynopsis') || app.internalDecision !== 'YES') return null;
+      if (!ov('orgSynopsis') || app.round1Decision !== 'YES') return null;
       return (
         <Card accent key="synopsis" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-3)' }}>application synopsis</h2>

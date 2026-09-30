@@ -8,7 +8,7 @@ import { enqueueStageEmail, approveAndSendOutboxEmail } from '@/lib/mail/outbox'
 import type { StageEmailTemplate } from '@/lib/mail/templates';
 import { getSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
-import type { StageStatusValue, InternalDecisionValue } from '@/lib/constants';
+import type { StageStatusValue, RoundDecisionValue, CurrentRoundValue } from '@/lib/constants';
 import { RUBRIC_CRITERIA, computeComposite, dispositionFromComposite } from '@/lib/scoring/rubric';
 import { notifyMentionedUsers } from '@/lib/notifications/actions';
 import { enqueueJob } from '@/lib/jobs/queue';
@@ -158,11 +158,28 @@ export async function submitHumanReviewAction(formData: FormData) {
   revalidatePath('/dashboard');
 }
 
-/** Go/no-go gate — independent of stageStatus. Only applications marked YES here are visible to
- *  jury (see visibleApplicationWhere / listJuryQueue). Admin can set this on anything; a reviewer
- *  can only set it on an application they're actually assigned to, same rule as scoring and stage
- *  transitions. */
-export async function setInternalDecisionAction(formData: FormData) {
+const ROUND_DECISION_FIELD = {
+  1: 'round1Decision',
+  2: 'round2Decision',
+  3: 'round3Decision',
+} as const;
+
+const ROUND_ORDER: CurrentRoundValue[] = ['ROUND_1', 'ROUND_2', 'ROUND_3', 'SELECTED'];
+const ROUND_TARGET_ON_YES: Record<1 | 2 | 3, CurrentRoundValue> = {
+  1: 'ROUND_2',
+  2: 'ROUND_3',
+  3: 'SELECTED',
+};
+
+/** Round-scoped go/no-go gate. Round 1 controls jury visibility (see visibleApplicationWhere /
+ *  listJuryQueue) exactly as the old single internalDecision field did. Round 2 only becomes
+ *  actionable once round1Decision is YES, round 3 only once round2Decision is YES — enforced here,
+ *  not just in the UI, since this is a server action. Admin can set any round on anything; a
+ *  reviewer can only set it on an application they're actually assigned to, same rule as scoring
+ *  and the old stage transitions. Marking a round YES auto-advances currentRound to the next round,
+ *  but never regresses it if the application is already further along (e.g. an admin who manually
+ *  jumped it to SELECTED, then goes back and edits an earlier round's decision). */
+export async function setRoundDecisionAction(round: 1 | 2 | 3, formData: FormData) {
   const user = await getCurrentUser();
   assertRole(user, CAN_REVIEW);
 
@@ -172,33 +189,102 @@ export async function setInternalDecisionAction(formData: FormData) {
     throw new ForbiddenError('You can only manage applications assigned to you.');
   }
 
-  const decision = String(formData.get('decision')) as InternalDecisionValue | 'CLEAR';
+  const decision = String(formData.get('decision')) as RoundDecisionValue | 'CLEAR';
 
-  const previous = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { orgSynopsisStatus: true } });
+  const previous = await prisma.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    select: { orgSynopsisStatus: true, round1Decision: true, round2Decision: true, currentRound: true },
+  });
+
+  if (round === 2 && previous.round1Decision !== 'YES') {
+    throw new ForbiddenError('Round 2 decision can only be set once round 1 is marked yes.');
+  }
+  if (round === 3 && previous.round2Decision !== 'YES') {
+    throw new ForbiddenError('Round 3 decision can only be set once round 2 is marked yes.');
+  }
+
+  const value = decision === 'CLEAR' ? null : decision;
+  const field = ROUND_DECISION_FIELD[round];
+
+  let nextCurrentRound: CurrentRoundValue | undefined;
+  if (value === 'YES') {
+    const target = ROUND_TARGET_ON_YES[round];
+    if (ROUND_ORDER.indexOf(target) > ROUND_ORDER.indexOf(previous.currentRound as CurrentRoundValue)) {
+      nextCurrentRound = target;
+    }
+  }
 
   await prisma.application.update({
     where: { id: applicationId },
-    data: { internalDecision: decision === 'CLEAR' ? null : decision },
+    data: { [field]: value, ...(nextCurrentRound ? { currentRound: nextCurrentRound } : {}) },
   });
 
   // the organisation & model synopsis is jury-facing context, so it only needs to exist once an
-  // application actually clears the jury gate — generate it once here rather than for every
+  // application actually clears the round 1 gate — generate it once here rather than for every
   // application regardless of decision. Guarded on orgSynopsisStatus so toggling the decision
   // back and forth doesn't re-enqueue a job every time; a failed run can still be retried
   // manually from the application page.
-  if (decision === 'YES' && !previous.orgSynopsisStatus) {
+  if (round === 1 && value === 'YES' && !previous.orgSynopsisStatus) {
     await enqueueJob('SYNOPSIZE_APPLICATION', applicationId);
   }
 
-  // dashboard KPI ("decision: yes") and the reviewed→decision funnel both key off
-  // internalDecision, so they'd otherwise go stale until an unrelated revalidation happened.
+  // dashboard KPIs (round-wise counts) and every round-scoped list/analytics page key off these
+  // fields, so they'd otherwise go stale until an unrelated revalidation happened.
   revalidatePath('/applications');
   revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/applications/round-2');
+  revalidatePath('/applications/round-3');
   revalidatePath('/jury');
   revalidatePath('/dashboard');
 }
 
-/** Purely informational marker — independent of internalDecision, no effect on stage, pipeline,
+/** Directly, manually moves an application's "application status" indicator — independent of the
+ *  round decision gates above. Unlike the old stage machine there are no transition-legality
+ *  rules: an admin can always jump to any of the 4 states. */
+export async function setCurrentRoundAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_REVIEW);
+
+  const applicationId = String(formData.get('applicationId'));
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
+
+  const currentRound = String(formData.get('currentRound')) as CurrentRoundValue;
+
+  await prisma.application.update({ where: { id: applicationId }, data: { currentRound } });
+
+  revalidatePath('/applications');
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/applications/round-2');
+  revalidatePath('/applications/round-3');
+  revalidatePath('/dashboard');
+}
+
+/** Purely informational marker, same "everyone sees the same pills, canManage only controls
+ *  whether they're clickable" pattern as ConsortiumButton/isConsortium — no effect on stage,
+ *  pipeline, or jury visibility. Replaces the old ECOSYSTEM_PARTNER decision value. */
+export async function setEcosystemPartnerAction(formData: FormData) {
+  const user = await getCurrentUser();
+  assertRole(user, CAN_REVIEW);
+
+  const applicationId = String(formData.get('applicationId'));
+  const assignments = await prisma.reviewAssignment.findMany({ where: { applicationId }, select: { reviewerId: true } });
+  if (!canManageApplication(user, assignments)) {
+    throw new ForbiddenError('You can only manage applications assigned to you.');
+  }
+
+  const value = String(formData.get('value')) === 'YES';
+
+  await prisma.application.update({ where: { id: applicationId }, data: { isEcosystemPartner: value } });
+
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath('/applications');
+  revalidatePath('/dashboard');
+}
+
+/** Purely informational marker — independent of round1Decision, no effect on stage, pipeline,
  *  or jury visibility. Same admin-or-assigned-reviewer rule as every other mutation on this page. */
 export async function setConsortiumAction(formData: FormData) {
   const user = await getCurrentUser();

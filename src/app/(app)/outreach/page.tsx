@@ -8,10 +8,11 @@ import { getSettings } from '@/lib/settings';
 import { getCurrentUser } from '@/lib/auth/session';
 import { LiveRefreshTicker } from '@/components/LiveRefreshTicker';
 
-const DECISION_FILTERS = ['', 'YES', 'NO', 'ECOSYSTEM_PARTNER', 'UNDECIDED'];
+const DECISION_FILTERS = ['', 'YES', 'NO', 'UNDER_REVIEW', 'ECOSYSTEM_PARTNER', 'UNDECIDED'];
 const DECISION_FILTER_LABEL: Record<string, string> = {
   YES: 'decision: yes',
   NO: 'decision: no',
+  UNDER_REVIEW: 'under review',
   ECOSYSTEM_PARTNER: 'potential ecosystem partner',
   UNDECIDED: 'decision: undecided',
 };
@@ -61,7 +62,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
               pocFirstName: a.pocFirstName,
               pocLastName: a.pocLastName,
               email: a.email,
-              internalDecision: a.internalDecision,
+              round1Decision: a.round1Decision,
               outboxEmails: a.outboxEmails.map((e) => ({ template: e.template, status: e.status })),
             }))}
             canSend={canSend}

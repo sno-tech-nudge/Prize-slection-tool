@@ -22,9 +22,8 @@ import type { ApplicationRowData } from '@/components/ApplicationRow';
 export function ObserverApplicationRow({ app, queryString = '' }: { app: ApplicationRowData; queryString?: string }) {
   const humanComposite = computeHumanComposite(app);
 
-  const internalTone =
-    app.internalDecision === 'YES' ? 'red' : app.internalDecision === 'NO' || app.internalDecision === 'ECOSYSTEM_PARTNER' ? 'neutral' : 'outline';
-  const internalLabel = app.internalDecision ? (INTERNAL_DECISION_LABEL[app.internalDecision as InternalDecisionValue] ?? 'undecided') : 'undecided';
+  const internalTone = app.round1Decision === 'YES' ? 'red' : app.round1Decision === 'NO' ? 'neutral' : 'outline';
+  const internalLabel = app.round1Decision ? (INTERNAL_DECISION_LABEL[app.round1Decision as InternalDecisionValue] ?? 'undecided') : 'undecided';
 
   return (
     <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
