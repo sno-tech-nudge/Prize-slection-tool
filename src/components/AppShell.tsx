@@ -54,20 +54,21 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: 'var(--space-4) var(--space-8)',
+          padding: 'var(--space-3) var(--space-6)',
           borderBottom: '1px solid var(--border-subtle)',
           background: 'var(--surface-card)',
           position: 'sticky',
           top: 0,
           zIndex: 'var(--z-sticky)' as unknown as number,
-          gap: 'var(--space-6)',
+          gap: 'var(--space-4)',
+          overflowX: 'auto',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-10)' }}>
-          <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <Logo program="prize" size={26} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', flexShrink: 0 }}>
+          <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+            <Logo program="prize" size={24} />
           </Link>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)' }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
             {navItems.map((it) => {
               const active = pathname?.startsWith(it.href);
               const Icon = it.icon;
@@ -80,8 +81,10 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    fontSize: 'var(--fs-small)',
+                    gap: 'var(--space-1)',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: (active ? 'var(--fw-bold)' : 'var(--fw-semibold)') as unknown as number,
                     color: active ? 'var(--delta-red)' : 'var(--text-secondary)',
                     textTransform: 'lowercase',
@@ -90,7 +93,7 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
                     borderBottom: active ? '2px solid var(--delta-red)' : '2px solid transparent',
                   }}
                 >
-                  <Icon size={16} strokeWidth={2} strokeLinejoin="miter" strokeLinecap="square" />
+                  <Icon size={14} strokeWidth={2} strokeLinejoin="miter" strokeLinecap="square" />
                   {it.label}
                 </Link>
               );
@@ -98,15 +101,28 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
           </nav>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexShrink: 0 }}>
           <SupabaseSyncTicker />
           <JobQueueTicker />
           {user && user.role !== 'OBSERVER' && <NotificationBell />}
           {user && (
             <>
-              <span style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{user.name}</span>
+              <div style={{ width: 1, height: 24, background: 'var(--border-subtle)', flexShrink: 0 }} />
+              <span
+                title={user.name}
+                style={{
+                  fontSize: 'var(--fs-caption)',
+                  color: 'var(--text-secondary)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 140,
+                }}
+              >
+                {user.name}
+              </span>
               <Badge tone="outline">{ROLE_LABEL[user.role as UserRole]}</Badge>
-              <form action={logoutAction}>
+              <form action={logoutAction} style={{ flexShrink: 0 }}>
                 <button
                   type="submit"
                   aria-label="log out"
@@ -114,11 +130,12 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 'var(--space-1)',
+                    whiteSpace: 'nowrap',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
                     color: 'var(--text-secondary)',
-                    fontSize: 'var(--fs-small)',
+                    fontSize: 'var(--fs-caption)',
                     fontFamily: 'var(--font-sans)',
                     padding: 0,
                   }}
