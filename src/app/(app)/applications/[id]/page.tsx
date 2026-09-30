@@ -296,6 +296,22 @@ export default async function ApplicationDetailPage({
                   </div>
                 </Card>
               )}
+
+              <Card>
+                <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>deck</h2>
+                {app.deckUrl ? (
+                  <a
+                    href={app.deckUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 'var(--fs-small)', color: 'var(--delta-red)', fontWeight: 'var(--fw-bold)' as unknown as number }}
+                  >
+                    open pitch deck (PDF) →
+                  </a>
+                ) : (
+                  <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>no deck uploaded yet.</p>
+                )}
+              </Card>
             </>
           )}
         </div>

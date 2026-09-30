@@ -3,6 +3,10 @@ import { prisma } from '@/lib/db';
 import { JURY_RUBRIC_CRITERIA } from '@/lib/scoring/juryRubric';
 import { parseCriteria } from '@/lib/scoring/parse';
 
+// no request-derived dynamic signal (no searchParams/cookies/headers read) — without this, Next
+// tries to statically pre-render this route at build time and bake in a stale CSV snapshot.
+export const dynamic = 'force-dynamic';
+
 function csvCell(value: unknown): string {
   const s = value === null || value === undefined ? '' : String(value);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;

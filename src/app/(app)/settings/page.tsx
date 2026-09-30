@@ -5,13 +5,16 @@ import { SupabaseSyncPanel } from '@/components/SupabaseSyncPanel';
 import { UserRoleManager } from '@/components/UserRoleManager';
 import { AutomationPanel } from '@/components/AutomationPanel';
 import { ResetPlatformPanel } from '@/components/ResetPlatformPanel';
+import { DeckUploadPanel } from '@/components/DeckUploadPanel';
 import { getAutomationStats, listYesDecidedApplicationsForSynopsis } from '@/lib/automation/actions';
+import { listApplicationsForDeckMatchingAction } from '@/lib/uploads/deckActions';
 
 export default async function SettingsPage() {
-  const [allUsers, automationStats, synopsisApplications] = await Promise.all([
+  const [allUsers, automationStats, synopsisApplications, deckCandidates] = await Promise.all([
     listUsers(),
     getAutomationStats(),
     listYesDecidedApplicationsForSynopsis(),
+    listApplicationsForDeckMatchingAction(),
   ]);
   // jury members are managed on the benches page, not here — showing them in both places invited
   // editing the same person's login from two different forms.
@@ -47,6 +50,8 @@ export default async function SettingsPage() {
         <SupabaseSyncPanel configured={supabaseConfigured} />
 
         <AutomationPanel stats={automationStats} synopsisApplications={synopsisApplications} />
+
+        <DeckUploadPanel candidates={deckCandidates} />
 
         <ResetPlatformPanel />
       </div>
