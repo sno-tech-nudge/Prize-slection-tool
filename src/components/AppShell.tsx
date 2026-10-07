@@ -10,6 +10,7 @@ import { logoutAction } from '@/lib/auth/actions';
 import { JobQueueTicker } from '@/components/JobQueueTicker';
 import { SupabaseSyncTicker } from '@/components/SupabaseSyncTicker';
 import { NotificationBell } from '@/components/NotificationBell';
+import { applyTheme, readTheme } from '@/lib/theme';
 
 interface NavItem {
   href: string;
@@ -38,6 +39,13 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // the stored theme applies to the internal app only: set it while this shell is mounted, and drop
+  // it again on the way out (logout) so the login screen and public pages are always light.
+  React.useEffect(() => {
+    applyTheme(readTheme());
+    return () => applyTheme('light');
+  }, []);
 
   const navItems = NAV_ITEMS.filter((it) => !user || it.roles.includes(user.role as UserRole));
   // /applications is also the prefix of /applications/round-2 and /round-3, so a plain startsWith

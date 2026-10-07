@@ -6,6 +6,7 @@ import { UserRoleManager } from '@/components/UserRoleManager';
 import { AutomationPanel } from '@/components/AutomationPanel';
 import { ResetPlatformPanel } from '@/components/ResetPlatformPanel';
 import { DeckUploadPanel } from '@/components/DeckUploadPanel';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { getAutomationStats, listYesDecidedApplicationsForSynopsis } from '@/lib/automation/actions';
 import { listApplicationsForDeckMatchingAction } from '@/lib/uploads/deckActions';
 
@@ -26,6 +27,14 @@ export default async function SettingsPage() {
       <AngularBanner eyebrow="internal platform" title="settings" subtitle="team, roles, jury benches, and the active data source." />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-lg)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <UserRoleManager users={users} />
+
+        <Card>
+          <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>appearance</h2>
+          <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+            switch between light and dark mode. remembered on this browser only; downloaded pdfs stay light.
+          </p>
+          <ThemeToggle />
+        </Card>
 
         <Card>
           <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>jury benches</h2>

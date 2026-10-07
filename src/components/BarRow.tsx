@@ -10,7 +10,7 @@ export function BarRow({ label, count, max, tone = 'red' }: { label: string; cou
           style={{
             width: `${pct}%`,
             height: '100%',
-            background: tone === 'red' ? 'var(--delta-red)' : 'var(--delta-charcoal)',
+            background: tone === 'red' ? 'var(--delta-red)' : 'var(--surface-ink)',
           }}
         />
       </div>

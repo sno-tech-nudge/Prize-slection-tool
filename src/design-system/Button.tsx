@@ -77,7 +77,7 @@ export function Button({
       ? ({
           primary: { background: 'var(--action-hover)', borderColor: 'var(--action-hover)' },
           cta: { background: 'var(--action-hover)', borderColor: 'var(--action-hover)' },
-          secondary: { background: 'var(--delta-charcoal)', color: 'var(--text-inverse)' },
+          secondary: { background: 'var(--surface-ink)', color: 'var(--text-inverse)' },
           ghost: { color: 'var(--action-hover)' },
         } as Record<string, React.CSSProperties>)[variant]
       : null;

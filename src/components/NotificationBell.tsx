@@ -98,7 +98,7 @@ export function NotificationBell() {
               height: 15,
               padding: '0 var(--space-1)',
               background: 'var(--delta-red)',
-              color: 'var(--surface-card)',
+              color: 'var(--text-inverse)',
               fontSize: 10,
               fontWeight: 'var(--fw-bold)' as unknown as number,
               display: 'flex',

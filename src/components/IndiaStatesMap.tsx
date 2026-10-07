@@ -94,7 +94,7 @@ export function IndiaStatesMap({ data }: { data: StateCount[] }) {
           mapColor="var(--grey-100)"
           strokeColor="var(--surface-card)"
           strokeWidth={0.5}
-          hoverColor="var(--delta-charcoal)"
+          hoverColor="var(--map-hover)"
           cityColors={cityColors}
           disableClick
         />
@@ -106,7 +106,7 @@ export function IndiaStatesMap({ data }: { data: StateCount[] }) {
               top: hover.y + 16,
               zIndex: 1000,
               pointerEvents: 'none',
-              background: 'var(--delta-charcoal)',
+              background: 'var(--surface-ink)',
               color: 'var(--text-inverse)',
               padding: 'var(--space-2) var(--space-3)',
               fontSize: 'var(--fs-small)',

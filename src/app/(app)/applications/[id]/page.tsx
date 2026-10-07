@@ -16,6 +16,7 @@ import { CommentThread } from '@/components/CommentThread';
 import { JurySidePanel } from '@/components/JurySidePanel';
 import { JuryScoresTable } from '@/components/JuryScoresTable';
 import { ApplicationMainContent } from '@/components/ApplicationMainContent';
+import { ApplicationTimeline } from '@/components/ApplicationTimeline';
 import { getApplicationDetail, getAdjacentApplications, type ApplicationListFilters } from '@/lib/applications/queries';
 import { ensureOrgSynopsisQueued } from '@/lib/synopsis/ensure';
 import { getFieldVisibility } from '@/lib/visibility/settings';
@@ -311,6 +312,13 @@ export default async function ApplicationDetailPage({
         </div>
         )}
       </div>
+
+      {/* round decisions are internal — jurors never see them, and the applicant-facing PDF drops it */}
+      {!isJury && (
+        <div data-pdf-exclude="true" style={{ padding: '0 var(--space-10) var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
+          <ApplicationTimeline app={app} />
+        </div>
+      )}
     </div>
   );
 }

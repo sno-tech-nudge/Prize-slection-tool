@@ -51,7 +51,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
           resize: 'vertical',
           background: 'var(--surface-card)',
           border: '1px solid',
-          borderColor: error ? 'var(--delta-red)' : focus ? 'var(--delta-charcoal)' : 'var(--border-subtle)',
+          borderColor: error ? 'var(--delta-red)' : focus ? 'var(--border-strong)' : 'var(--border-subtle)',
           outline: focus ? '2px solid var(--delta-red)' : 'none',
           outlineOffset: '1px',
           borderRadius: 0,

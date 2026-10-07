@@ -47,7 +47,7 @@ export function Select({ label, helper, id, children, style, containerStyle, ...
             padding: '10px 36px 10px 12px',
             background: 'var(--surface-card)',
             border: '1px solid',
-            borderColor: focus ? 'var(--delta-charcoal)' : 'var(--border-subtle)',
+            borderColor: focus ? 'var(--border-strong)' : 'var(--border-subtle)',
             outline: focus ? '2px solid var(--delta-red)' : 'none',
             outlineOffset: '1px',
             borderRadius: 0,

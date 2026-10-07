@@ -28,7 +28,7 @@ export function Tooltip({ content, placement = 'top', children, style, ...rest }
             position: 'absolute',
             zIndex: 'var(--z-overlay)' as unknown as number,
             whiteSpace: 'nowrap',
-            background: 'var(--delta-charcoal)',
+            background: 'var(--surface-ink)',
             color: 'var(--delta-white)',
             fontFamily: 'var(--font-sans)',
             fontWeight: 'var(--fw-light)' as unknown as number,

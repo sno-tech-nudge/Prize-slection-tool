@@ -52,7 +52,7 @@ function sectionTone(pct: number): { color: string } {
 // independently reads as the strongest signal, contradicted as the weakest.
 function verdictTone(verdict: string | null): { color: string; label: string } {
   if (verdict === 'CONFIRMED') return { color: 'var(--delta-red)', label: 'confirmed independently' };
-  if (verdict === 'PARTIAL') return { color: 'var(--delta-charcoal)', label: 'partially confirmed' };
+  if (verdict === 'PARTIAL') return { color: 'var(--text-primary)', label: 'partially confirmed' };
   if (verdict === 'CONTRADICTED') return { color: 'var(--grey-400)', label: 'contradicted' };
   return { color: 'var(--delta-yellow)', label: 'unverified' };
 }

@@ -8,7 +8,7 @@ export interface ToastProps extends Omit<React.HTMLAttributes<HTMLDivElement>, '
 
 export function Toast({ status = 'info', title, children, onClose, style, ...rest }: ToastProps) {
   const accents: Record<string, string> = {
-    info: 'var(--delta-charcoal)',
+    info: 'var(--border-strong)',
     success: 'var(--delta-red)',
     warning: 'var(--delta-yellow)',
     error: 'var(--delta-red)',

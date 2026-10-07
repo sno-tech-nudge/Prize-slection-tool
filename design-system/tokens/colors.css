@@ -92,4 +92,45 @@
   --chart-10:         #8a5a2e;   /* brown */
   --chart-11:         #6e7475;   /* slate */
   --chart-12:         #9aa0a1;   /* light grey */
+
+  /* Hover fill for a state on the India map (charcoal in light, a light grey in dark) */
+  --map-hover:        var(--delta-charcoal);
+}
+
+/* ================= DARK THEME =================
+   Opt-in via <html data-theme="dark"> (the toggle in Settings). Only the semantic surfaces,
+   text, border and scale tokens that sit on a surface change — brand red, the yellow accent,
+   white-on-red text and the traffic-light status colours are deliberately untouched, so every
+   component keeps its meaning. Screen only: print / PDF output always stays light. */
+@media screen {
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --color-bg:         #151819;
+    --surface-canvas:   #101314;
+    --surface-card:     #1b1f21;
+    --surface-raised:   #1b1f21;
+    --surface-ink:      #3d4547;
+
+    --text-primary:     #e8eaea;
+    --text-secondary:   #aab0b1;
+    --text-muted:       #8b9293;
+
+    --border-subtle:    #31383a;
+    --border-strong:    #7c8486;
+    --focus-ring:       #e8eaea;
+
+    --grey-100:         #2a3133;
+    --grey-200:         #343b3d;
+    --grey-300:         #4f5759;
+    --red-050:          #5a2626;
+    --accent-quiet:     #3a3216;
+
+    --chart-8:          #aab0b1;
+    --map-hover:        #c7cbcb;
+
+    --shadow-sm:        0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md:        0 6px 20px rgba(0, 0, 0, 0.45);
+    --shadow-lg:        0 18px 48px rgba(0, 0, 0, 0.5);
+  }
 }

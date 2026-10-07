@@ -104,3 +104,25 @@ select {
     animation: none;
   }
 }
+
+/* the "decision still pending" light on the application timeline */
+.delta-blink {
+  display: block;
+  animation: delta-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes delta-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delta-blink {
+    animation: none;
+  }
+}
