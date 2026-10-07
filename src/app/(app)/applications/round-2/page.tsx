@@ -5,6 +5,7 @@ import { AngularBanner, Card, Button } from '@/design-system';
 import { InternalJuryRow } from '@/components/InternalJuryRow';
 import { JuryListFilters } from '@/components/JuryListFilters';
 import { RoundAnalyticsSection } from '@/components/RoundAnalyticsSection';
+import { JuryRubricSidePanel } from '@/components/JuryRubricSidePanel';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listJuryOversight, listBenches } from '@/lib/benches/queries';
 import type { ApplicationListFilters } from '@/lib/applications/queries';
@@ -41,12 +42,15 @@ export default async function Round2Page({ searchParams }: { searchParams: Appli
         title="round 2"
         subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'} across all benches, alphabetical — double-click a row to open it`}
         action={
-          <a href="/api/applications/round-2/export" style={{ textDecoration: 'none' }}>
-            <Button variant="secondary">
-              <Download size={14} strokeLinejoin="miter" strokeLinecap="square" style={{ marginRight: 'var(--space-2)' }} />
-              download jury scoring
-            </Button>
-          </a>
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <JuryRubricSidePanel />
+            <a href="/api/applications/round-2/export" style={{ textDecoration: 'none' }}>
+              <Button variant="secondary">
+                <Download size={14} strokeLinejoin="miter" strokeLinecap="square" style={{ marginRight: 'var(--space-2)' }} />
+                download jury scoring
+              </Button>
+            </a>
+          </div>
         }
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>

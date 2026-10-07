@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { Card, Badge, Button, Checkbox, Select, Dialog, Input, useToast } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
 import { bulkSendOutreachAction, previewOutreachEmailAction, sendIndividualOutreachAction } from '@/lib/mail/actions';
+import { CURRENT_ROUND_LABEL, type CurrentRoundValue } from '@/lib/constants';
+import { OUTREACH_ROUNDS, parseOutboxTemplate, latestDecidedRound, decisionForRound, type OutreachRound } from '@/lib/mail/rounds';
 
 export interface OutreachApplicationRow {
   id: string;
@@ -12,6 +14,9 @@ export interface OutreachApplicationRow {
   pocLastName: string;
   email: string;
   round1Decision: string | null;
+  round2Decision: string | null;
+  round3Decision: string | null;
+  currentRound: string;
   outboxEmails: { template: string; status: string }[];
 }
 
@@ -27,17 +32,24 @@ const DECISION_LABEL: Record<string, string> = {
   UNDER_REVIEW: 'under review',
 };
 
-const BULK_TEMPLATE_KIND: Record<string, string> = {
-  bulk_acceptance: 'acceptance',
-  bulk_rejection: 'rejection',
-  bulk_query: 'query',
-};
-
-function outreachStatus(row: OutreachApplicationRow): string {
-  const bulk = row.outboxEmails.find((e) => e.template in BULK_TEMPLATE_KIND);
-  if (!bulk) return 'not contacted';
-  return `${BULK_TEMPLATE_KIND[bulk.template]} ${bulk.status.toLowerCase()}`;
+/** Every acceptance/rejection/query mail on this application with the round it went out in —
+ *  "acceptance · round 1" — plus its delivery status when it isn't simply sent. */
+function mailHistory(row: OutreachApplicationRow): string[] {
+  return row.outboxEmails
+    .map((e) => ({ parsed: parseOutboxTemplate(e.template), status: e.status }))
+    .filter((e) => e.parsed !== null)
+    .sort((a, b) => a.parsed!.round - b.parsed!.round)
+    .map((e) => `${e.parsed!.kind} · round ${e.parsed!.round}${e.status === 'SENT' ? '' : ` (${e.status.toLowerCase()})`}`);
 }
+
+/** Done = a mail has already gone out for the round this application is currently at (the latest
+ *  round with a decision), so there's nothing left to send right now — those drop to the bottom. */
+function isMailedForCurrentRound(row: OutreachApplicationRow): boolean {
+  const round = latestDecidedRound(row);
+  return row.outboxEmails.some((e) => e.status === 'SENT' && parseOutboxTemplate(e.template)?.round === round);
+}
+
+const roundLabel = (r: OutreachRound) => `round ${r}`;
 
 export function OutreachApplicationsTable({ applications, canSend }: { applications: OutreachApplicationRow[]; canSend: boolean }) {
   const router = useRouter();
@@ -45,16 +57,21 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [pending, setPending] = React.useState<'acceptance' | 'rejection' | null>(null);
   const [query, setQuery] = React.useState('');
+  const [bulkRound, setBulkRound] = React.useState<'auto' | OutreachRound>('auto');
 
   const filteredApplications = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return applications;
-    return applications.filter(
-      (a) =>
-        a.orgName.toLowerCase().includes(q) ||
-        `${a.pocFirstName} ${a.pocLastName}`.toLowerCase().includes(q) ||
-        a.email.toLowerCase().includes(q),
-    );
+    const matching = !q
+      ? applications
+      : applications.filter(
+          (a) =>
+            a.orgName.toLowerCase().includes(q) ||
+            `${a.pocFirstName} ${a.pocLastName}`.toLowerCase().includes(q) ||
+            a.email.toLowerCase().includes(q),
+        );
+    // already-mailed-for-this-round applications sink below the ones still waiting on a mail;
+    // Array.sort is stable, so each group keeps the list's existing order.
+    return [...matching].sort((a, b) => Number(isMailedForCurrentRound(a)) - Number(isMailedForCurrentRound(b)));
   }, [applications, query]);
 
   const allSelected = filteredApplications.length > 0 && filteredApplications.every((a) => selected.has(a.id));
@@ -94,6 +111,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
       const formData = new FormData();
       selected.forEach((id) => formData.append('applicationId', id));
       formData.set('kind', kind);
+      formData.set('round', String(bulkRound));
       const result = await bulkSendOutreachAction(formData);
       setSelected(new Set());
       const parts = [`${result.sent} sent`];
@@ -138,6 +156,20 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
               containerStyle={{ width: 220, minWidth: 0 }}
               style={{ height: 34, boxSizing: 'border-box', fontSize: 'var(--fs-caption)', padding: '0 var(--space-3)' }}
             />
+            <Select
+              aria-label="round to send for"
+              value={String(bulkRound)}
+              onChange={(e) => setBulkRound(e.target.value === 'auto' ? 'auto' : (Number(e.target.value) as OutreachRound))}
+              containerStyle={{ width: 190, minWidth: 0 }}
+              style={{ height: 34, boxSizing: 'border-box', fontSize: 'var(--fs-caption)', padding: '0 var(--space-6) 0 var(--space-3)' }}
+            >
+              <option value="auto">round: each one&apos;s latest</option>
+              {OUTREACH_ROUNDS.map((r) => (
+                <option key={r} value={r}>
+                  {roundLabel(r)}
+                </option>
+              ))}
+            </Select>
             <Button variant="secondary" size="sm" disabled={selected.size === 0 || pending !== null} onClick={() => setConfirmKind('acceptance')}>
               {pending === 'acceptance' ? 'sending…' : 'bulk send (acceptance)'}
             </Button>
@@ -163,8 +195,9 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
           </>
         }
       >
-        {bulkVerb} for {selected.size} application{selected.size === 1 ? '' : 's'}? this sends right away — applications already
-        contacted with this template are skipped.
+        {bulkVerb} for {selected.size} application{selected.size === 1 ? '' : 's'} (
+        {bulkRound === 'auto' ? "each one's latest round" : roundLabel(bulkRound)})? this sends right away — applications already
+        sent this mail for that round are skipped.
       </Dialog>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -175,7 +208,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
                 <Checkbox checked={allSelected} onChange={toggleAll} aria-label="select all" />
               </th>
             )}
-            {['organisation', 'poc contact', 'decision', 'outreach status', canSend ? 'send individually' : ''].filter(Boolean).map((h) => (
+            {['organisation', 'poc contact', 'application status', 'decision', 'mail sent', canSend ? 'send individually' : ''].filter(Boolean).map((h) => (
               <th
                 key={h}
                 style={{
@@ -203,7 +236,7 @@ export function OutreachApplicationsTable({ applications, canSend }: { applicati
           ))}
           {filteredApplications.length === 0 && (
             <tr>
-              <td colSpan={canSend ? 6 : 4} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <td colSpan={canSend ? 7 : 5} style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 no applications match this filter.
               </td>
             </tr>
@@ -227,7 +260,9 @@ function OutreachApplicationTableRow({
 }) {
   const router = useRouter();
   const { push } = useToast();
-  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(app.round1Decision === 'YES' ? 'acceptance' : 'rejection');
+  const defaultRound = latestDecidedRound(app);
+  const [round, setRound] = React.useState<OutreachRound>(defaultRound);
+  const [kind, setKind] = React.useState<'acceptance' | 'rejection'>(decisionForRound(app, defaultRound) === 'YES' ? 'acceptance' : 'rejection');
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [preview, setPreview] = React.useState<{ subject: string; body: string } | null>(null);
@@ -246,6 +281,7 @@ function OutreachApplicationTableRow({
       const formData = new FormData();
       formData.set('applicationId', app.id);
       formData.set('kind', kind);
+      formData.set('round', String(round));
       const result = await previewOutreachEmailAction(formData);
       setPreview(result);
     } finally {
@@ -274,8 +310,9 @@ function OutreachApplicationTableRow({
       const formData = new FormData();
       formData.set('applicationId', app.id);
       formData.set('kind', kind);
+      formData.set('round', String(round));
       const result = await sendIndividualOutreachAction(formData);
-      if (result.status === 'SENT') push('sent', `${kind} email to ${app.orgName} sent.`, 'success');
+      if (result.status === 'SENT') push('sent', `round ${round} ${kind} email to ${app.orgName} sent.`, 'success');
       else {
         const reason = result.error ?? `${kind} email to ${app.orgName} could not be sent.`;
         push('send failed', `${reason} click send again to try again.`, 'error');
@@ -304,16 +341,49 @@ function OutreachApplicationTableRow({
           <div style={{ fontSize: 'var(--fs-caption)' }}>{app.email}</div>
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-          <Badge tone={app.round1Decision ? (DECISION_TONE[app.round1Decision] ?? 'outline') : 'outline'}>
-            {app.round1Decision ? (DECISION_LABEL[app.round1Decision] ?? app.round1Decision.toLowerCase()) : 'undecided'}
+          <Badge tone={app.currentRound === 'SELECTED' ? 'red' : app.currentRound === 'ROUND_1' ? 'outline' : 'neutral'}>
+            {CURRENT_ROUND_LABEL[app.currentRound as CurrentRoundValue] ?? app.currentRound.toLowerCase()}
           </Badge>
         </td>
+        <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+          {(() => {
+            const decision = decisionForRound(app, defaultRound);
+            return (
+              <Badge tone={decision ? (DECISION_TONE[decision] ?? 'outline') : 'outline'}>
+                round {defaultRound} · {decision ? (DECISION_LABEL[decision] ?? decision.toLowerCase()) : 'undecided'}
+              </Badge>
+            );
+          })()}
+        </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-          {outreachStatus(app)}
+          {mailHistory(app).length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {mailHistory(app).map((m) => (
+                <span key={m}>{m}</span>
+              ))}
+            </div>
+          ) : (
+            'not contacted'
+          )}
         </td>
         {canSend && (
           <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+              <Select
+                aria-label={`round for ${app.orgName}`}
+                value={String(round)}
+                onChange={(e) => {
+                  const next = Number(e.target.value) as OutreachRound;
+                  setRound(next);
+                  setKind(decisionForRound(app, next) === 'YES' ? 'acceptance' : 'rejection');
+                }}
+              >
+                {OUTREACH_ROUNDS.map((r) => (
+                  <option key={r} value={r}>
+                    {roundLabel(r)}
+                  </option>
+                ))}
+              </Select>
               <Select aria-label={`template for ${app.orgName}`} value={kind} onChange={(e) => setKind(e.target.value as 'acceptance' | 'rejection')}>
                 <option value="acceptance">acceptance</option>
                 <option value="rejection">rejection</option>

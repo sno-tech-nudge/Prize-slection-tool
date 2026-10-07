@@ -6,6 +6,7 @@ import { assertRole, CAN_SEND_MAIL, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard
 import { approveAndSendOutboxEmail, enqueueCustomOutreachEmail, previewCustomOutreachEmail, type CustomOutreachKind } from '@/lib/mail/outbox';
 import { getSettings, updateSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
+import { outboxTemplateName, latestDecidedRound, type OutreachRound } from '@/lib/mail/rounds';
 
 export async function approveAndSendAction(formData: FormData) {
   const user = await getCurrentUser();
@@ -76,10 +77,11 @@ function parseKind(formData: FormData): CustomOutreachKind {
   return 'rejection';
 }
 
-function outboxTemplateName(kind: CustomOutreachKind): string {
-  if (kind === 'acceptance') return 'bulk_acceptance';
-  if (kind === 'query') return 'bulk_query';
-  return 'bulk_rejection';
+/** 'auto' (the default) sends each application's mail for the latest round it has a decision in;
+ *  1/2/3 forces that round for every selected application. */
+function parseRound(formData: FormData): OutreachRound | 'auto' {
+  const raw = String(formData.get('round') ?? 'auto');
+  return raw === '1' || raw === '2' || raw === '3' ? (Number(raw) as OutreachRound) : 'auto';
 }
 
 /** Sends an acceptance, rejection, or query email (from the customisable templates) to every
@@ -95,7 +97,7 @@ export async function bulkSendOutreachAction(formData: FormData) {
 
   const applicationIds = formData.getAll('applicationId').map(String);
   const kind = parseKind(formData);
-  const template = outboxTemplateName(kind);
+  const requestedRound = parseRound(formData);
 
   let sent = 0;
   let failed = 0;
@@ -103,6 +105,17 @@ export async function bulkSendOutreachAction(formData: FormData) {
   const errors = new Set<string>();
 
   for (const applicationId of applicationIds) {
+    let round: OutreachRound;
+    if (requestedRound === 'auto') {
+      const decisions = await prisma.application.findUniqueOrThrow({
+        where: { id: applicationId },
+        select: { round2Decision: true, round3Decision: true },
+      });
+      round = latestDecidedRound(decisions);
+    } else {
+      round = requestedRound;
+    }
+    const template = outboxTemplateName(kind, round);
     const existing = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
     if (existing && existing.status === 'SENT') {
       skipped++;
@@ -110,7 +123,7 @@ export async function bulkSendOutreachAction(formData: FormData) {
     }
     // re-render a reused (e.g. previously FAILED) row fresh before sending, same reasoning as
     // sendIndividualOutreachAction above — a freshly-created row is already current.
-    let email = existing ?? (await enqueueCustomOutreachEmail(applicationId, kind));
+    let email = existing ?? (await enqueueCustomOutreachEmail(applicationId, kind, round));
     if (existing) {
       const fresh = await previewCustomOutreachEmail(applicationId, kind);
       email = await prisma.outboxEmail.update({ where: { id: existing.id }, data: { subject: fresh.subject, body: fresh.body } });
@@ -158,11 +171,18 @@ export async function sendIndividualOutreachAction(formData: FormData) {
 
   const applicationId = String(formData.get('applicationId'));
   const kind = parseKind(formData);
-  const template = outboxTemplateName(kind);
+  const requestedRound = parseRound(formData);
+  const round: OutreachRound =
+    requestedRound === 'auto'
+      ? latestDecidedRound(
+          await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { round2Decision: true, round3Decision: true } }),
+        )
+      : requestedRound;
+  const template = outboxTemplateName(kind, round);
 
   let email = await prisma.outboxEmail.findFirst({ where: { applicationId, template } });
   if (!email) {
-    email = await enqueueCustomOutreachEmail(applicationId, kind);
+    email = await enqueueCustomOutreachEmail(applicationId, kind, round);
   } else {
     const fresh = await previewCustomOutreachEmail(applicationId, kind);
     email = await prisma.outboxEmail.update({ where: { id: email.id }, data: { subject: fresh.subject, body: fresh.body } });

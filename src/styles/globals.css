@@ -82,3 +82,25 @@ select {
 ::-webkit-scrollbar-thumb {
   background: var(--grey-400);
 }
+
+/* a later round's decision card mounting once the round before it becomes a yes */
+.delta-pop {
+  animation: delta-pop 260ms var(--ease-out) both;
+}
+
+@keyframes delta-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delta-pop {
+    animation: none;
+  }
+}

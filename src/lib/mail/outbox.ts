@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { getMailer } from './mailer';
 import { renderStageEmail, renderCustomTemplate, type StageEmailTemplate } from './templates';
 import { getSettings } from '@/lib/settings';
+import { outboxTemplateName, type OutreachKind, type OutreachRound } from './rounds';
 
 const CHALLENGE_NAME = process.env.CHALLENGE_NAME || 'the^delta prize · rapid re.gen challenge';
 
@@ -36,18 +37,12 @@ export async function enqueueStageEmail(applicationId: string, template: StageEm
 /** @deprecated use enqueueStageEmail — kept so existing call sites keep working */
 export const enqueueRejectionEmail = enqueueStageEmail;
 
-export type CustomOutreachKind = 'acceptance' | 'rejection' | 'query';
+export type CustomOutreachKind = OutreachKind;
 
 function customTemplateFor(kind: CustomOutreachKind, settings: Awaited<ReturnType<typeof getSettings>>) {
   if (kind === 'acceptance') return settings.emailTemplateAcceptance;
   if (kind === 'rejection') return settings.emailTemplateRejection;
   return settings.emailTemplateQuery;
-}
-
-function outboxTemplateFor(kind: CustomOutreachKind): string {
-  if (kind === 'acceptance') return 'bulk_acceptance';
-  if (kind === 'rejection') return 'bulk_rejection';
-  return 'bulk_query';
 }
 
 /** Renders what enqueueCustomOutreachEmail would produce, without persisting anything — lets an
@@ -66,7 +61,7 @@ export async function previewCustomOutreachEmail(applicationId: string, kind: Cu
 /** Queues an outreach email from the admin-customised acceptance/rejection/query templates (see
  *  Settings). Always lands as QUEUED — bulk outreach never auto-approves or sends, it only adds
  *  to the same review queue every other outbox email goes through. */
-export async function enqueueCustomOutreachEmail(applicationId: string, kind: CustomOutreachKind) {
+export async function enqueueCustomOutreachEmail(applicationId: string, kind: CustomOutreachKind, round: OutreachRound = 1) {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
   const { subject, body } = await previewCustomOutreachEmail(applicationId, kind);
 
@@ -76,7 +71,7 @@ export async function enqueueCustomOutreachEmail(applicationId: string, kind: Cu
       to: app.email,
       subject,
       body,
-      template: outboxTemplateFor(kind),
+      template: outboxTemplateName(kind, round),
       status: 'QUEUED',
       provider: getMailer().provider,
     },

@@ -25,7 +25,7 @@ const HEADERS = [
   'internal reviewer',
   'round 2 score',
   'bench',
-  'pdf',
+  'deck',
 ];
 
 const JURY_HEADERS = ['organisation', 'bench', 'slot', 'scoring status', 'total score', 'verdict', ''];
@@ -219,17 +219,32 @@ export default async function ApplicationsPage({
   // happens here rather than as a database ORDER BY. Unscored applications always sink to the
   // bottom regardless of direction — there's no meaningful place to rank "no score yet" among
   // real numbers.
+  const sort = searchParams.sort;
+  const ROUND_RANK: Record<string, number> = { ROUND_1: 1, ROUND_2: 2, ROUND_3: 3, SELECTED: 4 };
+  const avgJury = (a: (typeof unsortedApplications)[number]) =>
+    a.juryScores.length > 0 ? a.juryScores.reduce((sum, s) => sum + s.composite, 0) / a.juryScores.length : null;
+  // score-based sorts put unscored rows last in either direction, same rule as above.
+  const byScore = (get: (a: (typeof unsortedApplications)[number]) => number | null, desc: boolean) =>
+    [...unsortedApplications].sort((a, b) => {
+      const x = get(a);
+      const y = get(b);
+      if (x === null && y === null) return 0;
+      if (x === null) return 1;
+      if (y === null) return -1;
+      return desc ? y - x : x - y;
+    });
   const applications =
-    searchParams.sort === 'score_desc' || searchParams.sort === 'score_asc'
-      ? [...unsortedApplications].sort((a, b) => {
-          const scoreA = computeHumanComposite(a);
-          const scoreB = computeHumanComposite(b);
-          if (scoreA === null && scoreB === null) return 0;
-          if (scoreA === null) return 1;
-          if (scoreB === null) return -1;
-          return searchParams.sort === 'score_desc' ? scoreB - scoreA : scoreA - scoreB;
-        })
-      : unsortedApplications;
+    sort === 'score_desc' || sort === 'score_asc'
+      ? byScore(computeHumanComposite, sort === 'score_desc')
+      : sort === 'r2_desc' || sort === 'r2_asc'
+        ? byScore(avgJury, sort === 'r2_desc')
+        : sort === 'round_desc' || sort === 'round_asc'
+          ? [...unsortedApplications].sort((a, b) =>
+              sort === 'round_desc'
+                ? (ROUND_RANK[b.currentRound] ?? 0) - (ROUND_RANK[a.currentRound] ?? 0)
+                : (ROUND_RANK[a.currentRound] ?? 0) - (ROUND_RANK[b.currentRound] ?? 0),
+            )
+          : unsortedApplications;
 
   // sweeps every YES-decided application on the admin/reviewer list too, so coverage isn't left
   // depending on jury/observer happening to browse first.
@@ -240,7 +255,7 @@ export default async function ApplicationsPage({
       <LiveRefreshTicker />
       <AngularBanner
         eyebrow="the^delta prize · rapid re.gen challenge"
-        title="applications"
+        title="round 1"
         subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'}`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>

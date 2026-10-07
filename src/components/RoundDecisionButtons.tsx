@@ -19,25 +19,23 @@ function pillStyle(active: boolean, tone: 'red' | 'neutral', disabled: boolean):
 /** Generalized replacement for the old single-round DecisionStatusButtons — same four pills
  *  (yes / no / under review / clear) for whichever round is passed in. Round 2 is only actionable
  *  once round 1 is marked yes, round 3 only once round 2 is marked yes (enforced again
- *  server-side in setRoundDecisionAction) — `gated` renders the row disabled with an explanatory
- *  note instead of hiding it entirely, so it's always clear what's blocking the next round. */
+ *  server-side in setRoundDecisionAction), so the detail page only renders the later rounds' cards
+ *  once the round before is a yes. */
 export function RoundDecisionButtons({
   applicationId,
   round,
   current,
   canManage,
-  gated,
 }: {
   applicationId: string;
   round: 1 | 2 | 3;
   current: string | null;
   canManage: boolean;
-  gated?: boolean;
 }) {
   const [pending, setPending] = React.useState(false);
 
   async function decide(decision: 'YES' | 'NO' | 'UNDER_REVIEW' | 'CLEAR') {
-    if (!canManage || gated) return;
+    if (!canManage) return;
     setPending(true);
     const formData = new FormData();
     formData.set('applicationId', applicationId);
@@ -49,7 +47,7 @@ export function RoundDecisionButtons({
     }
   }
 
-  const disabled = pending || !canManage || Boolean(gated);
+  const disabled = pending || !canManage;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -74,11 +72,6 @@ export function RoundDecisionButtons({
           </button>
         )}
       </div>
-      {gated && (
-        <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)' }}>
-          round {round} decision opens once round {round - 1} is marked yes.
-        </p>
-      )}
     </div>
   );
 }

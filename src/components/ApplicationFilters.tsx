@@ -3,20 +3,15 @@ import React from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Input, Select } from '@/design-system';
 import { MultiSelect } from '@/components/MultiSelect';
-import { SOLUTION_CATEGORIES, SOLUTION_CATEGORY_LABEL } from '@/lib/constants';
+import { SOLUTION_CATEGORIES, SOLUTION_CATEGORY_LABEL, CURRENT_ROUND_VALUES, CURRENT_ROUND_LABEL } from '@/lib/constants';
 
 export interface ApplicationFilterOptions {
   registrationTypes: string[];
   operatingModels: string[];
   states: string[];
   reviewers: { id: string; name: string }[];
+  benches: { id: string; name: string }[];
 }
-
-const REVIEW_TOGGLE_OPTIONS = [
-  { value: '', label: 'all' },
-  { value: 'YES', label: 'reviewed' },
-  { value: 'NO', label: 'not reviewed' },
-];
 
 // shared height for every filter control (search box, pill toggles, selects, multiselects) so
 // the whole bar reads as one consistent row instead of a mix of box heights — MultiSelect.tsx
@@ -93,7 +88,6 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
     return (searchParams.get(key) ?? '').split(',').filter(Boolean);
   }
 
-  const currentReviewed = searchParams.get('reviewed') ?? '';
   const currentAssignedToMe = searchParams.get('assignedToMe') === '1';
 
   return (
@@ -106,13 +100,20 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
       >
         assigned to me
       </button>
-      <div role="group" aria-label="toggle review status" style={{ display: 'flex', gap: 'var(--space-1)', flexShrink: 0 }}>
-        {REVIEW_TOGGLE_OPTIONS.map((o) => (
-          <button key={o.value} type="button" onClick={() => setParam('reviewed', o.value)} style={pillStyle(currentReviewed === o.value)}>
-            {o.label}
-          </button>
-        ))}
-      </div>
+      <MultiSelect
+        label="application status"
+        width={170}
+        selected={getMultiParam('status')}
+        onChange={(v) => setMultiParam('status', v)}
+        options={CURRENT_ROUND_VALUES.map((r) => ({ value: r, label: CURRENT_ROUND_LABEL[r] }))}
+      />
+      <MultiSelect
+        label="jury bench"
+        width={140}
+        selected={getMultiParam('bench')}
+        onChange={(v) => setMultiParam('bench', v)}
+        options={options.benches.map((b) => ({ value: b.id, label: b.name }))}
+      />
       <GroupDivider />
 
       {/* attributes — what kind of application this is */}
@@ -147,15 +148,19 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
         </Select>
       )}
       <Select
-        aria-label="sort by round 1 score"
+        aria-label="sort"
         defaultValue={searchParams.get('sort') ?? ''}
         onChange={(e) => setParam('sort', e.target.value)}
-        containerStyle={fixedWidth(190)}
+        containerStyle={fixedWidth(210)}
         style={compactSelectStyle}
       >
         <option value="">sort: most recent</option>
         <option value="score_desc">round 1 score: high to low</option>
         <option value="score_asc">round 1 score: low to high</option>
+        <option value="r2_desc">round 2 score: high to low</option>
+        <option value="r2_asc">round 2 score: low to high</option>
+        <option value="round_desc">round: furthest first</option>
+        <option value="round_asc">round: earliest first</option>
       </Select>
 
       <GroupDivider />

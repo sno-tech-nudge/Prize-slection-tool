@@ -77,7 +77,7 @@ export default async function ApplicationDetailPage({
         <div style={{ padding: 'var(--space-4) var(--space-10) 0', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <Link href={`/applications${pagerQueryString}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
             <ChevronLeft size={16} strokeLinejoin="miter" strokeLinecap="square" />
-            go back to applications dashboard
+            {isJury ? 'go back to applications dashboard' : 'go back to round 1'}
           </Link>
         </div>
       )}
@@ -228,30 +228,24 @@ export default async function ApplicationDetailPage({
                 </Card>
               )}
 
-              {(isAdmin || user?.role === 'REVIEWER') && (
-                <Card style={{ marginBottom: 'var(--space-6)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 2 decision</h2>
-                  <RoundDecisionButtons
-                    applicationId={app.id}
-                    round={2}
-                    current={app.round2Decision}
-                    canManage={canManage}
-                    gated={app.round1Decision !== 'YES'}
-                  />
-                </Card>
+              {/* each later round's decision card only appears once the round before it is a yes —
+                  nothing to decide for an application that didn't get through */}
+              {(isAdmin || user?.role === 'REVIEWER') && app.round1Decision === 'YES' && (
+                <div className="delta-pop">
+                  <Card style={{ marginBottom: 'var(--space-6)' }}>
+                    <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 2 decision</h2>
+                    <RoundDecisionButtons applicationId={app.id} round={2} current={app.round2Decision} canManage={canManage} />
+                  </Card>
+                </div>
               )}
 
-              {(isAdmin || user?.role === 'REVIEWER') && (
-                <Card style={{ marginBottom: 'var(--space-6)' }}>
-                  <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 3 decision</h2>
-                  <RoundDecisionButtons
-                    applicationId={app.id}
-                    round={3}
-                    current={app.round3Decision}
-                    canManage={canManage}
-                    gated={app.round2Decision !== 'YES'}
-                  />
-                </Card>
+              {(isAdmin || user?.role === 'REVIEWER') && app.round1Decision === 'YES' && app.round2Decision === 'YES' && (
+                <div className="delta-pop">
+                  <Card style={{ marginBottom: 'var(--space-6)' }}>
+                    <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-2)' }}>round 3 decision</h2>
+                    <RoundDecisionButtons applicationId={app.id} round={3} current={app.round3Decision} canManage={canManage} />
+                  </Card>
+                </div>
               )}
 
               {(isAdmin || user?.role === 'REVIEWER') && (

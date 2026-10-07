@@ -1,4 +1,5 @@
 'use client';
+import { parseOutboxTemplate } from '@/lib/mail/rounds';
 import React from 'react';
 import { Card, Badge, Button, Dialog, Input, Textarea, Checkbox, useToast } from '@/design-system';
 import { approveAndSendAction, updateOutboxEmailAction, bulkApproveAndSendAction } from '@/lib/mail/actions';
@@ -37,6 +38,12 @@ const TONE_FOR_STATUS: Record<string, 'neutral' | 'red' | 'ink' | 'yellow' | 'ou
  *  that mechanism wasn't reliably showing a freshly sent email in this table in practice. Polls
  *  on an interval and re-fetches immediately after any send/edit action anywhere in this table,
  *  so what's on screen is always a real read of the database, not a cached route render. */
+/** "bulk_acceptance_r2" -> "acceptance · round 2"; stage-transition templates keep their plain name. */
+function templateLabel(template: string): string {
+  const parsed = parseOutboxTemplate(template);
+  return parsed ? `${parsed.kind} · round ${parsed.round}` : template.replace(/_/g, ' ');
+}
+
 export function OutboxTable({ emails: initialEmails, canSend }: { emails: OutboxTableRowData[]; canSend: boolean }) {
   const { push } = useToast();
   const [emails, setEmails] = React.useState(initialEmails);
@@ -192,7 +199,7 @@ function OutboxTableRow({
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>{subject}</td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
-          {template.replace(/_/g, ' ')}
+          {templateLabel(template)}
         </td>
         <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--fs-small)', color: 'var(--text-secondary)' }}>
           {sentAt ? (

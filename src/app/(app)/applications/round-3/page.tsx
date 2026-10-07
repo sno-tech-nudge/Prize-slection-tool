@@ -20,7 +20,7 @@ export default async function Round3Page() {
     <div>
       <AngularBanner
         eyebrow="round 3 · rapid re.gen challenge"
-        title="field visits"
+        title="round 3"
         subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'} — double-click a row to open it`}
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>

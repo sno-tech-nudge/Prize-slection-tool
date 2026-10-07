@@ -32,7 +32,7 @@ const ECOSYSTEM_PARTNER_TABLE_HEADERS = [
   'internal reviewer',
   'round 2 score',
   'bench',
-  'pdf',
+  'deck',
 ];
 
 function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
@@ -149,13 +149,12 @@ export default async function DashboardPage() {
       <AngularBanner
         eyebrow="internal platform"
         title="dashboard"
-        subtitle="application pipeline status: screening, scoring, review, and jury."
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
-          <Kpi label="round 1" value={kpis.total} icon={FileText} href="/applications" />
-          <Kpi label="round 2" value={kpis.round2Count} icon={ClipboardCheck} href="/applications/round-2" />
-          <Kpi label="round 3" value={kpis.round3Count} icon={CheckCircle2} href="/applications/round-3" />
+          <Kpi label="round 1 · application screening" value={kpis.total} icon={FileText} href="/applications" />
+          <Kpi label="round 2 · jury round" value={kpis.round2Count} icon={ClipboardCheck} href="/applications/round-2" />
+          <Kpi label="round 3 · field visit" value={kpis.round3Count} icon={CheckCircle2} href="/applications/round-3" />
           <Kpi label="selected" value="—" icon={Trophy} />
         </div>
 
@@ -374,7 +373,7 @@ async function ObserverDashboard() {
 
   return (
     <div>
-      <AngularBanner eyebrow="internal platform" title="dashboard" subtitle="application pipeline status and analytics." />
+      <AngularBanner eyebrow="internal platform" title="dashboard" />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
           <Kpi label="total applications" value={kpis.total} icon={FileText} href="/applications" />

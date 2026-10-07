@@ -10,10 +10,11 @@ export interface ApplicationListFilters {
   q?: string;
   internal?: string;
   ecosystemPartner?: string;
-  /** '3' scopes the list to round 3's applications (round2Decision: 'YES') — used by the round-3
-   *  tracking page so it can reuse this same query/filter/row machinery instead of a parallel
-   *  implementation. */
-  round?: string;
+  /** comma-separated currentRound values (ROUND_1, ROUND_2, ROUND_3, SELECTED) — the "application
+   *  status" filter. */
+  status?: string;
+  /** comma-separated bench ids — the "jury bench" filter. */
+  bench?: string;
   registrationType?: string;
   operatingModel?: string;
   state?: string;
@@ -40,7 +41,10 @@ function buildApplicationWhere(filters: ApplicationListFilters, user: User | nul
   if (filters.internal === 'YES' || filters.internal === 'NO' || filters.internal === 'UNDER_REVIEW') where.round1Decision = filters.internal;
   if (filters.internal === 'UNDECIDED') where.round1Decision = null;
   if (filters.ecosystemPartner === '1') where.isEcosystemPartner = true;
-  if (filters.round === '3') where.round2Decision = 'YES';
+  const statuses = splitCsv(filters.status);
+  if (statuses.length) where.currentRound = { in: statuses };
+  const benchIds = splitCsv(filters.bench);
+  if (benchIds.length) where.benchId = { in: benchIds };
   if (filters.assignedToMe === '1' && user) where.reviewAssignments = { some: { reviewerId: user.id } };
 
   // multi-select filters — each URL param is a comma-separated list of values; a row matches if
@@ -151,12 +155,13 @@ function splitCsv(value: string | undefined): string[] {
  *  admin-only "filter by reviewer" control — cheap to always fetch, the caller decides whether to
  *  actually render it. */
 export async function getApplicationFilterOptions() {
-  const [apps, reviewers] = await Promise.all([
+  const [apps, reviewers, benches] = await Promise.all([
     prisma.application.findMany({
       where: { isDuplicateOf: null },
       select: { legalRegistrationType: true, operatingModelArchetype: true, statesOperating: true },
     }),
     prisma.user.findMany({ where: { role: { in: ['ADMIN', 'REVIEWER'] } }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    prisma.bench.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ]);
 
   const registrationTypes = new Set<string>();
@@ -174,6 +179,7 @@ export async function getApplicationFilterOptions() {
     operatingModels: [...operatingModels].sort(),
     states: [...states].sort(),
     reviewers,
+    benches,
   };
 }
 

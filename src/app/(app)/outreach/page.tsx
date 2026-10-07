@@ -63,6 +63,9 @@ export default async function OutreachPage({ searchParams }: { searchParams: { s
               pocLastName: a.pocLastName,
               email: a.email,
               round1Decision: a.round1Decision,
+              round2Decision: a.round2Decision,
+              round3Decision: a.round3Decision,
+              currentRound: a.currentRound,
               outboxEmails: a.outboxEmails.map((e) => ({ template: e.template, status: e.status })),
             }))}
             canSend={canSend}

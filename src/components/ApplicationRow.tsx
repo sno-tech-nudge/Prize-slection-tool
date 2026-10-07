@@ -3,10 +3,9 @@ import { FileText } from 'lucide-react';
 import { CompositeBadge } from '@/components/StatusBadges';
 import { Badge as DsBadge } from '@/design-system';
 import { OrgTitle } from '@/components/OrgTitle';
-import { ReviewStatusDropdown } from '@/components/ReviewStatusDropdown';
-import { isReviewed, computeHumanComposite } from '@/lib/applications/reviewStatus';
+import { computeHumanComposite } from '@/lib/applications/reviewStatus';
 import { JURY_RUBRIC_MAX_TOTAL } from '@/lib/scoring/juryRubric';
-import { LEGAL_REGISTRATION_TYPE_LABEL, type LegalRegistrationTypeValue } from '@/lib/constants';
+import { LEGAL_REGISTRATION_TYPE_LABEL, CURRENT_ROUND_LABEL, type LegalRegistrationTypeValue, type CurrentRoundValue } from '@/lib/constants';
 
 export interface ApplicationRowData {
   id: string;
@@ -30,6 +29,7 @@ export interface ApplicationRowData {
   csr1Registration: string | null;
   darpanRegistered: string | null;
   deckUrl: string | null;
+  currentRound: string;
   targetMatch: { name: string } | null;
   founders: { fullName: string; email: string | null; linkedin: string | null }[];
   humanReviews: { id: string; composite: number; submittedAt: Date }[];
@@ -71,7 +71,9 @@ export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowD
           : '—'}
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-        <ReviewStatusDropdown reviewed={isReviewed(app)} />
+        <DsBadge tone={app.currentRound === 'SELECTED' ? 'red' : app.currentRound === 'ROUND_1' ? 'outline' : 'neutral'}>
+          {CURRENT_ROUND_LABEL[app.currentRound as CurrentRoundValue] ?? app.currentRound.toLowerCase()}
+        </DsBadge>
       </td>
       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
         {humanComposite !== null ? (
@@ -98,7 +100,7 @@ export function ApplicationRow({ app, queryString = '' }: { app: ApplicationRowD
             onClick={(e) => e.stopPropagation()}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--delta-red)', fontSize: 'var(--fs-small)' }}
           >
-            <FileText size={14} strokeLinejoin="miter" strokeLinecap="square" /> pdf
+            <FileText size={14} strokeLinejoin="miter" strokeLinecap="square" /> deck
           </a>
         ) : (
           <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-caption)' }}>—</span>
