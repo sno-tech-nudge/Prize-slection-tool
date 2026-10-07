@@ -21,30 +21,25 @@ interface NavItem {
   newTab?: boolean;
 }
 
-// the 4 core modules — the whole day-to-day workflow
-const PRIMARY_NAV_ITEMS: NavItem[] = [
+// left-to-right nav order: dashboard, then the three rounds in sequence, then outreach, targets, settings.
+// round 2 is the internal oversight view — every bench, every juror's individual score, for the team
+// running the jury process; distinct from what a jury member sees on /applications (their own bench
+// only, trimmed columns, blind until they submit). Reviewers get the identical full view admins do.
+const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'REVIEWER', 'OBSERVER'] },
   { href: '/applications', label: 'round 1', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER', 'JURY'] },
   { href: '/jury-guide', label: 'jury guide', icon: BookOpen, roles: ['JURY'], newTab: true },
+  { href: '/applications/round-2', label: 'round 2', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] },
+  { href: '/applications/round-3', label: 'round 3', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER'] },
+  { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] },
 ];
-
-// internal oversight — every bench, every juror's individual score, for the team running the
-// jury process. distinct from what a jury member sees on /applications (their own bench only,
-// trimmed columns, blind until they submit). Reviewers get the identical full view admins do.
-const ROUND_2_ITEM: NavItem = { href: '/applications/round-2', label: 'round 2', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
-const ROUND_3_ITEM: NavItem = { href: '/applications/round-3', label: 'round 3', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] };
-
-// reachable, but not counted among the 4 modules — admin-only configuration
-const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] };
 
 export function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const navItems = [...PRIMARY_NAV_ITEMS, ROUND_2_ITEM, ROUND_3_ITEM, SETTINGS_ITEM].filter(
-    (it) => !user || it.roles.includes(user.role as UserRole),
-  );
+  const navItems = NAV_ITEMS.filter((it) => !user || it.roles.includes(user.role as UserRole));
   // /applications is also the prefix of /applications/round-2 and /round-3, so a plain startsWith
   // would highlight round 1 alongside them — the most specific (longest) matching href wins instead.
   const activeHref = navItems
