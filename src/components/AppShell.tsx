@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, Gavel, BookOpen, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, Target, Inbox, Settings, LogOut, Gavel, BookOpen, MapPin, type LucideIcon } from 'lucide-react';
 import type { User } from '@prisma/client';
 import { ROLE_LABEL, type UserRoleValue as UserRole } from '@/lib/constants';
 import { Logo, Badge } from '@/design-system';
@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/applications', label: 'round 1', icon: FileText, roles: ['ADMIN', 'REVIEWER', 'OBSERVER', 'JURY'] },
   { href: '/jury-guide', label: 'jury guide', icon: BookOpen, roles: ['JURY'], newTab: true },
   { href: '/applications/round-2', label: 'round 2', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] },
-  { href: '/applications/round-3', label: 'round 3', icon: Gavel, roles: ['ADMIN', 'REVIEWER'] },
+  { href: '/applications/round-3', label: 'round 3', icon: MapPin, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/outreach', label: 'outreach', icon: Inbox, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/targets', label: 'targets', icon: Target, roles: ['ADMIN', 'REVIEWER'] },
   { href: '/settings', label: 'settings', icon: Settings, roles: ['ADMIN'] },
@@ -61,7 +61,6 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
           top: 0,
           zIndex: 'var(--z-sticky)' as unknown as number,
           gap: 'var(--space-4)',
-          overflowX: 'auto',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', flexShrink: 0 }}>

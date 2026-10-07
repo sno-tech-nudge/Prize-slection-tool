@@ -8,10 +8,11 @@ import { enqueueStageEmail, approveAndSendOutboxEmail } from '@/lib/mail/outbox'
 import type { StageEmailTemplate } from '@/lib/mail/templates';
 import { getSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
-import type { StageStatusValue, RoundDecisionValue, CurrentRoundValue } from '@/lib/constants';
+import { CURRENT_ROUND_LABEL, type StageStatusValue, type RoundDecisionValue, type CurrentRoundValue } from '@/lib/constants';
 import { RUBRIC_CRITERIA, computeComposite, dispositionFromComposite } from '@/lib/scoring/rubric';
 import { notifyMentionedUsers } from '@/lib/notifications/actions';
 import { enqueueJob } from '@/lib/jobs/queue';
+import { notifyTeam } from '@/lib/notifications/team';
 
 /** Stages that trigger an automated email — rejection or a congratulatory confirmation. Stages
  *  not listed here (SCREENING, UNDER_REVIEW, JURY_REVIEW, WITHDRAWN) are internal-only moves. */
@@ -193,7 +194,7 @@ export async function setRoundDecisionAction(round: 1 | 2 | 3, formData: FormDat
 
   const previous = await prisma.application.findUniqueOrThrow({
     where: { id: applicationId },
-    select: { orgSynopsisStatus: true, round1Decision: true, round2Decision: true, currentRound: true },
+    select: { orgName: true, orgSynopsisStatus: true, round1Decision: true, round2Decision: true, currentRound: true },
   });
 
   if (round === 2 && previous.round1Decision !== 'YES') {
@@ -218,6 +219,14 @@ export async function setRoundDecisionAction(round: 1 | 2 | 3, formData: FormDat
     where: { id: applicationId },
     data: { [field]: value, ...(nextCurrentRound ? { currentRound: nextCurrentRound } : {}) },
   });
+
+  if (nextCurrentRound) {
+    await notifyTeam({
+      actorId: user.id,
+      applicationId,
+      message: `${user.name} moved ${previous.orgName} to ${CURRENT_ROUND_LABEL[nextCurrentRound]}`,
+    });
+  }
 
   // the organisation & model synopsis is jury-facing context, so it only needs to exist once an
   // application actually clears the round 1 gate — generate it once here rather than for every
@@ -252,7 +261,15 @@ export async function setCurrentRoundAction(formData: FormData) {
 
   const currentRound = String(formData.get('currentRound')) as CurrentRoundValue;
 
+  const before = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, select: { orgName: true, currentRound: true } });
   await prisma.application.update({ where: { id: applicationId }, data: { currentRound } });
+  if (before.currentRound !== currentRound) {
+    await notifyTeam({
+      actorId: user.id,
+      applicationId,
+      message: `${user.name} moved ${before.orgName} to ${CURRENT_ROUND_LABEL[currentRound] ?? currentRound.toLowerCase()}`,
+    });
+  }
 
   revalidatePath('/applications');
   revalidatePath(`/applications/${applicationId}`);

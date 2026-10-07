@@ -40,7 +40,7 @@ export default async function Round2Page({ searchParams }: { searchParams: Appli
       <AngularBanner
         eyebrow="round 2 · rapid re.gen challenge"
         title="round 2"
-        subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'} across all benches, alphabetical — double-click a row to open it`}
+        subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'} across all benches`}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <JuryRubricSidePanel />

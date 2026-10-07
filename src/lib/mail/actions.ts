@@ -6,7 +6,18 @@ import { assertRole, CAN_SEND_MAIL, CAN_MANAGE_SETTINGS } from '@/lib/auth/guard
 import { approveAndSendOutboxEmail, enqueueCustomOutreachEmail, previewCustomOutreachEmail, type CustomOutreachKind } from '@/lib/mail/outbox';
 import { getSettings, updateSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
-import { outboxTemplateName, latestDecidedRound, type OutreachRound } from '@/lib/mail/rounds';
+import { outboxTemplateName, latestDecidedRound, parseOutboxTemplate, type OutreachRound } from '@/lib/mail/rounds';
+import { notifyTeam } from '@/lib/notifications/team';
+
+/** Tells the rest of the team a mail went out on an application, e.g. "Priya sent a round 1
+ *  acceptance email to Org". Only called for sends that actually succeeded. */
+async function notifyMailSent(user: { id: string; name: string }, applicationId: string, template: string) {
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { orgName: true } });
+  if (!app) return;
+  const parsed = parseOutboxTemplate(template);
+  const what = parsed ? `a round ${parsed.round} ${parsed.kind} email` : `a ${template.replace(/_/g, ' ')} email`;
+  await notifyTeam({ actorId: user.id, applicationId, message: `${user.name} sent ${what} to ${app.orgName}` });
+}
 
 export async function approveAndSendAction(formData: FormData) {
   const user = await getCurrentUser();
@@ -14,6 +25,7 @@ export async function approveAndSendAction(formData: FormData) {
 
   const outboxId = String(formData.get('outboxId'));
   const email = await approveAndSendOutboxEmail(outboxId);
+  if (email.status === 'SENT') await notifyMailSent(user, email.applicationId, email.template);
 
   revalidatePath('/outreach');
   return { status: email.status, error: email.error };
@@ -36,8 +48,10 @@ export async function bulkApproveAndSendAction(formData: FormData) {
   const errors = new Set<string>();
   for (const id of queuedIds) {
     const result = await approveAndSendOutboxEmail(id);
-    if (result.status === 'SENT') sent++;
-    else {
+    if (result.status === 'SENT') {
+      sent++;
+      await notifyMailSent(user, result.applicationId, result.template);
+    } else {
       failed++;
       if (result.error) errors.add(result.error);
     }
@@ -129,8 +143,10 @@ export async function bulkSendOutreachAction(formData: FormData) {
       email = await prisma.outboxEmail.update({ where: { id: existing.id }, data: { subject: fresh.subject, body: fresh.body } });
     }
     const result = await approveAndSendOutboxEmail(email.id);
-    if (result.status === 'SENT') sent++;
-    else {
+    if (result.status === 'SENT') {
+      sent++;
+      await notifyMailSent(user, applicationId, template);
+    } else {
       failed++;
       if (result.error) errors.add(result.error);
     }
@@ -189,6 +205,7 @@ export async function sendIndividualOutreachAction(formData: FormData) {
   }
 
   const result = await approveAndSendOutboxEmail(email.id);
+  if (result.status === 'SENT') await notifyMailSent(user, applicationId, template);
 
   revalidatePath('/outreach');
   return { status: result.status, error: result.error };

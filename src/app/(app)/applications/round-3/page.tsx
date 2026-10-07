@@ -21,7 +21,7 @@ export default async function Round3Page() {
       <AngularBanner
         eyebrow="round 3 · rapid re.gen challenge"
         title="round 3"
-        subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'} — double-click a row to open it`}
+        subtitle={`${applications.length} application${applications.length === 1 ? '' : 's'}`}
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <Card padding="0" style={{ overflowX: 'auto' }}>

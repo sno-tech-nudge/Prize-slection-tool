@@ -18,24 +18,6 @@ export interface ApplicationFilterOptions {
 // hardcodes this same value on its own trigger button, since it doesn't take a style prop.
 export const FILTER_CONTROL_HEIGHT = 38;
 
-function pillStyle(active: boolean): React.CSSProperties {
-  return {
-    height: FILTER_CONTROL_HEIGHT,
-    boxSizing: 'border-box',
-    display: 'inline-flex',
-    alignItems: 'center',
-    fontSize: 'var(--fs-caption)',
-    textTransform: 'lowercase',
-    padding: '0 var(--space-3)',
-    border: `1px solid ${active ? 'var(--delta-red)' : 'var(--border-strong)'}`,
-    background: active ? 'var(--delta-red)' : 'var(--surface-card)',
-    color: active ? 'var(--text-inverse)' : 'var(--text-primary)',
-    cursor: 'pointer',
-    fontFamily: 'var(--font-sans)',
-    whiteSpace: 'nowrap',
-  };
-}
-
 // compact overrides on top of the design-system Input/Select defaults — same height and border
 // weight as the pill buttons and MultiSelect triggers, so every control in the bar matches.
 const compactFieldStyle: React.CSSProperties = {
@@ -88,18 +70,9 @@ export function ApplicationFilters({ options, isAdmin = false }: { options: Appl
     return (searchParams.get(key) ?? '').split(',').filter(Boolean);
   }
 
-  const currentAssignedToMe = searchParams.get('assignedToMe') === '1';
-
   return (
     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', rowGap: 'var(--space-3)', marginBottom: 'var(--space-6)', alignItems: 'center' }}>
-      {/* status & decision — where is this application in the pipeline */}
-      <button
-        type="button"
-        onClick={() => setParam('assignedToMe', currentAssignedToMe ? '' : '1')}
-        style={pillStyle(currentAssignedToMe)}
-      >
-        assigned to me
-      </button>
+      {/* status & jury bench — where is this application in the pipeline */}
       <MultiSelect
         label="application status"
         width={170}
