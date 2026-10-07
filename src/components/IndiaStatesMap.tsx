@@ -125,7 +125,7 @@ export function IndiaStatesMap({ data }: { data: StateCount[] }) {
           </div>
         ))}
         <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
-          hover a state to see its name and application count. shaded by applications operating in that state
+          hover a state or UT to see its name and application count. shaded by applications operating in that state or UT
           (multi-select, so an application can count toward more than one).
         </p>
       </div>

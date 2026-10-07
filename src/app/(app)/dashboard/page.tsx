@@ -281,8 +281,8 @@ export default async function DashboardPage() {
 
         <Card accent>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by state</h2>
-            <Badge tone="outline">{kpis.statesRepresented} states represented</Badge>
+            <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by states &amp; UTs</h2>
+            <Badge tone="outline">{kpis.statesRepresented} states &amp; UTs represented</Badge>
           </div>
           <IndiaStatesMap data={stateMix} />
         </Card>
@@ -403,8 +403,8 @@ async function ObserverDashboard() {
 
         <Card accent>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by state</h2>
-            <Badge tone="outline">{kpis.statesRepresented} states represented</Badge>
+            <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by states &amp; UTs</h2>
+            <Badge tone="outline">{kpis.statesRepresented} states &amp; UTs represented</Badge>
           </div>
           <IndiaStatesMap data={stateMix} />
         </Card>

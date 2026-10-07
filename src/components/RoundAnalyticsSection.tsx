@@ -44,8 +44,8 @@ export async function RoundAnalyticsSection({ where }: { where: Prisma.Applicati
 
       <Card accent>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-          <h2 style={{ fontSize: 'var(--fs-h4)' }}>states / UTs of operation</h2>
-          <Badge tone="outline">{stateMix.length} states represented</Badge>
+          <h2 style={{ fontSize: 'var(--fs-h4)' }}>states &amp; UTs of operation</h2>
+          <Badge tone="outline">{stateMix.length} states &amp; UTs represented</Badge>
         </div>
         <IndiaStatesMap data={stateMix} />
       </Card>
