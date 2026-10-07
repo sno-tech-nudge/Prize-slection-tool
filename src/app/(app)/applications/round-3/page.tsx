@@ -5,9 +5,9 @@ import { RoundAnalyticsSection } from '@/components/RoundAnalyticsSection';
 import { getCurrentUser } from '@/lib/auth/session';
 import { listFieldVisitApplications } from '@/lib/benches/queries';
 
-const HEADERS = ['organisation', 'round 3 score', 'round 3 decision'];
+const HEADERS = ['organisation', 'round 2 score', 'round 3 decision'];
 
-/** "Field visits" (round 3) — tracking/view page only, no separate scoring mechanism of its own;
+/** Round 3 (field visits) — tracking/view page only, no separate scoring mechanism of its own;
  *  scoped to applications that cleared round 2 (round2Decision: 'YES'). Same double-click-to-open
  *  table style as round 2's page. */
 export default async function Round3Page() {

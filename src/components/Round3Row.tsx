@@ -13,7 +13,7 @@ export interface Round3RowData {
   avgJuryScore: number | null;
 }
 
-/** Same double-click-to-open row pattern as InternalJuryRow (round 2's table) — "round 3 score"
+/** Same double-click-to-open row pattern as InternalJuryRow (round 2's table) — the "round 2 score" column
  *  is round 2's avg jury score carried forward, since round 3 ("field visits") has no separate
  *  scoring mechanism of its own; it's a tracking/view page only. */
 export function Round3Row({ app }: { app: Round3RowData }) {
