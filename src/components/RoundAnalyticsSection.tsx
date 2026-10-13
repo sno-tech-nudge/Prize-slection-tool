@@ -30,7 +30,7 @@ export async function RoundAnalyticsSection({ where }: { where: Prisma.Applicati
         <h2 style={{ fontSize: 'var(--fs-h3)', marginBottom: 'var(--space-6)' }}>analytics</h2>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
         <Card accent>
           <SectionHeader title="operating model mix" />
           <PieChart data={operatingModelMix.map((c) => ({ label: c.category, count: c.count }))} />

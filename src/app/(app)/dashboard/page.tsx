@@ -158,7 +158,7 @@ export default async function DashboardPage() {
           <Kpi label="selected" value="—" icon={Trophy} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
           <Card accent>
             <SectionHeader title="pipeline funnel" action={{ href: '/analytics', label: 'full analytics' }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
           <Card accent accentSide="left">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
               <h2 style={{ fontSize: 'var(--fs-h4)' }}>target matches</h2>
@@ -234,9 +234,10 @@ export default async function DashboardPage() {
             </Link>
           </Card>
 
-          <Card>
+          <Card style={{ display: 'flex', flexDirection: 'column' }}>
             <SectionHeader title="recent activity" />
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            <div style={{ position: 'relative', flex: 1, minHeight: 280 }}>
+              <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', paddingRight: 'var(--space-3)' }}>
               {activity.map((t) => (
                 <div
                   key={t.id}
@@ -256,13 +257,14 @@ export default async function DashboardPage() {
                 </div>
               ))}
               {activity.length === 0 && <p style={{ fontSize: 'var(--fs-small)', color: 'var(--text-muted)', paddingTop: 'var(--space-3)' }}>no activity yet.</p>}
+              </div>
             </div>
           </Card>
         </div>
 
         <PartHeader title="application analytics" />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
           <Card accent>
             <SectionHeader title="operating model mix" />
             <PieChart data={categoryMix.map((c) => ({ label: c.category, count: c.count }))} />
@@ -287,7 +289,7 @@ export default async function DashboardPage() {
           <IndiaStatesMap data={stateMix} />
         </Card>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
           <Card>
             <SectionHeader title="organisation size (full-time employees)" />
             <PieChart data={orgSizeMix} size={160} />
@@ -384,7 +386,7 @@ async function ObserverDashboard() {
 
         <PartHeader title="application analytics" />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
           <Card accent>
             <SectionHeader title="operating model mix" />
             <PieChart data={categoryMix.map((c) => ({ label: c.category, count: c.count }))} />
@@ -409,7 +411,7 @@ async function ObserverDashboard() {
           <IndiaStatesMap data={stateMix} />
         </Card>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
           <Card>
             <SectionHeader title="organisation size (full-time employees)" />
             <PieChart data={orgSizeMix} size={160} />
