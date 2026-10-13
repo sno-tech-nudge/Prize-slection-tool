@@ -35,9 +35,21 @@ const ECOSYSTEM_PARTNER_TABLE_HEADERS = [
   'deck',
 ];
 
-function Kpi({ label, value, icon: Icon, href }: { label: string; value: number | string; icon: LucideIcon; href?: string }) {
-  const content = (
-    <>
+function Kpi({
+  label,
+  sublabel,
+  value,
+  icon: Icon,
+  href,
+}: {
+  label: string;
+  sublabel?: string;
+  value: number | string;
+  icon: LucideIcon;
+  href?: string;
+}) {
+  const card = (
+    <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', flex: 1, cursor: href ? 'pointer' : 'default' }}>
       <div
         style={{
           width: 32,
@@ -59,30 +71,35 @@ function Kpi({ label, value, icon: Icon, href }: { label: string; value: number 
             fontSize: 'var(--fs-caption)',
             textTransform: 'uppercase',
             letterSpacing: 'var(--ls-wide)',
-            color: 'var(--text-muted)',
-            marginTop: 'var(--space-1)',
+            fontWeight: 'var(--fw-bold)' as unknown as number,
+            color: 'var(--text-secondary)',
+            marginTop: 'var(--space-2)',
           }}
         >
           {label}
         </div>
+        {sublabel && (
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 2 }}>{sublabel}</div>
+        )}
       </div>
-    </>
+    </Card>
   );
 
+  // every tile is a full-height flex child of its grid cell, so a linked tile (wrapped in <a>) is
+  // exactly as tall as an unlinked one beside it
   if (href) {
     return (
-      <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', cursor: 'pointer' }}>{content}</Card>
+      <Link href={href} style={{ display: 'flex', textDecoration: 'none', color: 'inherit' }}>
+        {card}
       </Link>
     );
   }
-
-  return <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>{content}</Card>;
+  return <div style={{ display: 'flex' }}>{card}</div>;
 }
 
 function SectionHeader({ title, action }: { title: string; action?: { href: string; label: string } }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, marginBottom: 'var(--space-5)' }}>
       <h2 style={{ fontSize: 'var(--fs-h4)' }}>{title}</h2>
       {action && (
         <Link href={action.href} style={{ fontSize: 'var(--fs-small)', color: 'var(--delta-red)', textDecoration: 'none', fontWeight: 'var(--fw-bold)' as unknown as number }}>
@@ -152,10 +169,10 @@ export default async function DashboardPage() {
       />
       <div style={{ padding: 'var(--space-10)', maxWidth: 'var(--container-xl)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-5)' }}>
-          <Kpi label="round 1 · application screening" value={kpis.total} icon={FileText} href="/applications" />
-          <Kpi label="round 2 · jury round" value={kpis.round2Count} icon={ClipboardCheck} href="/applications/round-2" />
-          <Kpi label="round 3 · field visit" value={kpis.round3Count} icon={CheckCircle2} href="/applications/round-3" />
-          <Kpi label="selected" value="—" icon={Trophy} />
+          <Kpi label="round 1" sublabel="application screening" value={kpis.total} icon={FileText} href="/applications" />
+          <Kpi label="round 2" sublabel="jury round" value={kpis.round2Count} icon={ClipboardCheck} href="/applications/round-2" />
+          <Kpi label="round 3" sublabel="field visit" value={kpis.round3Count} icon={CheckCircle2} href="/applications/round-3" />
+          <Kpi label="selected" sublabel="final cohort" value="—" icon={Trophy} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
@@ -168,7 +185,7 @@ export default async function DashboardPage() {
             </div>
           </Card>
 
-          <Card>
+          <Card accent>
             <SectionHeader title="reviewer stats" />
             {reviewerStats.length > 0 ? (
               <div>
@@ -213,8 +230,8 @@ export default async function DashboardPage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
-          <Card accent accentSide="left">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+          <Card accent>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, marginBottom: 'var(--space-5)' }}>
               <h2 style={{ fontSize: 'var(--fs-h4)' }}>target matches</h2>
               <Badge tone="outline">
                 {targetStats.applied}/{targetStats.total} applied
@@ -234,7 +251,7 @@ export default async function DashboardPage() {
             </Link>
           </Card>
 
-          <Card style={{ display: 'flex', flexDirection: 'column' }}>
+          <Card accent style={{ display: 'flex', flexDirection: 'column' }}>
             <SectionHeader title="recent activity" />
             <div style={{ position: 'relative', flex: 1, minHeight: 280 }}>
               <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', paddingRight: 'var(--space-3)' }}>
@@ -282,7 +299,7 @@ export default async function DashboardPage() {
         </Card>
 
         <Card accent>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, marginBottom: 'var(--space-5)' }}>
             <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by states &amp; UTs</h2>
             <Badge tone="outline">{kpis.statesRepresented} states &amp; UTs represented</Badge>
           </div>
@@ -290,12 +307,12 @@ export default async function DashboardPage() {
         </Card>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
-          <Card>
+          <Card accent>
             <SectionHeader title="organisation size (full-time employees)" />
             <PieChart data={orgSizeMix} size={160} />
           </Card>
 
-          <Card>
+          <Card accent>
             <SectionHeader title="organisation age" />
             <PieChart data={orgAgeMix} size={160} />
           </Card>
@@ -404,7 +421,7 @@ async function ObserverDashboard() {
         </Card>
 
         <Card accent>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, marginBottom: 'var(--space-5)' }}>
             <h2 style={{ fontSize: 'var(--fs-h4)' }}>applicants by states &amp; UTs</h2>
             <Badge tone="outline">{kpis.statesRepresented} states &amp; UTs represented</Badge>
           </div>
@@ -412,12 +429,12 @@ async function ObserverDashboard() {
         </Card>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-8)', alignItems: 'stretch' }}>
-          <Card>
+          <Card accent>
             <SectionHeader title="organisation size (full-time employees)" />
             <PieChart data={orgSizeMix} size={160} />
           </Card>
 
-          <Card>
+          <Card accent>
             <SectionHeader title="organisation age" />
             <PieChart data={orgAgeMix} size={160} />
           </Card>

@@ -6,7 +6,7 @@ import { getOperatingModelMix, getOrgSizeMix, getStateApplicationMix, getRegenPr
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, marginBottom: 'var(--space-5)' }}>
       <h2 style={{ fontSize: 'var(--fs-h4)' }}>{title}</h2>
     </div>
   );
@@ -43,7 +43,7 @@ export async function RoundAnalyticsSection({ where }: { where: Prisma.Applicati
       </div>
 
       <Card accent>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, marginBottom: 'var(--space-5)' }}>
           <h2 style={{ fontSize: 'var(--fs-h4)' }}>states &amp; UTs of operation</h2>
           <Badge tone="outline">{stateMix.length} states &amp; UTs represented</Badge>
         </div>
