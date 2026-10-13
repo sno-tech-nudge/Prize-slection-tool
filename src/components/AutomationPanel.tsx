@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Send, RefreshCw, Globe, FileText, HeartPulse, type LucideIcon } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, Globe, FileText, HeartPulse, ChevronDown, type LucideIcon } from 'lucide-react';
 import { Card, Button, Badge, Input, Select, useToast } from '@/design-system';
 import {
   scoreAllUnscoredAction,
@@ -93,6 +93,7 @@ function TaskRow({
 }
 
 export function AutomationPanel({ stats, synopsisApplications }: { stats: AutomationStats; synopsisApplications: SynopsisApplicationOption[] }) {
+  const [panelOpen, setPanelOpen] = React.useState(false);
   const router = useRouter();
   const { push } = useToast();
   const [scoring, setScoring] = React.useState(false);
@@ -230,14 +231,46 @@ export function AutomationPanel({ stats, synopsisApplications }: { stats: Automa
 
   return (
     <Card accent accentSide="left">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-        <h2 style={{ fontSize: 'var(--fs-h4)' }}>pipeline automation</h2>
-        {jobsInFlight > 0 && (
-          <Badge tone="yellow">
-            {jobsInFlight} job{jobsInFlight === 1 ? '' : 's'} in queue
-          </Badge>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => setPanelOpen((o) => !o)}
+        aria-expanded={panelOpen}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-3)',
+          width: '100%',
+          padding: 0,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-sans)',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 'var(--fs-h4)', fontWeight: 'var(--fw-bold)' as unknown as number, textTransform: 'lowercase' }}>pipeline automation</span>
+          {jobsInFlight > 0 && (
+            <Badge tone="yellow">
+              {jobsInFlight} job{jobsInFlight === 1 ? '' : 's'} in queue
+            </Badge>
+          )}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--fs-caption)', color: 'var(--text-secondary)' }}>
+          {panelOpen ? 'hide' : 'show'} automation tools
+          <ChevronDown
+            size={18}
+            strokeLinejoin="miter"
+            strokeLinecap="square"
+            style={{ transform: panelOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur-base) var(--ease-out)' }}
+          />
+        </span>
+      </button>
+
+      {panelOpen && (
+        <div style={{ marginTop: 'var(--space-2)' }}>
 
       <div>
         <TaskRow
@@ -438,6 +471,8 @@ export function AutomationPanel({ stats, synopsisApplications }: { stats: Automa
         </div>
         <Badge tone={stats.autoSendRejections ? 'red' : 'outline'}>{stats.autoSendRejections ? 'auto-send on' : 'manual approval'}</Badge>
       </div>
+        </div>
+      )}
     </Card>
   );
 }
