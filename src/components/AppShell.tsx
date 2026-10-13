@@ -10,6 +10,7 @@ import { logoutAction } from '@/lib/auth/actions';
 import { JobQueueTicker } from '@/components/JobQueueTicker';
 import { SupabaseSyncTicker } from '@/components/SupabaseSyncTicker';
 import { NotificationBell } from '@/components/NotificationBell';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { applyTheme, readTheme } from '@/lib/theme';
 
 interface NavItem {
@@ -113,6 +114,7 @@ export function AppShell({ user, children }: { user: User | null; children: Reac
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexShrink: 0 }}>
           <SupabaseSyncTicker />
           <JobQueueTicker />
+          <ThemeToggle />
           {user && user.role !== 'OBSERVER' && <NotificationBell />}
           {user && (
             <>
